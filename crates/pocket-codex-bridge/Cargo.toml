@@ -38,6 +38,7 @@ pocket-codex-api-proxy = { workspace = true }
 pocket-codex-host-svc = { workspace = true }
 tokio = { workspace = true }
 anyhow = { workspace = true }
+chrono = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 toml = { workspace = true }
@@ -51,8 +52,8 @@ webpki-roots = "0.26"
 once_cell = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+futures = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3"
-futures = { workspace = true }
 tokio-tungstenite = { workspace = true }

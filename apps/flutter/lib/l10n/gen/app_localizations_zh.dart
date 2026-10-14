@@ -199,6 +199,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get imagePickFailed => '无法读取所选图片';
 
   @override
+  String get imagesNotAccepted => '该智能体不接受图片';
+
+  @override
+  String get attachmentRevoked => '未添加：读取文件期间会话已变化，请重新添加。';
+
+  @override
   String imageTooMany(int count) {
     return '每条消息最多附加 $count 张图片';
   }
@@ -1097,6 +1103,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get stopHosting => '停止托管';
 
   @override
+  String get localHostStopFailed => '未能停止：请再次停止';
+
+  @override
   String get localHostPort => '端口';
 
   @override
@@ -1139,10 +1148,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get hostProxyInherit => '继承 app 的运行环境';
 
   @override
-  String get localHostDialogTitle => '托管本地 app-server';
+  String get localHostDialogTitle => '在本机托管';
 
   @override
-  String get localHostHint => '在本机运行 codex 并注册到你的账号，让你的其它设备可以驱动它。';
+  String get localHostHint => '在本机运行 codex 并发布到你的中转，让你的其它设备可以驱动它。';
 
   @override
   String localHostListening(String addr) {
@@ -1354,6 +1363,64 @@ class AppLocalizationsZh extends AppLocalizations {
   String get hostSwitchTitle => '切换主机';
 
   @override
+  String hostRestoreFull(int count) {
+    return '已开始托管，但启动时不会恢复此主机：已记住 $count 个主机。如需恢复，请先停止其中一个主机，再重新启动此主机。';
+  }
+
+  @override
+  String acpSavedAgentsFull(int count) {
+    return '此配置未保存：已保存 $count 个配置。';
+  }
+
+  @override
+  String get hostSwitchManage => '管理主机…';
+
+  @override
+  String get agentChoiceNative => '原生 app-server';
+
+  @override
+  String get agentChoiceSaved => '已保存 · ACP';
+
+  @override
+  String get agentChoicePreset => '预设 · ACP';
+
+  @override
+  String get agentChoiceNew => '新建配置';
+
+  @override
+  String get agentChoiceBuiltinTitle => '内置预设';
+
+  @override
+  String get agentChoiceBuiltinNote => '使用默认启动设置，智能体从本机已安装的程序运行。';
+
+  @override
+  String get agentChoiceSavedTitle => '已保存配置';
+
+  @override
+  String get agentChoiceSavedNote => '复用你保存的启动设置，或新建一个配置。';
+
+  @override
+  String get agentChoiceCustomTitle => '自定义配置';
+
+  @override
+  String get agentChoiceCustomNote => '自行设置程序和参数，可保存供下次复用。';
+
+  @override
+  String get hostNameHelper => '本机内唯一，用作该主机在中转上的名称。';
+
+  @override
+  String get hostAdvanced => '高级';
+
+  @override
+  String get localHostPortInvalid => '请输入 0 到 65535 的端口（0 表示自动选择空闲端口）。';
+
+  @override
+  String get localHostPortHelper => '填 0 会自动选择空闲端口。';
+
+  @override
+  String get hostPortConflict => '本机已有其他主机在使用这个端口。填 0 自动选择空闲端口，或换一个端口。';
+
+  @override
   String hostSwitchingTo(String host) {
     return '正在切换到 $host…';
   }
@@ -1535,14 +1602,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get codexSetup => '配置 Codex';
 
   @override
-  String get codexChatNeedsSetup => '模型访问尚未配置 —— 请先完成 Codex 认证再对话。';
+  String get codexChatNeedsSetup => '模型访问尚未配置 —— 请先设置此托管的模型服务再对话。';
 
   @override
   String get codexSetupStepTitle => '配置 Codex 模型访问';
 
   @override
   String get codexSetupStepDesc =>
-      '填写 provider(URL + API Key)或用 ChatGPT 官方登录,并可切换「非降智」system prompt。';
+      '用 ChatGPT 官方登录,或在托管时为它设置自己的供应商,并可切换「非降智」system prompt。';
 
   @override
   String get codexSetupProviderSection => '自定义 Provider';
@@ -1650,6 +1717,42 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get codexSetupCredentialExists => '凭证已存在';
+
+  @override
+  String get codexSetupProviderPerHost => '按托管分别设置:每个托管的模型服务都可以使用自定义供应商。';
+
+  @override
+  String get codexSetupProviderScope =>
+      '本页配置 Codex 本身(下方的配置目录):ChatGPT 登录和提示词选项。选择「现有配置」的托管会使用它;托管自己的自定义供应商或官方账号在该托管的编辑页中选择。';
+
+  @override
+  String get codexSetupGlobalProvider =>
+      'Codex 自身的配置已选用一个自定义供应商,选择「现有配置」的托管会继续使用它。';
+
+  @override
+  String get codexSetupConfigureHost => '配置托管';
+
+  @override
+  String get codexSetupHostingDesktopOnly => '托管只在桌面端运行,请在桌面端为托管设置供应商。';
+
+  @override
+  String get settingsHosting => '托管与模型服务';
+
+  @override
+  String get settingsHostingDesc => '托管的智能体、模型服务与登录';
+
+  @override
+  String get hostPickTitle => '配置哪个托管?';
+
+  @override
+  String get hostPickHint =>
+      '每个托管有各自的模型服务。选择后只会打开它的编辑页。保存不会改动正在运行的托管,保存的配置在「应用并重启」后才生效。';
+
+  @override
+  String get hostPickNew => '新建托管';
+
+  @override
+  String get hostPickLoadFailed => '无法读取正在运行的托管,仍可新建托管。';
 
   @override
   String get resizeComposer => '拖动调整输入框高度；双击恢复默认';
@@ -1781,6 +1884,45 @@ class AppLocalizationsZh extends AppLocalizations {
   String get steerTurnEnded => '当前轮次已变更或结束。草稿已保留，可作为新轮次发送。';
 
   @override
+  String get steerUnavailableHint => '当前连接未提供运行中补充说明，点击查看原因。';
+
+  @override
+  String get steerQueueOnly => '仅支持排队';
+
+  @override
+  String get steerUnavailableTitle => '补充说明不可用';
+
+  @override
+  String steerUnavailableDetails(String agent) {
+    return '$agent 没有通过当前 ACP 连接声明运行中补充说明的能力。现在发送的消息会排队，在当前轮次结束后发送。\n\n连接的代理提供此能力后才能使用补充说明；切换模型不会开启它。';
+  }
+
+  @override
+  String get steerQueuedAfterEnd => '轮次已结束，补充内容将作为下一轮发送。';
+
+  @override
+  String get retryUnverified => '无法确认主机是否已收到这条消息，因此没有重新发送。请在主机可连接后重试。';
+
+  @override
+  String get queuedUncertain => '可能已经发送。只有你点重试时才会再次发送。';
+
+  @override
+  String get queuedUncertainRetry =>
+      '这条消息可能已经到达主机，因此它留在队列中，不会自动发送。请先查看对话：点重试会再次发送，点它可以编辑。';
+
+  @override
+  String get steerAnswerStale => '回复到达时，此对话的主机或视图已经变化，因此你的草稿保持原样。再次发送前请先查看对话。';
+
+  @override
+  String get sendHostChanged => '发送前主机连接已变化，因此没有发送这条消息。';
+
+  @override
+  String get sendAnswerStale => '主机在连接变化后才回复，无法确定这条消息是否已到达。';
+
+  @override
+  String get sendReturnedToDraft => '消息已放回输入框；再次发送前请先查看对话。';
+
+  @override
   String get advancedSettings => '高级设置';
 
   @override
@@ -1834,6 +1976,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get fileLinkClose => '关闭';
+
+  @override
+  String get providerLabel => '服务提供方';
+
+  @override
+  String get providerCodex => 'Codex';
+
+  @override
+  String get hostMetaLabel => 'Meta 服务';
 
   @override
   String get draft => '草稿';
@@ -2060,4 +2211,984 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dictationShortcut => '语音输入（Ctrl+Shift+Space）';
+
+  @override
+  String get providerAcpAgent => 'ACP 智能体';
+
+  @override
+  String get protocolAcpTag => 'ACP';
+
+  @override
+  String get acpHostHint => '按程序和参数在本机运行兼容 ACP 的智能体，并提供给你的设备使用。停止托管会停止该智能体。';
+
+  @override
+  String get acpAgentLabel => '智能体';
+
+  @override
+  String get acpAgentCustom => '自定义智能体';
+
+  @override
+  String get acpAgentName => '智能体名称';
+
+  @override
+  String get acpProgram => '程序';
+
+  @override
+  String get acpProgramBrowse => '选择…';
+
+  @override
+  String get acpProgramHint => '完整路径，或本机 PATH 中的程序名。路径可以包含空格。';
+
+  @override
+  String get acpArguments => '参数';
+
+  @override
+  String get acpArgumentsHint => '每行一个参数，按原样传递：不经过 shell，不拆分，不展开变量。';
+
+  @override
+  String get acpArgumentAdd => '添加参数';
+
+  @override
+  String get acpArgumentRemove => '删除参数';
+
+  @override
+  String get acpArgumentMoveUp => '上移';
+
+  @override
+  String get acpArgumentMoveDown => '下移';
+
+  @override
+  String acpArgumentLabel(int index) {
+    return '参数 $index';
+  }
+
+  @override
+  String get acpSecretsNote => '保存的智能体以明文存储在本机。请勿在参数中放入密钥，优先使用智能体自己的登录。';
+
+  @override
+  String get acpProgramNotFound => '本机未找到该程序。';
+
+  @override
+  String get claudeEnvTitle => 'Claude 环境变量';
+
+  @override
+  String claudeAdapterInstalled(String path) {
+    return 'ACP 适配器：$path';
+  }
+
+  @override
+  String claudeAdapterPrepared(String path) {
+    return 'ACP 适配器（由本应用准备）：$path';
+  }
+
+  @override
+  String claudeAdapterWillPrepare(String package) {
+    return '尚未安装 ACP 适配器。可以先准备环境，也可在开始托管时自动准备。将从 npm 下载 $package 到本应用缓存，不改动全局环境。';
+  }
+
+  @override
+  String claudeAdapterMissing(String package) {
+    return '尚未安装 ACP 适配器（$package），且本机无法自动准备。';
+  }
+
+  @override
+  String claudeNodeFound(String version, String path) {
+    return 'Node.js $version：$path';
+  }
+
+  @override
+  String claudeNodeTooOld(String version) {
+    return 'Node.js $version 版本过低；适配器需要 Node.js 22 或更高版本。';
+  }
+
+  @override
+  String get claudeNodeMissing => '未找到 Node.js 22 或更高版本。';
+
+  @override
+  String claudeCliFound(String path) {
+    return 'Claude Code：$path';
+  }
+
+  @override
+  String get claudeCliInherited => 'Claude Code：使用 CLAUDE_CODE_EXECUTABLE 的设置';
+
+  @override
+  String get claudeCliBundled => '未找到 Claude Code；适配器将使用其自带版本。';
+
+  @override
+  String get claudePrepareEnvironment => '准备 ACP 环境';
+
+  @override
+  String get claudeEnvironmentReady => 'ACP 环境已就绪，未启动或重启任何托管。';
+
+  @override
+  String get claudeEnvRecheck => '重新检测';
+
+  @override
+  String claudePreparing(int seconds) {
+    return '正在准备 Claude ACP 适配器… $seconds 秒';
+  }
+
+  @override
+  String claudePrepareVerifying(int seconds) {
+    return '正在校验下载的适配器… $seconds 秒';
+  }
+
+  @override
+  String get claudePrepareCancel => '停止准备';
+
+  @override
+  String get claudePrepareStopWaiting => '停止等待';
+
+  @override
+  String get claudePrepareJoined => '这次准备由其他窗口启动；本页只跟随它的进度。';
+
+  @override
+  String get claudePrepareLeftRunning => '已停止等待。其他地方启动的准备仍在继续。';
+
+  @override
+  String get claudePrepareReplaced =>
+      '本页跟随的准备已被另一次准备取代，这里不显示它的结果。点击“准备 ACP 环境”或“开始托管”可重试。';
+
+  @override
+  String get quitStopping => '正在停止托管的智能体，然后退出…';
+
+  @override
+  String quitBlocked(String error) {
+    return '无法安全停止托管，应用保持打开：$error';
+  }
+
+  @override
+  String get quitRetry => '再次退出';
+
+  @override
+  String claudePrepareFailed(String error) {
+    return '准备 Claude ACP 适配器失败：$error';
+  }
+
+  @override
+  String get claudePrepareCancelled =>
+      '已停止准备 Claude ACP 适配器。点击“准备 ACP 环境”或“开始托管”可重试。';
+
+  @override
+  String acpProgramFound(String path) {
+    return '已找到：$path';
+  }
+
+  @override
+  String get acpSaveAgent => '保存为配置';
+
+  @override
+  String get acpHostingUnsupported => '此平台暂不支持托管 ACP 智能体。你仍可使用其他设备托管的智能体。';
+
+  @override
+  String get acpPhaseStarting => '正在启动';
+
+  @override
+  String get acpPhaseReady => '运行中';
+
+  @override
+  String get acpPhaseFailed => '未运行';
+
+  @override
+  String get acpPhaseStopped => '已停止';
+
+  @override
+  String get acpAuthRequired => '智能体提示需要登录。请在主机上用智能体自己的方式登录，然后重启它。';
+
+  @override
+  String get acpRestart => '重启智能体';
+
+  @override
+  String get acpGatewayLabel => '智能体网关';
+
+  @override
+  String get acpStopNote => '停止托管会停止该智能体及其启动的进程。';
+
+  @override
+  String get acpFeatures => '智能体功能';
+
+  @override
+  String get acpCatalog => '模型目录';
+
+  @override
+  String get acpCatalogWaiting => '智能体打开第一个会话时才会读取模型目录。';
+
+  @override
+  String get acpRouteWaiting => '智能体打开第一个会话时才会检查 OpenCode 是否使用此主机的提供方。';
+
+  @override
+  String get acpRouteSelected => 'OpenCode 使用此主机的提供方和模型。';
+
+  @override
+  String acpRouteOverridden(String reasons) {
+    return '其他 OpenCode 配置覆盖了此主机的提供方：$reasons。请求可能发往别处。';
+  }
+
+  @override
+  String acpRouteUnverified(String reasons) {
+    return '无法检查 OpenCode 是否使用此主机的提供方：$reasons。';
+  }
+
+  @override
+  String get acpRouteReasonModel => '它选择了另一个模型';
+
+  @override
+  String get acpRouteReasonEnabled => 'enabled_providers 未包含它';
+
+  @override
+  String get acpRouteReasonDisabled => 'disabled_providers 列出了它';
+
+  @override
+  String get acpRouteReasonMissing => '合并后的配置中没有该提供方';
+
+  @override
+  String get acpRouteReasonSmallModel => 'small_model 指向其他提供方';
+
+  @override
+  String get acpRouteReasonAgentModel => '某个智能体或模式的模型指向其他提供方';
+
+  @override
+  String get acpRouteReasonProvider => '其他配置层修改了该提供方的定义';
+
+  @override
+  String acpRouteEnforced(String reasons) {
+    return '其他 OpenCode 配置与此主机不同，已重置为此主机的提供方：$reasons。';
+  }
+
+  @override
+  String get acpRouteRefused =>
+      'OpenCode 没有可用的提供方：智能体环境中缺少此主机的密钥，因此无法发送任何提示。请重新保存密钥并重启主机。';
+
+  @override
+  String get acpRouteReasonKey => '智能体中缺少此主机的密钥';
+
+  @override
+  String acpRouteProjects(String projects) {
+    return '已检查的项目（按插件输入给出的名称，未对照 OpenCode 源码核实）：$projects';
+  }
+
+  @override
+  String get acpRouteScope =>
+      '这覆盖 OpenCode 合并后的配置，并用此主机的密钥覆盖用 `opencode auth login` 为同一提供方保存的密钥。其他插件为同一提供方提供的提供方或认证加载器，以及之后运行的插件钩子，不在此范围内。';
+
+  @override
+  String acpCatalogUnavailable(String reason) {
+    return '无法为智能体加入模型目录：$reason';
+  }
+
+  @override
+  String get acpCatalogReasonPluginsDisabled =>
+      '智能体在禁用插件的模式下运行（--pure 或 OPENCODE_PURE）';
+
+  @override
+  String get acpCatalogReasonConfigTaken =>
+      '智能体的环境同时设置了 OPENCODE_CONFIG 和 OPENCODE_CONFIG_CONTENT；请把下面的插件加入你的配置';
+
+  @override
+  String get acpCatalogReasonInstallFailed => '目录插件无法写入';
+
+  @override
+  String get acpCatalogPlugin => '插件';
+
+  @override
+  String acpCatalogProviderComplete(String id, int listed, int added) {
+    return '$id：列出 $listed 个模型，新增 $added 个';
+  }
+
+  @override
+  String acpCatalogProviderPartial(
+    String id,
+    int listed,
+    int added,
+    String reason,
+  ) {
+    return '$id：列出 $listed 个模型，新增 $added 个；列表不完整（$reason）';
+  }
+
+  @override
+  String get acpCatalogNoProviders =>
+      '没有找到设置了明确 baseURL 的已启用提供方，因此没有读取模型列表；只提供配置中的模型。';
+
+  @override
+  String acpCatalogProviderFailed(String id, String reason) {
+    return '$id：模型列表无法读取（$reason）；使用配置中的模型';
+  }
+
+  @override
+  String acpCatalogProviderSkipped(String id, String reason) {
+    return '$id：未读取（$reason）';
+  }
+
+  @override
+  String acpCatalogExcluded(int count) {
+    return '排除了 $count 个非对话条目';
+  }
+
+  @override
+  String acpCatalogUnsafe(int count) {
+    return '排除了 $count 个智能体无法保存其标识的条目';
+  }
+
+  @override
+  String get acpCatalogNoKey => '在提供方的配置和环境变量中都没有找到密钥；通过智能体自己的登录保存的密钥在这里不可见';
+
+  @override
+  String get acpFeatureReopen => '重新打开以前的会话';
+
+  @override
+  String get acpFeatureReopenLoad => '包含历史';
+
+  @override
+  String get acpFeatureReopenResume => '不含以前的历史';
+
+  @override
+  String get acpFeatureList => '智能体自己的会话列表';
+
+  @override
+  String get acpFeatureImages => '图片附件';
+
+  @override
+  String get acpFeatureSupported => '支持';
+
+  @override
+  String get acpFeatureNotSupported => '不支持';
+
+  @override
+  String get acpFeatureUnknown => '连接到运行中的智能体后显示';
+
+  @override
+  String permissionFromAgent(String agent) {
+    return '$agent 请求权限';
+  }
+
+  @override
+  String get permissionRememberTitle => '记住这个选择？';
+
+  @override
+  String permissionRememberBody(String option) {
+    return '“$option”会让智能体记住这个决定。生效的时长和范围由智能体决定。';
+  }
+
+  @override
+  String get permissionAnswerFailed => '未能发送你的回答，请重试。';
+
+  @override
+  String get agentOptions => '智能体选项';
+
+  @override
+  String get agentMode => '模式';
+
+  @override
+  String agentOptionSearch(String option) {
+    return '搜索$option';
+  }
+
+  @override
+  String get agentOptionNoMatch => '没有匹配的选项。';
+
+  @override
+  String get historyGapNotice => '此智能体主机无法提供更早的历史记录。';
+
+  @override
+  String contentOmittedNotice(String parts) {
+    return '内容过大，未保留：$parts。';
+  }
+
+  @override
+  String get contentUnavailableNotice => '此回复的部分内容无法从智能体主机读取。';
+
+  @override
+  String get omittedImages => '图片';
+
+  @override
+  String get omittedDiffs => '文件改动';
+
+  @override
+  String get omittedInput => '工具输入';
+
+  @override
+  String get omittedLocations => '文件位置';
+
+  @override
+  String get omittedPlan => '计划步骤';
+
+  @override
+  String get omittedContent => '部分输出';
+
+  @override
+  String get omittedSeparator => '、';
+
+  @override
+  String hostEditorTitle(String name) {
+    return '主机 $name';
+  }
+
+  @override
+  String get hostSectionAgent => '智能体';
+
+  @override
+  String get hostSectionStatus => '状态';
+
+  @override
+  String get hostSectionModel => '模型服务';
+
+  @override
+  String get hostSectionModelHint => '此主机的智能体向何处发送模型请求。按主机保存在本设备上。';
+
+  @override
+  String get hostSourceInherited => '现有配置';
+
+  @override
+  String get hostSourceOfficial => '官方账号';
+
+  @override
+  String get hostSourceCustom => '自定义供应商';
+
+  @override
+  String get hostInheritedOnly => '此智能体使用它自己的配置启动。Pocket-Codex 不了解它支持的供应商设置。';
+
+  @override
+  String get hostInheritedAcp => '智能体沿用它自己的配置文件和环境变量,不做改动。';
+
+  @override
+  String hostInheritedCodexCustom(String provider) {
+    return 'Codex 的 config.toml 已选择供应商 $provider,无需其他设置。';
+  }
+
+  @override
+  String get hostInheritedCodexAccount => 'Codex 已登录,无需其他设置。';
+
+  @override
+  String get hostInheritedCodexInvalid =>
+      '无法读取 Codex 的 config.toml。请修复它,或在下方选择其他方式。';
+
+  @override
+  String get hostInheritedCodexNone => 'Codex 尚未登录,也没有配置供应商。请登录或添加自定义供应商。';
+
+  @override
+  String hostInheritedCodexHome(String path) {
+    return '配置目录:$path';
+  }
+
+  @override
+  String get hostProtocolLabel => 'API 类型';
+
+  @override
+  String get hostProtocolResponses => 'OpenAI Responses';
+
+  @override
+  String get hostProtocolAnthropic => 'Anthropic Messages';
+
+  @override
+  String get hostProtocolChat => 'OpenAI Chat Completions';
+
+  @override
+  String get hostBaseUrl => 'Base URL';
+
+  @override
+  String get hostApiKey => 'API Key';
+
+  @override
+  String get hostApiKeyStored => '已保存密钥。留空则保持不变。';
+
+  @override
+  String get hostKeyEnvNote => '仅保存在本设备,在智能体启动时交给它,不会出现在命令行中。';
+
+  @override
+  String get hostApiKeyRemove => '删除已保存的密钥';
+
+  @override
+  String get hostModelOptional => '模型(可选)';
+
+  @override
+  String get hostBaseUrlRequired => '请输入供应商的 Base URL。';
+
+  @override
+  String get hostSaveConfig => '保存';
+
+  @override
+  String get hostConfigSaved => '已保存。运行中的主机在重启前仍使用当前配置。';
+
+  @override
+  String get hostConfigPending => '已保存的更改尚未生效。重启主机以应用。';
+
+  @override
+  String get hostApplyRestart => '应用并重启';
+
+  @override
+  String get hostSaveAndRestart => '保存并重启';
+
+  @override
+  String get hostApplyNote => '重启会短暂停止智能体并断开已打开的会话。若新配置启动失败,将恢复之前的配置。';
+
+  @override
+  String get hostApplied => '已使用新配置重启。';
+
+  @override
+  String hostApplyRestored(String error) {
+    return '新配置启动失败,已恢复之前的配置:$error';
+  }
+
+  @override
+  String hostApplyFailed(String error) {
+    return '重启失败,主机已停止:$error';
+  }
+
+  @override
+  String get hostOfficialNote => '登录在本机私有的 Codex 服务上进行,无需先运行主机。';
+
+  @override
+  String get hostAgentEditNote => '修改启动命令将在重启后生效。';
+
+  @override
+  String get hostCodexRuntimeFixed => '主机当前的运行配置。在下方修改运行时并保存,然后应用以使用它重启。';
+
+  @override
+  String hostLoginRefreshFailed(String error) {
+    return '无法检查登录状态,正在重试:$error';
+  }
+
+  @override
+  String get hostLoginNotOfficial => 'Codex 已完成登录,但不是 ChatGPT 账户。请重新登录。';
+
+  @override
+  String hostLoginFailed(String error) {
+    return '登录失败:$error';
+  }
+
+  @override
+  String get hostSourceUnsupported => '已保存的模型服务不适用于此智能体,请另选一个。';
+
+  @override
+  String get hostModelRequired => '请输入此供应商使用的默认模型。';
+
+  @override
+  String get hostKeyRequired => '请输入供应商的 API 密钥。';
+
+  @override
+  String get hostModelDefault => '默认模型';
+
+  @override
+  String get hostModelDefaultNote => '供应商用于新会话的模型。对话自身的模型在对话中选择,不保存在这里。';
+
+  @override
+  String get hostLeaveTitle => '放弃未保存的更改?';
+
+  @override
+  String get hostLeaveBody => '对此主机的更改尚未保存。';
+
+  @override
+  String get hostLeaveStay => '继续编辑';
+
+  @override
+  String get hostLeaveDiscard => '放弃';
+
+  @override
+  String hostApplyConfirmTitle(String name) {
+    return '重启 $name?';
+  }
+
+  @override
+  String get hostApplyConfirmBody =>
+      '主机将停止并以已保存的配置重新启动。正在进行的回合会被中断,打开的对话会重新连接。本设备上的草稿、附件和排队消息会保留。其他主机不受影响。';
+
+  @override
+  String get hostReplaced => '此页面读取后,该主机已在别处重启。请先重新加载再应用。';
+
+  @override
+  String hostApplyStopped(String error, String restoreError) {
+    return '新配置启动失败($error),恢复之前的配置也失败了($restoreError)。主机已停止。';
+  }
+
+  @override
+  String get hostGone => '此主机已不再运行。';
+
+  @override
+  String get hostConfigReload => '重新加载';
+
+  @override
+  String get hostConfigNewer => '存在更新的已保存配置。重新加载以查看(将放弃你的编辑)。';
+
+  @override
+  String get hostConfigLoadFailedTitle => '配置不可用';
+
+  @override
+  String hostConfigLoadFailed(String error) {
+    return '无法读取此主机已保存的配置:$error';
+  }
+
+  @override
+  String get hostRuntimeEditNote => '保存的更改在应用后生效;名称保持不变。';
+
+  @override
+  String get hostAgentUnknown => '此主机未报告其智能体,无法在此编辑。';
+
+  @override
+  String get hostApiProxyNote =>
+      '此主机还会发布一个独立的 Responses API 服务(api:<name>)。它始终使用本设备的官方 Codex 登录,而不是这里选择的供应商。';
+
+  @override
+  String get claudePrepareStageWorking => '正在准备 Claude ACP 适配器…';
+
+  @override
+  String get claudePrepareStageInstalling => '正在解析并安装依赖包…';
+
+  @override
+  String get claudePrepareStageDownloading => '正在下载依赖包…';
+
+  @override
+  String get claudePrepareStageVerifying => '正在校验下载的适配器…';
+
+  @override
+  String get claudePrepareStageDone => 'Claude ACP 适配器已就绪';
+
+  @override
+  String get claudePrepareStageFailed => '准备失败';
+
+  @override
+  String get claudePrepareStageCancelled => '已停止准备';
+
+  @override
+  String claudePrepareElapsed(String time) {
+    return '已用时 $time';
+  }
+
+  @override
+  String claudePrepareDownloaded(String size) {
+    return '已下载 $size';
+  }
+
+  @override
+  String claudePrepareSpeed(String speed) {
+    return '下载速度 $speed';
+  }
+
+  @override
+  String get claudePrepareSpeedMeasuring => '正在测速…';
+
+  @override
+  String get claudePrepareStepFetch => '下载并安装';
+
+  @override
+  String get claudePrepareStepVerify => '校验';
+
+  @override
+  String claudePrepareStep(int step, int total, String name) {
+    return '第 $step 步（共 $total 步）：$name';
+  }
+
+  @override
+  String get claudeEnvHint =>
+      '默认继承当前主机可获取的环境变量（macOS 包括登录 shell）。打开某项后仅覆盖此主机；保存不影响运行中的主机，重启后应用。模型能力以 Claude 版本和服务商支持为准。';
+
+  @override
+  String get claudeEnvProviderWins =>
+      '上方自定义服务商字段决定 URL、凭据和默认模型。环境连接覆盖仅在使用继承配置时生效。';
+
+  @override
+  String get claudeEnvInherited => '继承环境';
+
+  @override
+  String get claudeEnvCustom => '此主机自定义';
+
+  @override
+  String get claudeEnvStored => '已安全保存 · 留空保留';
+
+  @override
+  String get claudeEnvValue => '填写变量值';
+
+  @override
+  String get claudeEnvRequired => '请填写每个已启用的覆盖项，或将其切回继承环境。';
+
+  @override
+  String get claudeEnvConnection => '连接与凭据';
+
+  @override
+  String get claudeEnvModels => '模型与别名';
+
+  @override
+  String get claudeEnvReasoning => '推理与输出';
+
+  @override
+  String get claudeEnvNetwork => '网络与兼容性';
+
+  @override
+  String get claudeEnvBaseUrl => 'API 基础地址';
+
+  @override
+  String get claudeEnvAuthToken => 'Bearer 令牌';
+
+  @override
+  String get claudeEnvApiKey => 'Anthropic API 密钥';
+
+  @override
+  String get claudeEnvOAuthToken => '已有 OAuth 令牌';
+
+  @override
+  String get claudeEnvModel => '默认模型';
+
+  @override
+  String get claudeEnvOpus => 'Opus 别名对应模型';
+
+  @override
+  String get claudeEnvSonnet => 'Sonnet 别名对应模型';
+
+  @override
+  String get claudeEnvHaiku => 'Haiku 别名对应模型';
+
+  @override
+  String get claudeEnvCustomModel => '模型选择器附加选项';
+
+  @override
+  String get claudeEnvSubagentModel => '子智能体模型';
+
+  @override
+  String get claudeEnvEffort => '推理强度';
+
+  @override
+  String get claudeEnvThinkingTokens => '思考 token 预算';
+
+  @override
+  String get claudeEnvOutputTokens => '最大输出 token';
+
+  @override
+  String get claudeEnvDisableThinking => '省略 thinking 参数';
+
+  @override
+  String get claudeEnvDisableAdaptive => '关闭自适应思考（支持的模型）';
+
+  @override
+  String get claudeEnvTimeout => 'API 超时（毫秒）';
+
+  @override
+  String get claudeEnvHttpProxy => 'HTTP 代理';
+
+  @override
+  String get claudeEnvHttpsProxy => 'HTTPS 代理';
+
+  @override
+  String get claudeEnvNoProxy => '不经过代理的主机';
+
+  @override
+  String get claudeEnvDisableCaching => '关闭提示词缓存';
+
+  @override
+  String get claudeEnvDisableTraffic => '关闭非必要网络请求';
+
+  @override
+  String get claudeEnvNeedsValue => '需要填写值，或切回继承环境。';
+
+  @override
+  String get claudeEnvFlagOn => '开启';
+
+  @override
+  String get claudeEnvFlagOff => '关闭';
+
+  @override
+  String get claudeEnvCredential => '凭据';
+
+  @override
+  String get claudeEnvCredentialNote => 'Claude 只使用一种凭据；选择一种会替换此主机的其他凭据。';
+
+  @override
+  String get claudeEnvGroupInherited => '全部继承';
+
+  @override
+  String get claudeEnvGroupMissing => '仍有值待填写';
+
+  @override
+  String get claudeEnvAllInherited => '全部继承环境';
+
+  @override
+  String claudeEnvOverrides(int count) {
+    return '$count 项覆盖';
+  }
+
+  @override
+  String claudeEnvMissing(int count) {
+    return '$count 项待填写';
+  }
+
+  @override
+  String claudeEnvDormant(int count) {
+    return '已保留 $count 项连接覆盖，切回继承配置后重新生效。';
+  }
+
+  @override
+  String get claudeEnvEditDormant => '编辑未启用的覆盖项';
+
+  @override
+  String get nativeHistoryReadOnly => '本地历史 · 只读';
+
+  @override
+  String get nativeHistoryTakeoverUnavailable =>
+      '历史会自动更新，当前为只读。此智能体无法保证独占交接，暂不支持接管；如需发送消息，请新建对话。';
+
+  @override
+  String agentWelcomeTitle(String agent) {
+    return '与 $agent 开始对话';
+  }
+
+  @override
+  String agentWelcomeOpening(String agent) {
+    return '正在此文件夹中打开 $agent 会话…';
+  }
+
+  @override
+  String get agentWelcomeReady => '已就绪，输入第一条消息即可开始。';
+
+  @override
+  String agentWelcomeReadyModel(String model) {
+    return '已就绪 · $model';
+  }
+
+  @override
+  String agentWelcomeFailed(String reason) {
+    return '无法打开会话：$reason';
+  }
+
+  @override
+  String agentWelcomeNeedsProject(String agent) {
+    return '为 $agent 选择一个工作文件夹。';
+  }
+
+  @override
+  String get agentWelcomeLater => '发送第一条消息时打开会话。';
+
+  @override
+  String get agentWelcomeConnecting => '正在等待主机连接…';
+
+  @override
+  String get chooseFolder => '选择文件夹…';
+
+  @override
+  String get recentProjects => '最近的项目';
+
+  @override
+  String get agentHostSettings => '主机设置';
+
+  @override
+  String agentOpening(String agent) {
+    return '正在打开 $agent…';
+  }
+
+  @override
+  String get agentOpeningHint => '会话打开后会显示智能体的模型和选项。已输入的内容会保留在这里。';
+
+  @override
+  String get agentOptionsUnavailable => '选项不可用';
+
+  @override
+  String get agentOptionsRetry => '未能加载智能体选项，选择以重试。';
+
+  @override
+  String get agentErrorHint => '请检查该主机的模型服务和环境配置，然后重试。';
+
+  @override
+  String get agentAuthHint => '智能体报告需要凭据。请通过该主机的环境配置提供凭据，然后重试。';
+
+  @override
+  String get folderOnThisComputer => '在本机上选择…';
+
+  @override
+  String get folderTypePath => '输入路径';
+
+  @override
+  String get folderPathFieldLabel => '主机上的文件夹路径';
+
+  @override
+  String get folderOutsideRootsNote => '该路径不在项目文件夹内，无法在此浏览；会话开始时由主机检查。';
+
+  @override
+  String get folderPickerNoRootsHint => '仍可输入主机上任意文件夹的路径。';
+
+  @override
+  String get folderNoSubfolders => '这里没有子文件夹，可以直接使用此文件夹。';
+
+  @override
+  String get folderWillUse => '将使用';
+
+  @override
+  String get folderPathAbsolute => '请输入完整路径（从主机文件系统的根目录开始）。';
+
+  @override
+  String get folderBreadcrumbTop => '起点';
+
+  @override
+  String get noProjectsYet => '还没有项目。选择一个文件夹即可开始。';
+
+  @override
+  String get nativeLocalHistoryHint => '直接查看本机保存的会话，无需连接智能体。原生历史始终只读。';
+
+  @override
+  String get nativeHistoryLoadMore => '加载更多会话';
+
+  @override
+  String get nativeHistoryLoadOlder => '加载更早消息';
+
+  @override
+  String get nativeHistoryWindowHint => '当前显示有限的历史窗口，部分内容已省略或位于窗口之外。';
+
+  @override
+  String get sessionControlTitle => '会话控制';
+
+  @override
+  String get sessionControlChecking => '正在检查会话归属…';
+
+  @override
+  String get sessionControlOwned => '当前主机已持有此会话，可直接复用同一写入方继续对话。';
+
+  @override
+  String get sessionControlSameEngine =>
+      '可通过当前 OpenCode 引擎继续会话，它会串行处理已连接设备的消息。另启一个引擎处理同一会话可能造成并发写入。';
+
+  @override
+  String get sessionControlReleased =>
+      '未发现仍持有此会话的 Claude 进程。可以在此获取原会话，启用发送前会再次核实归属。';
+
+  @override
+  String get sessionControlExternalIdle =>
+      'Claude 在另一客户端中空闲，但仍持有此会话。请在原 Pocket 主机中释放，或退出原 Claude 客户端，然后在这里刷新。';
+
+  @override
+  String get sessionControlExternalRunning =>
+      '另一 Claude 客户端仍在执行一轮对话。请等待结束，再在原客户端释放会话。';
+
+  @override
+  String get sessionControlReleasePending =>
+      '尚未确认释放完成，发送保持禁用。可以重试释放，核实写入方是否已退出。';
+
+  @override
+  String get sessionControlLoading => '当前主机正在恢复会话，请完成后刷新。';
+
+  @override
+  String get sessionControlEngineRequired =>
+      'OpenCode 的运行归属保存在各自引擎内部。独立 ACP 进程无法附加到外部引擎，也无法确认它已释放此会话。请连接正在运行它的 Pocket 主机继续；这里不会另启写入方或停止其他引擎。';
+
+  @override
+  String get sessionControlStopped => '所选主机尚未就绪，请启动或重新连接该主机后刷新。';
+
+  @override
+  String get sessionControlUnknown => '暂时无法核实写入归属，或此智能体不支持交接。可以继续查看，稍后刷新重试。';
+
+  @override
+  String get sessionControlExclusiveNote =>
+      '在这里使用期间，请勿在其他原生客户端中再次打开同一会话。Pocket 主机之间有写入互斥，独立原生客户端不会遵守该互斥。';
+
+  @override
+  String get sessionControlReleaseNote =>
+      '释放会关闭当前主机的空闲写入方，其连接设备将转为只读。历史保留在磁盘，本页面保留未发送的草稿、附件和队列。';
+
+  @override
+  String get sessionControlChanged => '主机或会话已变化，请为当前页面重新打开会话控制。';
+
+  @override
+  String get sessionControlRelease => '释放到只读';
+
+  @override
+  String get sessionControlContinue => '在此主机继续';
+
+  @override
+  String get sessionControlAcquire => '获取原会话';
 }

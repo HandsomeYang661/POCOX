@@ -132,6 +132,14 @@ We follow Linus Torvalds–style engineering. In short:
   it behind a Cargo feature.
 - Keep functions short and modules shallow. Refactor when nesting
   goes past three levels.
+- Keep handwritten Rust and Dart files at or below 1,000 lines. Split by
+  cohesive responsibility (lifecycle, sessions, routes, widgets, tests),
+  never by arbitrary line ranges or by compressing code and docs. Preserve
+  public imports and visibility. Rust uses child modules and re-exports,
+  not `include!`. Dart may use private library parts for state-owned session
+  behavior and stateless bridge mixins; keep lifecycle and state ownership
+  in one place. Prefer modules over new crates or runtime dispatch layers.
+  Generated bindings and localizations remain generator-owned.
 - Prefer `tracing` over `println!`/`eprintln!` for anything that is not
   CLI output the user explicitly asked for.
 - File paths in handoff messages and change descriptions follow `path:line`
@@ -188,6 +196,10 @@ cargo fmt --check \
   -p pocket-codex-auth -p pocket-codex-backend
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --locked
+# Node 18+ must be on PATH for the Rust tests: pocket-codex-host-svc's
+# tests/opencode_catalog.rs runs the OpenCode catalog plugin's `node --test`
+# suite. The plugin itself runs inside OpenCode, so the app needs no Node.
+# CI installs Node 20 in the rust test job (.github/workflows/ci.yml).
 
 # Flutter front-end (requires `fvm install 3.44.0 --setup` once)
 cd apps/flutter
@@ -510,6 +522,341 @@ this file's roadmap so the source of truth stays in sync.
     release builds without debug-only render getters. Keep the blue Dock and
     menu-bar icons fixed across themes: use the bundle AppIcon and a non-template
     tray PNG; never substitute the transparent splash glyph. See `docs/macos-release.md`.
+
+23. **Generic ACP agents (2026-10-10, PR #99).** Hosting can launch any ACP v1
+    stdio agent configured as program + argv, passed verbatim (no shell);
+    OpenCode `opencode acp` is the first preset. The service kind is
+    `acp:<name>`. Codex uses native app-server; OpenCode and other agents use
+    the generic ACP engine and host lifecycle. The host (`host-svc/src/acp/`)
+    is the agent's only ACP client and owns its process group. Lifecycle rules: one lifecycle
+    lock; exits (stdout close or leader exit seen unreaped via `waitid`
+    `WNOWAIT`) go to a single supervisor task; restarts are bounded; group
+    signals are sent before reaping; `stop` is final, bounded and cuts a
+    pending handshake short and joins a stop in progress; Windows hosting
+    stays disabled. One ownership table (`serve_acp::owners`) holds every
+    owned agent from before its launch until its cleanup finished, retiring
+    ones included; app quit (`serve_acp::stop_all`) closes its barrier and
+    stops everything still in it, so overlapping quits and ordinary stops all
+    wait for process cleanup, and agent processes are stopped before relay
+    keys are withdrawn. Re-publication results install only into the same
+    host incarnation, context and unchanged registration slot.
+    Controllers reach the host through the versioned `/acp/v1` HTTP + SSE
+    gateway. Snapshots are scoped to a generation and host incarnation
+    (`hostId`) and carry a sequence watermark; `reset` forces a resync, and
+    running turns are re-installed from the host's fold (`acp::Replica`)
+    before later deltas apply. The bridge dispatches every session call
+    through `engine::session_engine` by key kind, never by provider name.
+    Codex stays the native engine. Rules to preserve:
+    - Capabilities are conservative until negotiated, and Flutter gates every
+      control on them — attachments too, at one admission boundary
+      (`attachment_gate.dart`) for picker, drop and paste; a late result
+      (picker, clipboard, file read before upload) is re-admitted through its
+      `AttachmentTicket` against the original draft's admission revision,
+      which moves when that view turns read-only, its host is lost or
+      replaced, or image support goes away. Health comes from an open event
+      stream only (never from a snapshot); an unreachable or refusing host
+      emits `acp/host/state {"connected": false}` and Flutter reconnects.
+    - Permissions are answered with the agent's exact option ids.
+    - Session cwds are admitted by the host and immutable; the stored cwd
+      wins on reopen and stays authoritative, while a pending load/resume
+      grants no new authority until it succeeds (failure revokes it).
+    - Session stores are keyed by a keyed digest of the resolved program +
+      argv (`acp/<hex(name)>/<source>.json`, `acp/source-key`); a changed
+      invocation inherits nothing. Writes are queued under the state lock,
+      coalesced per session and bounded; corrupt files are quarantined.
+    - Every prompt dispatch and `session/cancel` of a host goes through one
+      dispatch lane that re-checks the running turn; cancel names its turn.
+      The bridge sends `hostId` + generation (`acp::Identity`) with every
+      mutation and the host refuses stale ones; the fields are optional on
+      the wire, so this guards stale bridge views, not arbitrary callers.
+    - Peer frames with a deadline are delivered (written and flushed), never
+      queued, or the connection is closed (`CloseReason::Stalled`). Prompt
+      (30 s) and control (10 s) budgets start before the dispatch lane; a
+      control exchange that cannot complete closes the generation, so no
+      consumed permission or cancel is left unanswered on a live connection.
+    - Transcript bounds count every retained byte and hold within one turn;
+      at most 32 transcripts, busy ones never evicted (refuse instead); item
+      ordinals are never reused; agent ids are compared exactly (long ones
+      by digest); gaps, truncation and dropped content are shown.
+    - Recovery completes ended turns before announcing successors; item
+      events carry `turnId`; an unreadable running fold stays
+      unsynchronized and is retried, never folded from a bare update; an
+      image-prompt turn is begun only from the host's fold. History reads
+      are accepted only from the view's `hostId` + generation and current
+      connection. Synthetic notice/gap ids start with `#`; an empty
+      `contentOmitted` notice removes the row.
+    - Codex and ACP claim instance names in one shared table, held
+      until the host's cleanup (including stop-all) has finished.
+    - Bridge ACP connections and relay meta tunnels are owned by the
+      transport context (account + relay, or relay + key). One revision
+      (`transport::epoch`) is captured before a resolution reads the
+      configuration and is checked atomically when it is observed and when
+      a connection or tunnel registers; a stale resolution never becomes
+      current. Registry entries own their workers (one winner per key).
+      Answers apply only to the connection (`acp::Link`) that asked.
+    - Pending-reopen titles keep "no signal" apart from an explicit clear.
+    - History is only what the host retained.
+    - The mock agent stays a Cargo example (built by `cargo test`, never
+      shipped).
+    - Real OpenCode 1.18.35 was exercised on macOS through a public relay
+      with independent host/controller processes and an isolated Anthropic
+      gateway configuration: live streaming, session inventory/configuration,
+      permission rejection/approval, cancellation, meta file previews,
+      reconnect and process-restart history recovery. The opt-in
+      `acp_live_remote_control` test is ignored in ordinary CI; it requires
+      explicit disposable fixtures and credentials. Two processes on one
+      Mac do not establish acceptance on a second physical device or OS.
+    - A later plugin-enabled OpenCode run (one declared model) listed 83
+      chat models; ACP advertised exactly those 83, and each was set and
+      read back. It got two real replies. Its catalog had no `thought_level`,
+      so effort was not exercised. The opt-in, ignored
+      `engine::hosting_live_tests::hosting_live_coexistence` hosts two native
+      Codex and two ACP hosts in one process, with native handshakes only (no
+      native model prompt). Each stop, restart or recreation must leave every
+      other host unchanged. It runs on one Mac only.
+
+    See `docs/acp-agents.md` and ADR-0003.
+
+24. **Hosting and agent controls (2026-10-11, PR #99).** New hosts are picked
+    from an agent icon grid in two sections: built-in presets (Codex,
+    OpenCode, Claude adapter; launch templates, not bundled runtimes) and
+    saved configurations (saved, then custom, which creates one);
+    marks are bundled glyphs chosen by the explicit profile id
+    (`Capabilities.profile_id`), never by a host's instance name. Hosting is
+    platform-gated only (desktop), in self-host and account mode; the
+    manage page, home hero and host switcher always offer it, for zero, one
+    or many hosts. Several Codex and ACP hosts coexist with unique default
+    names and an automatic port beside another Codex host. Codex restore
+    records are per name (`autoHostCodex`, legacy `autoHost` still written as
+    its first entry); stopping a host forgets only its own record. At most 16 restore records per
+    kind and 50 saved agents; a host beyond that runs and a notice says it will
+    not be restored (a refused saved agent is reported, not shown as saved).
+    Preference changes made during the initial load are replayed onto the
+    loaded file; the store's `ready` and the per-record verdicts are decided
+    there, never on the interim state the provider's `future` may resolve to. An open option menu is bound to the conversation, load,
+    capability and connection generation it opened for. ACP config
+    options render model → effort (`thought_level`) → mode, searchable when
+    long, with full labels in tooltips/semantics and pending/failed states;
+    each answer's complete option set replaces the old one, a `mode` option
+    hides legacy modes, and value ids stay opaque (`provider/model/with/slashes`).
+    A new ACP conversation automatically opens its session for the chosen
+    project without sending; the first send waits for that same attempt.
+    Only a completion for the same service, project, draft and conversation
+    is adopted. Native Codex keeps
+    its own model/effort path and lazy thread creation. The OpenCode preset
+    launches with a config layer naming the model catalog plugin
+    (`host-svc/src/acp/catalog.rs`, `opencode_catalog.mjs`):
+    `OPENCODE_CONFIG_CONTENT`, or a generated `OPENCODE_CONFIG` file when the
+    environment already sets the first. Its `config` hook lists every chat
+    model a `baseURL` provider serves at `/models` and adds the undeclared
+    ids. Keys stay inside OpenCode (config and env only; an `opencode auth
+    login` key is not visible and a refused listing says so), declared
+    models, aliases and filters win, ids OpenCode cannot hold (any key an
+    ordinary object inherits, e.g. `__proto__`, `constructor`) and explicit
+    non-chat entries are left out and counted, nothing is cached and no
+    effort or limit is inferred. A bounded listing, or one with such ids, is
+    reported `partial`, a failed one adds nothing and is reported `failed`;
+    the host details show the per-provider report (listed and added counts
+    and reason codes; the report's credential-source class only decides the
+    no-key hint). The hook runs when a
+    running agent first loads a project's configuration; a changed URL or
+    key needs a host restart.
+    `OPENCODE_PURE` or a `--pure` argument (read as OpenCode parses it,
+    never rewritten), or both config variables already set, is reported
+    `unavailable` with the plugin's file URL for adding it by hand. Its
+    boundary tests need Node 18+ (CI installs Node 20 for them).
+
+25. **Composer recovery, usable Claude preset, ACP supplements (2026-10-12,
+    PR #99).** A turn's end releases every control it gated in the same
+    session: the host re-announces the session state after `turn_ended`, the
+    bridge clears a cached `runningTurnId` that still names the ended turn,
+    and the screen re-reads agent settings. An admitted turn holds the queue
+    until its `turn/started` arrives (or, after 20 s, the host's history says
+    it runs or ended — elapsed time alone never releases it); a repeated end
+    of an already-ended turn is ignored. The wait is owned by its admission
+    token (draft, thread); only an authoritative history reload of that
+    conversation from the current host connection, begun after the
+    admission, settles it (running or idle) — failed, cached, display-only,
+    obsolete or overtaken reloads, and any read answered after its
+    connection was lost or replaced (the screen's link epoch, which a
+    capability re-read does not move), release nothing; the reconciliation
+    retries and the reconnect's own reload answers instead. A stale end
+    (`turn_ended` of an older turn after a newer start) never clears the
+    bridge's running turn. A failed queued message keeps its text and
+    attachments first in its paused queue, and its Retry is offered again
+    after a reload, reconnect or reopening. Only the host's listed
+    pre-admission refusals (or a failure before `turn/start` was sent) are
+    definite and retried as is; any other failure is uncertain: ACP has no
+    request identity and history is bounded and shared, so no history answer
+    resolves it, and it is sent again only by the user's explicit Retry. A
+    send's every step (model list, session start, turn dispatch, answer)
+    belongs to the service and connection it began on: nothing is dispatched
+    on a moved connection, and an answer arriving after it moved adopts
+    nothing — an ordinary message returns to its draft with the reason, a
+    queued one stays queued (refused or uncertain). A session created for a
+    draft is still adopted by it after navigation. Every retry re-sends its
+    own captured content, the native duplicate check is bound to its thread
+    and connection, and each send releases only its own composer lock.
+    The Claude preset's bare `claude-agent-acp` is resolved by
+    `host-svc/src/acp/claude.rs` (adapter on the child PATH, global install
+    and version-manager directories, then the app's prepared copy with a
+    current marker and a consistent installation; Node.js >= 22 found by a
+    `node --version` probe bounded in time and output that runs in its own
+    process group, reaped or group-killed; npm is taken only beside a
+    compatible Node.js, possibly a later one than the runtime; the native
+    `claude` passed only through the child's `CLAUDE_CODE_EXECUTABLE`, an
+    inherited value kept). A package script runs as `node <script> argv…`
+    through the additive `AgentHost::create_launching`; `HostOptions`, the
+    spec, its argv and the session record key (the adapter path) stay what
+    they were. An explicit path or any other program is launched verbatim;
+    the native CLI is never spoken to.
+    Claude hosting inherits allowlisted environment variables (including the
+    macOS login shell) and exposes per-host overrides for credentials, model
+    aliases, reasoning/output and network controls. Secrets stay in private
+    host storage, with no readback or new login flow. Save and explicit restart
+    remain separate. Preparation displays measured package bytes and speed,
+    never a made-up percentage or download total.
+    A missing adapter can be prepared by **Prepare ACP environment**, without
+    saving, starting or restarting hosting, or by an explicit Start that
+    announced it for the same agent and environment from an open editor
+    (`acp/claude_setup.rs`, bridge `engine/claude_setup.rs`): exactly
+    `@agentclientprotocol/claude-agent-acp@0.89.1` with scripts off into
+    `<state>/acp-runtime/claude-agent-acp`; reuse and install share one
+    consistency check of marker, lockfile entry (version and recorded
+    integrity, not a re-hash), manifest and entry script; cancellation is
+    checked before npm starts and before publishing; marked and renamed
+    atomically; one preparation at a time, detection runs off the state lock,
+    cancel stops only its own npm group. Restoring a host never prepares. ACP
+    supplements use `_session/steering` with
+    `idleBehavior: promptRequired`, offered only when the agent advertised
+    top-level `_meta.steering.supported`; `injected` (naming the expected
+    turn) adds the input to that turn, `promptRequired` makes it the next
+    queued turn, anything else — including an answer arriving after the
+    connection or host changed — is an unknown outcome that is never retried
+    or turned into a prompt. Ownership (service, host connection and
+    generation, thread view, draft and request) is checked before any draft,
+    attachment or queue change: an answer that no longer owns its input
+    leaves all of it — and a newer request's mode, notice, Retry and lock —
+    untouched; only when nothing newer owns the same view does it show a
+    notice, and an added input then gets a display-only refresh that keeps
+    the notice, settles no admission and drains nothing. An owned answer
+    takes exactly its snapshot, and after a history load since, the host's
+    history shows it instead of a local copy. The full Rust and Flutter
+    suites pass; on one Mac a live run prepared the pinned adapter into the
+    app cache beside a compatible Node.js, and the real Claude adapter
+    answered, took an injected supplement and queued one turn when idle
+    (`promptRequired`). See `docs/acp-agents.md`.
+
+26. **Per-host model service and hosting editor (2026-10-12, PR #99).** One
+    responsive `UtilityPage` editor (`apps/flutter/lib/src/hosting/`) creates
+    and edits hosts; `LocalHostDialog` remains as a typedef. Each instance name
+    saves, per canonical name (`engine/host_names.rs`), a model service and
+    optional desired runtime (`engine/host_profiles.rs`): existing
+    configuration (a missing record, so older hosts are unchanged), official
+    account (Codex only, `model_provider="openai"`, `openai_base_url` cleared,
+    `chatgpt_base_url` reset) or a custom provider. Only real mappings: Codex →
+    Responses (`pcx_host_<hex>_<authority>`, `env_key`); OpenCode → Responses /
+    Anthropic Messages / Chat Completions (`pocket-codex-<hex>-<authority>`,
+    `env` key, model required); Claude preset → Anthropic Messages
+    (`ANTHROPIC_*` env and session settings, custom headers reset, key
+    required); other ACP agents → existing configuration only. An unsupported
+    saved source or API stays visible and blocks saving. Codex hosts read
+    their effective configuration back (`config/read`) after start and every
+    watchdog restart and refuse a managed or foreign override; the private
+    sign-in server is checked the same way before any login request. The
+    OpenCode catalog plugin's `config` hook (run before providers are built)
+    resets the route per project (models, provider lists, exact provider
+    definition), pins the supplied key in memory as `options.apiKey` (ahead
+    of a login stored for the same id), refuses a route whose key is missing,
+    and reports what it reset; other plugins' loaders and later hooks stay
+    outside it. The
+    model is the provider default, never per-session persistence. Keys are one
+    printable token, commit atomically under a cross-process lock (0600) and
+    never appear in argv, status or records; staged saves pin the keys they
+    may restore and never expire by age, cleanup needs the lock, an
+    authoritative read and a durable record write, an absent read answers the
+    absent snapshot, and a start launches what its stage committed. A keyed
+    Codex host's raw output is never kept: its log and viewer get fixed
+    notices only (`pocket_codex_core::redact`); ACP stderr is discarded. An
+    authority generation keys ACP session stores. Every start, stop, apply and
+    watchdog restart holds the name's lifecycle lease (restarts also check the
+    incarnation); quitting fences new hosts, closes admission and waits up to
+    the lease bound, and fails, keeping the app open with "Quit again", while
+    anything it owns may still run. A launch's identity is captured at spawn;
+    it owns its endpoint only while every holder of a listening socket its
+    listen address reaches (same address and family, applicable wildcards;
+    `core::listener`: `/proc`, `lsof`, `netstat`, tools bounded in time and
+    output, any failure "cannot be told") is that process or its descendant,
+    observed at the port wait, after `/readyz` and after the effective-route
+    request (point-in-time checks, not proof of every request). An owned
+    process whose stop failed stays in a ledger until its exit is seen: its host stays listed with the reason and
+    a Stop retry, the name stays Codex's (no ACP host takes it), and Stop,
+    Apply, quit and relaunch fail meanwhile. A new host is saved and
+    started as one operation. Saving changes nothing that runs; an explicit,
+    confirmed apply names the incarnation taken before confirmation and the
+    revision saved, validates before stopping, restores the previous runtime on
+    failure (an ACP agent's exact captured launch) and reports a failed
+    restore, and never signals an adopted app-server. Official sign-in runs on
+    an owned private loopback app-server per attempt (`engine/codex_login.rs`):
+    attempts are reserved before spawn until their child stopped, refused
+    after quit begins, and stopped by waiting for process exit; a child that
+    did not exit keeps its place in the limit and is retried by closing that
+    attempt again or by quit. The editor
+    gates on the authoritative load (the ACP baseline includes the instance
+    name and save toggle),
+    keeps per-choice model-service and agent drafts, ignores detections older
+    than a prefill, cancels only the adapter preparation it started (a joined
+    page may stop waiting; a replaced run is never its result), and asks
+    before leaving with unsaved edits. The `api:` proxy is a separate official
+    Responses service. Evidence gaps and the supported matrix are in
+    `docs/hosting-configuration.md`. Settings ("Hosting and model service"),
+    Codex setup and the chat's setup banner reach the same editor
+    (`hosting/host_picker.dart`: a running host picked by its identity, or a
+    new one; the chat opens its own host); opening it saves, starts and signs
+    in nothing. Codex setup keeps Codex's own sign-in and prompt option; its
+    global custom-provider form is replaced by that per-host flow (the bridge
+    call and on-disk config are unchanged). One entry runs per originating
+    page, and a host-list read answered after that page was covered or
+    closed opens nothing. Rust passed (743, 14 ignored); Flutter passed l10n,
+    format, analyze and 1326 tests (5 existing skips), and the macOS profile
+    build passed. Real models answered through native Responses, OpenCode
+    Responses and Anthropic Messages, and the official proxy (HTTP/SSE and
+    WebSocket, public relay); Chat Completions only against a local fixture.
+    Observed: OpenCode did not keep a conversation's chosen model across a
+    host restart. Interactive OAuth completion, other platforms,
+    hosted-account mode and effort options are not exercised. Native UI
+    checks covered Settings and Codex setup entries to running and new
+    hosts, repeated selection, keyboard cancellation, return navigation
+    and unsaved-change protection.
+
+27. **Sidebar refinement (2026-10-13).** Selected conversations use neutral
+    surfaces. Running rows combine a rotating indicator with a faint sweep;
+    reduced motion uses a static mark and label. Hierarchy controls preserve
+    keyboard/RTL semantics and 44px touch targets. Narrow sidebars and large
+    text put metadata below titles. Paint-only animation respects TickerMode
+    and releases its controllers on disposal.
+
+28. **Provider-native history and ACP first use (2026-10-14, PR #99).**
+    Desktop Local sessions selects Codex, Claude or OpenCode without starting
+    an ACP connection. Provider-native history reuses the read-only viewer,
+    bounded pages, source generations and foreground revision polling.
+    Claude uses the installed official SDK's read-only exports; OpenCode
+    uses a desktop-only, read-only SQLite reader for known v2/legacy schemas.
+    Native history navigation never calls session/load, resumes a writer or
+    downloads a runtime. Claude owners require matching native session ID,
+    PID, start time, executable and cwd; unavailable evidence stays unknown.
+    Independent local views stay read-only. Connected hosts expose explicit
+    Claude idle release and original-session acquisition with fresh ownership,
+    source and native-child checks, plus a Pocket cross-process claim retained
+    through uncertain cleanup. Native clients do not honor that claim; never
+    describe it as a provider-wide lease. OpenCode may reuse its admitted Pocket
+    engine; stock ACP cannot attach an unrelated native server. Release by any
+    controller withdraws write admission while keeping drafts and queues.
+    Keep remote host roots separate from the controller's filesystem.
+    ACP new conversations prepare automatically, with one attempt per draft
+    and no extra setup click. The directory picker supports a typed host path
+    even with no saved projects; native selection is limited to the host
+    computer. See [provider-native history](docs/native-agent-history.md).
 
 ### UI and history maintenance (2026-09-13)
 

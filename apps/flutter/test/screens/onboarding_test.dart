@@ -2,6 +2,8 @@
 /// self-host onboarding.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,6 +22,26 @@ import 'package:pocket_codex/src/widgets/loading.dart';
 
 import '../fake_bridge_api.dart';
 import '../support/screen_harness.dart';
+
+/// UI preferences in memory: [saved] is the "file", whose initial read
+/// waits for [gate] when given; [written] records every save. The app's
+/// real store, with its readiness and replay, runs on top.
+class _MemoryPrefs extends UiPrefsStore {
+  _MemoryPrefs([this.saved = const UiPrefs(), this.gate]);
+
+  final UiPrefs saved;
+  final Completer<void>? gate;
+  final List<UiPrefs> written = [];
+
+  @override
+  Future<UiPrefs> load() async {
+    await gate?.future;
+    return saved;
+  }
+
+  @override
+  Future<void> save(UiPrefs prefs) async => written.add(prefs);
+}
 
 void main() {
   // AppSessionScreen keeps per-thread plan/effort memory in process-wide static
@@ -64,67 +86,92 @@ void main() {
       promptVariant: 'default',
     );
 
-    testWidgets('unconfigured leads with the provider form and says why', (
-      t,
-    ) async {
-      await pump(t, status: unconfigured);
+    testWidgets('unconfigured leads with where a provider is set and says '
+        'why', (t) async {
+      final api = await pump(t, status: unconfigured);
 
       // The state card answers "is this working" before any method is offered.
       expect(find.text('尚未配置'), findsOneWidget); // codexSetupStatusNeedSetup
-      // Provider is the open method — it is the one that needs no running host.
-      expect(find.byKey(const Key('codex-base-url')), findsOneWidget);
+      // The provider row leads, open: no global provider form any more, but
+      // where a provider is set (per host) and what this page sets up.
+      expect(find.byKey(const Key('codex-base-url')), findsNothing);
+      expect(find.byKey(const Key('codex-api-key')), findsNothing);
+      expect(find.byKey(const Key('codex-save-provider')), findsNothing);
+      expect(find.textContaining('本页配置 Codex 本身'), findsOneWidget);
+      // This harness is a phone (android): hosting is desktop-only, so the
+      // way to a host's editor is replaced by saying so.
+      expect(
+        find.byKey(const Key('codex-provider-desktop-only')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('codex-provider-hosts')), findsNothing);
       // ChatGPT is present but collapsed: its button is not on screen, only the
       // way to switch to it.
       expect(find.byKey(const Key('codex-login-chatgpt')), findsNothing);
       expect(find.text('改用此项'), findsOneWidget); // codexSetupSwitchTo
+      expect(api.lastProvider, isNull);
     });
 
-    testWidgets('signed in hides the provider fields it cannot use', (t) async {
+    testWidgets('signed in keeps the provider row closed', (t) async {
       await pump(t, status: signedIn);
 
       // The live method leads, marked as such...
       expect(find.text('使用中'), findsOneWidget); // codexSetupInUse
       expect(find.byKey(const Key('codex-login-done')), findsOneWidget);
       expect(find.byKey(const Key('codex-logout-btn')), findsOneWidget);
-      // ...and the three provider inputs — unusable while a credential is in
-      // force — are behind the collapsed row rather than in the user's face.
+      // ...and the provider row is only its title and the way to open it.
+      expect(
+        find.byKey(const Key('codex-provider-desktop-only')),
+        findsNothing,
+      );
       expect(find.byKey(const Key('codex-base-url')), findsNothing);
-      expect(find.byKey(const Key('codex-api-key')), findsNothing);
     });
 
     testWidgets('switching to the collapsed method opens its controls', (
       t,
     ) async {
       await pump(t, status: signedIn);
-      expect(find.byKey(const Key('codex-base-url')), findsNothing);
+      expect(
+        find.byKey(const Key('codex-provider-desktop-only')),
+        findsNothing,
+      );
 
       await t.tap(find.text('改用此项')); // codexSetupSwitchTo
       await t.pumpAndSettle();
 
-      // The provider form is now open; the ChatGPT row keeps its "in use" pill
+      // The provider row is now open; the ChatGPT row keeps its "in use" pill
       // (switching the disclosure must not pretend the live method changed).
-      expect(find.byKey(const Key('codex-base-url')), findsOneWidget);
+      expect(
+        find.byKey(const Key('codex-provider-desktop-only')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('codex-base-url')), findsNothing);
       expect(find.text('使用中'), findsOneWidget);
     });
 
-    testWidgets('saving a provider reports success and re-reads the status', (
+    testWidgets('a provider codex already selects is reported, not edited', (
       t,
     ) async {
-      final api = await pump(t, status: unconfigured);
-
-      await t.enterText(
-        find.byKey(const Key('codex-base-url')),
-        'https://example.com/v1',
+      final api = await pump(
+        t,
+        status: const CodexSetupStatus(
+          codexHome: r'C:\Users\test\.codex',
+          hasConfig: true,
+          hasAuth: false,
+          hasCustomProvider: true,
+          needsSetup: false,
+          promptVariant: 'default',
+          effectiveSource: 'custom',
+        ),
       );
-      await t.enterText(find.byKey(const Key('codex-api-key')), 'sk-test');
-      await t.tap(find.byKey(const Key('codex-save-provider')));
-      await t.pumpAndSettle();
 
-      expect(api.lastProvider?.baseUrl, 'https://example.com/v1');
-      expect(find.byKey(const Key('codex-setup-info')), findsOneWidget);
-      // The state card followed the write instead of still reading "not
-      // configured" under a success message.
-      expect(find.text('尚未配置'), findsNothing);
+      // codexSetupStatusProvider: the state card reads codex's own setup.
+      expect(find.text('已配置自定义 Provider'), findsOneWidget);
+      expect(find.text('使用中'), findsOneWidget);
+      expect(find.byKey(const Key('codex-global-provider')), findsOneWidget);
+      expect(find.byKey(const Key('codex-base-url')), findsNothing);
+      expect(find.byKey(const Key('codex-save-provider')), findsNothing);
+      expect(api.lastProvider, isNull, reason: 'nothing is written');
     });
 
     testWidgets('the prompt switch lives under Advanced and persists', (
@@ -218,16 +265,10 @@ void main() {
           stub('/', 'HOME-ROUTE'),
           stub('/welcome', 'WELCOME-ROUTE'),
         ],
+        overrides: [uiPrefsProvider.overrideWith(_MemoryPrefs.new)],
       ),
     );
     await t.pumpAndSettle(); // initial onboarding (no spinner yet)
-    // Warm the prefs snapshot so the post-sign-in routing decides
-    // synchronously (the real prefs file load never completes under the
-    // test's fake async, and waiting out its bounded timeout would also
-    // expire the success toast).
-    ProviderScope.containerOf(
-      t.element(find.byType(AccountOnboardingScreen)),
-    ).read(uiPrefsProvider.notifier).setLastService('seed');
     await t.tap(find.text('设备码登录')); // accountUseDeviceCode (zh): device flow
     // The polling spinner is a perpetual animation, so advance via bounded pumps
     // (pumpAndSettle would never settle while it spins).
@@ -340,6 +381,7 @@ void main() {
         // The browser hand-off returns a redirect whose state matches the fake
         // bridge's started flow ('fake-state'), carrying a one-time code.
         overrides: [
+          uiPrefsProvider.overrideWith(_MemoryPrefs.new),
           webAuthenticatorProvider.overrideWithValue(
             FakeWebAuthenticator(
               'pocketcodex://auth?exchange_code=xc1&state=fake-state',
@@ -349,11 +391,6 @@ void main() {
       ),
     );
     await t.pumpAndSettle();
-    // Warm the prefs snapshot so the post-sign-in routing decides
-    // synchronously (see the device-code test above).
-    ProviderScope.containerOf(
-      t.element(find.byType(AccountOnboardingScreen)),
-    ).read(uiPrefsProvider.notifier).setLastService('seed');
     // The PRIMARY button is the browser flow (the convenient default).
     await t.tap(find.text('使用 GitHub 登录'));
     // Flush the async chain (start → authenticate → exchange → toast + go) with
@@ -387,13 +424,15 @@ void main() {
           stub('/', 'HOME-ROUTE'),
           stub('/welcome', 'WELCOME-ROUTE'),
         ],
+        overrides: [
+          // The guide was already seen on this device (e.g. sign-out → sign-in).
+          uiPrefsProvider.overrideWith(
+            () => _MemoryPrefs(const UiPrefs(guideSeen: true)),
+          ),
+        ],
       ),
     );
     await t.pumpAndSettle();
-    // The guide was already seen on this device (e.g. sign-out → sign-in).
-    ProviderScope.containerOf(
-      t.element(find.byType(AccountOnboardingScreen)),
-    ).read(uiPrefsProvider.notifier).markGuideSeen();
     await t.tap(find.text('设备码登录'));
     await t.pump();
     await t.pump();
@@ -403,6 +442,95 @@ void main() {
     expect(find.text('HOME-ROUTE'), findsOneWidget); // straight to the chat
     expect(find.text('WELCOME-ROUTE'), findsNothing);
   });
+
+  group(
+    'onboarding: routing after sign-in waits for the saved preferences',
+    () {
+      /// Onboarding on a router, signed in through the device code once the
+      /// test signs in, over [prefs].
+      Future<void> mount(WidgetTester t, _MemoryPrefs prefs) async {
+        final api = FakeBridgeApi(
+          config: const ConfigInfo(relay: '', hasKey: false),
+        )..accountPollStatus = 'authorized';
+        await t.pumpWidget(
+          routerHost(
+            api,
+            initial: '/onboarding',
+            routes: [
+              GoRoute(
+                path: '/onboarding',
+                builder: (_, _) => const AccountOnboardingScreen(),
+              ),
+              stub('/', 'HOME-ROUTE'),
+              stub('/welcome', 'WELCOME-ROUTE'),
+            ],
+            overrides: [uiPrefsProvider.overrideWith(() => prefs)],
+          ),
+        );
+        await t.pumpAndSettle();
+      }
+
+      Future<void> signIn(WidgetTester t) async {
+        await t.tap(find.text('设备码登录'));
+        await t.pump();
+        await t.pump();
+        await t.pump(const Duration(seconds: 6)); // the 5 s poll: authorized
+        await t.pump();
+        await t.pump();
+      }
+
+      testWidgets('the saved guide state decides, not an interim change', (
+        t,
+      ) async {
+        final gate = Completer<void>();
+        final prefs = _MemoryPrefs(const UiPrefs(guideSeen: true), gate);
+        await mount(t, prefs);
+        final container = ProviderScope.containerOf(
+          t.element(find.byType(AccountOnboardingScreen)),
+        );
+        // A change made while the file is still being read lands on an
+        // interim snapshot, which knows nothing of the guide.
+        container.read(uiPrefsProvider.notifier).setLastService('pcx:d:app:x');
+        expect(container.read(uiPrefsProvider).valueOrNull?.guideSeen, isFalse);
+
+        await signIn(t);
+        expect(find.text('HOME-ROUTE'), findsNothing, reason: 'still waiting');
+        expect(find.text('WELCOME-ROUTE'), findsNothing, reason: 'not interim');
+        expect(find.byType(AccountOnboardingScreen), findsOneWidget);
+
+        gate.complete();
+        await t.pump();
+        await t.pump();
+        expect(find.text('HOME-ROUTE'), findsOneWidget);
+        expect(find.text('WELCOME-ROUTE'), findsNothing);
+        // The interim change was replayed onto the file, not over it.
+        expect(prefs.written.last.guideSeen, isTrue);
+        expect(prefs.written.last.lastServiceKey, 'pcx:d:app:x');
+      });
+
+      testWidgets('a screen gone while waiting routes nothing and reads '
+          'nothing', (t) async {
+        final gate = Completer<void>();
+        final prefs = _MemoryPrefs(const UiPrefs(), gate);
+        await mount(t, prefs);
+        await signIn(t);
+        expect(find.text('WELCOME-ROUTE'), findsNothing, reason: 'waiting');
+
+        // The whole scope goes while the bounded wait is open.
+        await t.pumpWidget(const SizedBox());
+        await t.pump(const Duration(seconds: 3)); // past the 2 s bound
+        expect(t.takeException(), isNull);
+        gate.complete();
+        await t.pump();
+        expect(t.takeException(), isNull);
+        expect(
+          prefs.written,
+          isEmpty,
+          reason: 'a disposed store writes nothing',
+        );
+      });
+    },
+  );
 
   testWidgets('onboarding: a cancelled browser sign-in guides to device code', (
     t,
@@ -541,13 +669,13 @@ void main() {
           // renders the identity only when the config says we're signed in.
           GoRoute(path: '/welcome', builder: (_, _) => const SettingsScreen()),
         ],
+        overrides: [uiPrefsProvider.overrideWith(_MemoryPrefs.new)],
       ),
     );
     await t.pumpAndSettle();
     final container = ProviderScope.containerOf(
       t.element(find.byType(AccountOnboardingScreen)),
     );
-    container.read(uiPrefsProvider.notifier).setLastService('seed');
 
     // Warm the config cache the way the real app does — reading it BEFORE the
     // login is what made the stale value stick.

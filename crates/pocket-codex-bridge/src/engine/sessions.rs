@@ -14,46 +14,14 @@
 //! * a *finished* session whose rollout is *free* is plainly resumable;
 //! * a finished session still *held open* by another codex app-server (e.g. the
 //!   desktop app) is resumable only via a confirmed [`force_resume`], which
-//!   best-effort evicts the holder first.
+//!   releases the holder before resuming and refuses a failed release.
 
 use anyhow::{anyhow, Result};
 use pocket_codex_codex::{liveness::Holder, rollout, takeover};
 use pocket_codex_core::state::RuntimeState;
+pub use pocket_codex_host_svc::sessions::{list as list_local_sessions, LocalSession};
 
 use crate::engine::app_session;
-
-/// One session discovered under `CODEX_HOME`, with the state the UI needs
-/// to render it read-only or resumable.
-#[derive(Clone, Debug)]
-pub struct LocalSession {
-    /// Thread / conversation id.
-    pub thread_id: String,
-    /// Working directory the session controls, when recorded.
-    pub cwd: Option<String>,
-    /// Best-effort first-user-message preview.
-    pub preview: String,
-    /// Originating client (`cli` / `vscode` / …), when recorded.
-    pub source: Option<String>,
-    /// Parent thread, when this session is a spawned child.
-    pub parent_thread_id: Option<String>,
-    /// Persisted thread classification.
-    pub thread_source: Option<String>,
-    /// Last-modified time of the rollout, unix seconds.
-    pub updated_at: i64,
-    /// Most-recent-turn state tag (`empty`/`completed`/`aborted`/`incomplete`).
-    pub turn_state: String,
-    /// Whether the rollout is currently held open by a live process.
-    pub held_open: bool,
-    /// Resume-safety tag (`resumable`/`resumableUnfinished`/`ownedRunning`/
-    /// `ownedIdle`).
-    pub safety: String,
-    /// Whether the UI may offer a resume action (false only while a turn is
-    /// actively running).
-    pub allows_resume: bool,
-    /// Whether resuming requires a force takeover (a live owner must be
-    /// evicted first).
-    pub requires_takeover: bool,
-}
 
 /// A single session's liveness detail, including the processes a force
 /// takeover would target.
@@ -84,8 +52,8 @@ pub struct ForceResumeOutcome {
     /// Holders the kill could not reach (already gone, denied, or
     /// respawned-and-distinct).
     pub survived: Vec<Holder>,
-    /// Whether the rollout is still held open after the eviction attempt
-    /// (the resume proceeds regardless — an accepted risk).
+    /// Whether the rollout is still held open after the eviction attempt.
+    /// A true value blocks the subsequent resume.
     pub still_held: bool,
     /// Whether the subsequent `thread/resume` into our app-server
     /// succeeded.
@@ -117,43 +85,6 @@ fn protected_pids() -> Vec<u32> {
         }
     }
     pids
-}
-
-/// List every session under `CODEX_HOME`, newest first, each annotated
-/// with its resume-safety state. Reads only the local filesystem and
-/// process table; no app-server connection is required.
-pub fn list_local_sessions() -> Result<Vec<LocalSession>> {
-    let sessions = rollout::scan_sessions().map_err(|e| anyhow!("scanning sessions: {e}"))?;
-    // Probe liveness for every session in one batched call rather than spawning
-    // an `lsof` per session in the loop (which blocked the worker for seconds
-    // once a user had dozens of sessions).
-    let held = pocket_codex_codex::liveness::held_open_paths(
-        &sessions
-            .iter()
-            .map(|s| s.rollout_path.clone())
-            .collect::<Vec<_>>(),
-    );
-    let mut out = Vec::with_capacity(sessions.len());
-    for info in sessions {
-        let held_open = held.contains(&info.rollout_path);
-        let safety = takeover::classify(&info.turn_state, held_open);
-        let guardian = info.thread_source.as_deref() == Some("guardian_review");
-        out.push(LocalSession {
-            thread_id: info.thread_id,
-            cwd: info.cwd,
-            preview: info.preview,
-            source: info.source,
-            parent_thread_id: info.parent_thread_id,
-            thread_source: info.thread_source,
-            updated_at: info.updated_at,
-            turn_state: info.turn_state.tag().to_string(),
-            held_open,
-            safety: safety.tag().to_string(),
-            allows_resume: !guardian && safety.allows_resume(),
-            requires_takeover: !guardian && safety.requires_takeover(),
-        });
-    }
-    Ok(out)
 }
 
 /// Inspect one session's liveness in detail, listing the would-be
@@ -198,11 +129,10 @@ pub fn local_session_transcript(thread_id: &str) -> Result<Vec<rollout::Transcri
 
 /// Force-resume a session into the app-server behind `service_key`.
 ///
-/// Best-effort evicts every live process holding the session's rollout
-/// open (except Pocket-Codex's own app-server), then issues
-/// `thread/resume` regardless of whether the eviction fully succeeded —
-/// the caller has already confirmed they accept the consequences. The
-/// returned [`ForceResumeOutcome`] reports exactly what happened.
+/// Evicts live processes holding the session's rollout open (except
+/// Pocket-Codex's own app-server), then issues `thread/resume` only if the
+/// release succeeded. The returned [`ForceResumeOutcome`] preserves failed
+/// releases and their cause without admitting another writer.
 ///
 /// The caller is responsible for gating this on user confirmation and for
 /// not offering it while a turn is actively running (see
@@ -229,9 +159,12 @@ pub fn force_resume(service_key: &str, thread_id: &str) -> Result<ForceResumeOut
     let protected = protected_pids();
     let report = takeover::force_release(&path, &protected);
 
-    let (resumed, resume_error) = match app_session::thread_resume(service_key, thread_id) {
-        Ok(()) => (true, None),
-        Err(err) => (false, Some(err.to_string())),
+    let (resumed, resume_error) = match report.resume_blocker() {
+        Some(reason) => (false, Some(reason.to_owned())),
+        None => match app_session::thread_resume(service_key, thread_id) {
+            Ok(()) => (true, None),
+            Err(err) => (false, Some(err.to_string())),
+        },
     };
 
     Ok(ForceResumeOutcome {

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:pocket_codex/src/bridge_api_rust.dart';
+import 'package:pocket_codex/src/quit_status.dart';
 import 'package:pocket_codex/src/window_geometry.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
@@ -55,6 +56,10 @@ class DesktopTray with TrayListener, WindowListener {
   bool _initialised = false;
   TrayMenuLabels? _labels;
   VoidCallback? _onOpenSettings;
+  Future<void>? _quitting;
+
+  /// Where a quit stands, shown by the app ([QuitStatusBanner]).
+  final ValueNotifier<QuitStatus?> quitStatus = ValueNotifier(null);
 
   /// Whether the current platform has a desktop system tray.
   ///
@@ -137,7 +142,7 @@ class DesktopTray with TrayListener, WindowListener {
             onClick: (_) => _openSettings(),
           ),
           MenuItem.separator(),
-          MenuItem(key: 'quit', label: labels.quit, onClick: (_) => _quit()),
+          MenuItem(key: 'quit', label: labels.quit, onClick: (_) => quit()),
         ],
       ),
     );
@@ -165,16 +170,25 @@ class DesktopTray with TrayListener, WindowListener {
     _onOpenSettings?.call();
   }
 
+  /// Quit the app (the tray's Quit, and the retry of a blocked quit). A
+  /// second call while one runs joins it.
+  Future<void> quit() =>
+      _quitting ??= _quit().whenComplete(() => _quitting = null);
+
   Future<void> _quit() async {
-    // Stop any locally-hosted codex app-servers first so a real quit leaves no
-    // orphan processes (closing to the tray, by contrast, keeps the app alive
-    // and therefore keeps hosting). Best-effort + time-bounded so a wedged stop
-    // can never block shutdown; a no-op when nothing is hosting.
-    try {
-      await const RustBridgeApi().appServeStopAll().timeout(
-        const Duration(seconds: 3),
-      );
-    } catch (_) {}
+    // Stop every locally-hosted service first so a real quit leaves no orphan
+    // processes (closing to the tray, by contrast, keeps the app alive and
+    // therefore keeps hosting). The bridge bounds its own work (in-flight
+    // operations, sign-in servers, each owned process's stop) and fails
+    // when an owned process may still run: then the app stays open, shows
+    // why and offers to quit again, instead of exiting over the cleanup.
+    if (!await stopHostingForQuit(
+      const RustBridgeApi().appServeStopAll,
+      quitStatus,
+    )) {
+      await _show();
+      return;
+    }
     // Remove the tray icon, lift the close guard so destroy() isn't intercepted
     // again, then tear the window down. window_manager.destroy() ends the app —
     // Windows posts WM_QUIT to break the runner's message loop, macOS/Linux

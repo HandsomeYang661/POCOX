@@ -4,1115 +4,14 @@ library;
 
 import 'dart:typed_data';
 
-/// A discovered service on the relay.
-class ServiceEntry {
-  /// Creates a service entry.
-  const ServiceEntry({
-    required this.device,
-    required this.kind,
-    required this.name,
-    required this.key,
-  });
-
-  /// Device id segment.
-  final String device;
-
-  /// `app` or `api`.
-  final String kind;
-
-  /// Instance name segment.
-  final String name;
-
-  /// Full `pcx:<device>:<kind>:<name>` key.
-  final String key;
-}
-
-/// Status of one active local subscription.
-class SubInfo {
-  /// Creates a subscription status.
-  const SubInfo({
-    required this.key,
-    required this.localAddr,
-    required this.alive,
-  });
-
-  /// Service key being subscribed to.
-  final String key;
-
-  /// Local `host:port` the subscriber listener is bound on.
-  final String localAddr;
-
-  /// Whether the subscription task is still running.
-  final bool alive;
-}
-
-/// Result of starting local hosting. One host publishes two tunnels:
-/// `app:<name>` (codex app-server) and `api:<name>` (Responses API proxy).
-class AppServeResult {
-  /// Creates a hosting-start result.
-  const AppServeResult({
-    required this.device,
-    required this.name,
-    required this.appServiceKey,
-    required this.appListenAddr,
-    required this.apiServiceKey,
-    required this.apiListenAddr,
-    required this.metaServiceKey,
-    required this.metaListenAddr,
-    required this.pid,
-    required this.reused,
-  });
-
-  /// Device id both services registered under.
-  final String device;
-
-  /// Service instance name (shared by the app + api tunnels).
-  final String name;
-
-  /// `pcx:<device>:app:<name>` key (what discovery + `appConnect` use).
-  final String appServiceKey;
-
-  /// Loopback `host:port` codex is listening on.
-  final String appListenAddr;
-
-  /// `pcx:<device>:api:<name>` key (what an `api connect` resolves).
-  final String apiServiceKey;
-
-  /// Loopback `host:port` the in-app Responses API proxy is listening on.
-  final String apiListenAddr;
-
-  /// `pcx:<device>:meta:<name>` key (the host meta service tunnel).
-  final String metaServiceKey;
-
-  /// Loopback `host:port` the in-app meta service is listening on.
-  final String metaListenAddr;
-
-  /// The codex process id.
-  final int pid;
-
-  /// Whether an already-running host was reused instead of freshly spawned.
-  final bool reused;
-}
-
-/// Status of one local host: a codex app-server + an in-app Responses API
-/// proxy, each published through its own (independently toggleable) tunnel.
-class AppServeStatus {
-  /// Creates a hosting-status snapshot.
-  const AppServeStatus({
-    required this.name,
-    required this.device,
-    this.pid,
-    this.alive = false,
-    this.appListenAddr = '',
-    this.appServiceKey = '',
-    this.appRegistered = false,
-    this.apiListenAddr = '',
-    this.apiServiceKey = '',
-    this.apiRegistered = false,
-    this.metaListenAddr = '',
-    this.metaServiceKey = '',
-    this.metaRegistered = false,
-    this.embedded = false,
-    this.codexBinary,
-    this.proxy,
-  });
-
-  /// Service instance name.
-  final String name;
-
-  /// Device id.
-  final String device;
-
-  /// codex process id.
-  final int? pid;
-
-  /// codex is accepting on its listen port.
-  final bool alive;
-
-  /// Loopback `host:port` codex listens on.
-  final String appListenAddr;
-
-  /// `pcx:<device>:app:<name>` key.
-  final String appServiceKey;
-
-  /// The app tunnel is currently published.
-  final bool appRegistered;
-
-  /// Loopback `host:port` the API proxy listens on.
-  final String apiListenAddr;
-
-  /// `pcx:<device>:api:<name>` key.
-  final String apiServiceKey;
-
-  /// The api tunnel is currently published.
-  final bool apiRegistered;
-
-  /// Loopback `host:port` the meta service listens on.
-  final String metaListenAddr;
-
-  /// `pcx:<device>:meta:<name>` key.
-  final String metaServiceKey;
-
-  /// The meta tunnel is currently published.
-  final bool metaRegistered;
-
-  /// Legacy runtime flag; always false for external Codex hosts.
-  final bool embedded;
-
-  /// The resolved external Codex binary path.
-  final String? codexBinary;
-
-  /// Upstream proxy codex + the API proxy were started with, or `null` when
-  /// they inherit the app's environment.
-  final String? proxy;
-}
-
-/// View of persisted config (relay/key presence, locale, account state).
-class ConfigInfo {
-  /// Creates a config view.
-  const ConfigInfo({
-    required this.relay,
-    required this.hasKey,
-    this.locale,
-    this.mode = 'unconfigured',
-    this.accountLogin,
-    this.accountId,
-    this.hasAccountToken = false,
-  });
-
-  /// Configured relay `host:port`, if any.
-  final String? relay;
-
-  /// Whether a 32-byte key is stored.
-  final bool hasKey;
-
-  /// Configured UI locale (BCP-47, e.g. `en`/`zh`), or `null` to follow the
-  /// system locale.
-  final String? locale;
-
-  /// Active transport mode: `account` / `self_host` / `unconfigured`.
-  final String mode;
-
-  /// Signed-in GitHub login (account mode), if any.
-  final String? accountLogin;
-
-  /// Signed-in GitHub numeric account id, if any. The avatar URL is derived from
-  /// it (see `GitHubAvatar`); no avatar field is fetched from the backend.
-  final String? accountId;
-
-  /// Whether an account session token is stored.
-  final bool hasAccountToken;
-}
-
-/// A started GitHub device flow: show the code + URL, then poll.
-class DeviceCode {
-  /// Creates a device code.
-  const DeviceCode({
-    required this.userCode,
-    required this.verificationUri,
-    required this.pollHandle,
-    required this.intervalSecs,
-    required this.expiresInSecs,
-    required this.backend,
-  });
-
-  /// Code the user types at [verificationUri].
-  final String userCode;
-
-  /// URL the user opens to enter [userCode].
-  final String verificationUri;
-
-  /// Opaque handle passed back to [BridgeApi.accountLoginPoll].
-  final String pollHandle;
-
-  /// Minimum seconds between polls.
-  final int intervalSecs;
-
-  /// Seconds until the flow expires.
-  final int expiresInSecs;
-
-  /// Resolved backend base URL to echo back to [BridgeApi.accountLoginPoll].
-  final String backend;
-}
-
-/// Outcome of one device-flow poll. [status] is `pending` / `slow_down` /
-/// `authorized` / `expired` / `denied`; [login] is set only when authorized.
-class AccountPoll {
-  /// Creates a poll outcome.
-  const AccountPoll({required this.status, this.login, this.accountId});
-
-  /// Poll status string.
-  final String status;
-
-  /// Signed-in login, when authorized.
-  final String? login;
-
-  /// GitHub account id, when authorized and known.
-  final String? accountId;
-}
-
-/// The signed-in account identity.
-class AccountUser {
-  /// Creates an account user.
-  const AccountUser({required this.login, this.accountId});
-
-  /// GitHub login/handle.
-  final String login;
-
-  /// GitHub account id, if known.
-  final String? accountId;
-}
-
-/// A started web (browser-redirect) login: open [authorizeUrl] in a browser,
-/// capture the redirect back to the app, check its `state` equals [state], then
-/// trade its `exchange_code` (with [codeVerifier]) via
-/// [BridgeApi.accountWebLoginExchange]. [state] and [codeVerifier] stay
-/// on-device — only the verifier's hashed challenge ever reaches the backend.
-class WebLoginStart {
-  /// Creates a started web login.
-  const WebLoginStart({
-    required this.authorizeUrl,
-    required this.state,
-    required this.codeVerifier,
-    required this.backend,
-  });
-
-  /// GitHub authorization URL to open in a browser.
-  final String authorizeUrl;
-
-  /// CSRF state to match against the redirect's `state` query param.
-  final String state;
-
-  /// PKCE verifier to pass to [BridgeApi.accountWebLoginExchange].
-  final String codeVerifier;
-
-  /// Resolved backend base URL to echo back to
-  /// [BridgeApi.accountWebLoginExchange].
-  final String backend;
-}
-
-/// One service in the account (the `pcxu:` prefix already stripped).
-class AccountService {
-  /// Creates an account service.
-  const AccountService({
-    required this.device,
-    required this.kind,
-    required this.name,
-  });
-
-  /// Device id segment.
-  final String device;
-
-  /// `app` or `api`.
-  final String kind;
-
-  /// Instance name segment.
-  final String name;
-
-  /// The local `pcx:<device>:<kind>:<name>` key the app/session layer uses.
-  String get key => 'pcx:$device:$kind:$name';
-}
-
-/// A live app-server event (one JSON-RPC notification), flattened for the UI.
-class AppEvent {
-  /// Creates an app event.
-  const AppEvent({
-    required this.kind,
-    this.threadId,
-    this.itemId,
-    this.itemType,
-    this.title,
-    this.text,
-    this.images = const [],
-    this.requestId,
-    required this.raw,
-  });
-
-  /// JSON-RPC method, e.g. `turn/started`, `item/agentMessage/delta`,
-  /// `turn/completed`.
-  final String kind;
-
-  /// Thread id the event belongs to, when present.
-  final String? threadId;
-
-  /// Item id the event refers to, when present.
-  final String? itemId;
-
-  /// Item type tag when this event carries an item (`agentMessage`,
-  /// `commandExecution`, `webSearch`, `mcpToolCall`, `fileChange`,
-  /// `reasoning`, …); `null` for turn-level events.
-  final String? itemType;
-
-  /// One-line summary for tool/activity items (command, query, tool name…).
-  final String? title;
-
-  /// Text payload (a streaming delta or an item's body/detail).
-  final String? text;
-
-  /// Image URLs attached to a `userMessage` item: `data:image/...` URLs
-  /// render inline; a host-local path renders as a filename chip. Empty for
-  /// every other event.
-  final List<String> images;
-
-  /// Token to answer a server approval request via [BridgeApi.appRespondApproval].
-  final String? requestId;
-
-  /// Full params JSON for fields not modelled above.
-  final String raw;
-}
-
-/// One captured runtime log line for the in-app log viewer.
-class LogLine {
-  /// Creates a log line.
-  const LogLine({
-    required this.level,
-    required this.target,
-    required this.message,
-    required this.timestampMs,
-  });
-
-  /// `TRACE` / `DEBUG` / `INFO` / `WARN` / `ERROR`.
-  final String level;
-
-  /// Event target (crate / module path).
-  final String target;
-
-  /// The rendered message plus any structured fields.
-  final String message;
-
-  /// Capture time, unix milliseconds.
-  final int timestampMs;
-}
-
-/// One in-flight retry of a host meta request.
-class RetryProgress {
-  /// Creates a retry progress tick.
-  const RetryProgress({required this.attempt, required this.maxAttempts});
-
-  /// Attempts made so far (1-based).
-  final int attempt;
-
-  /// Total attempt budget before the request gives up.
-  final int maxAttempts;
-}
-
-/// Summary metadata for one app-server thread.
-class ThreadMeta {
-  /// Creates thread metadata.
-  const ThreadMeta({
-    required this.id,
-    required this.preview,
-    required this.cwd,
-    required this.updatedAt,
-    this.name,
-    this.threadSource,
-    this.parentThreadId,
-  });
-
-  /// Thread id.
-  final String id;
-
-  /// Preview (usually the first user message).
-  final String preview;
-
-  /// User-set title, or null when the conversation was never renamed.
-  final String? name;
-
-  /// Persisted app-owned classification, independent of the editable title.
-  final String? threadSource;
-
-  /// Explicit spawning parent, independent of project and session titles.
-  final String? parentThreadId;
-
-  bool get isGuardian => threadSource == 'guardian_review';
-
-  /// True for conversations created through the live voice entry point.
-  bool get isVoice => threadSource == 'pocket-codex-voice';
-
-  /// Working directory — the project this thread controls.
-  final String cwd;
-
-  /// Unix seconds of last update.
-  final int updatedAt;
-
-  /// The name the user gave this conversation, if any — trimmed, and null
-  /// rather than empty so callers can `??` straight through to the preview.
-  String? get title {
-    final n = name?.trim();
-    return (n == null || n.isEmpty) ? null : n;
-  }
-
-  /// Copy with [name] replaced. Used to reflect a rename locally without
-  /// waiting for the next `thread/list`.
-  ThreadMeta withName(String? name) => ThreadMeta(
-    id: id,
-    preview: preview,
-    name: name,
-    threadSource: threadSource,
-    parentThreadId: parentThreadId,
-    cwd: cwd,
-    updatedAt: updatedAt,
-  );
-}
-
-/// A thread's recovered history plus whether a turn is still running, and the
-/// metadata the status bar / git chip seed from on open.
-class ThreadHistory {
-  /// Creates a thread history.
-  const ThreadHistory({
-    required this.items,
-    required this.running,
-    this.activeTurnId,
-    this.historyEpoch,
-    this.branch,
-    this.cwd,
-    this.tokensUsed,
-    this.contextWindow,
-    this.collaborationMode,
-    this.reasoningEffort,
-    this.model,
-    this.modelProvider,
-    this.approvalPolicy,
-    this.approvalsReviewer,
-    this.serviceTier,
-    this.sandboxMode,
-    this.configConfirmed = false,
-    this.hasOlder = false,
-    this.turns = const [],
-    this.firstTurnId,
-    this.turnPages = const [],
-  });
-
-  /// Conversation items, oldest first.
-  final List<ThreadItem> items;
-
-  /// Whether the most recent turn is still in progress.
-  final bool running;
-
-  /// Identity from the same server snapshot that established [running].
-  final String? activeTurnId;
-
-  /// Source history generation; replacement invalidates retained windows.
-  final String? historyEpoch;
-
-  /// Current git branch of the thread's cwd, if it's a repo.
-  final String? branch;
-
-  /// The thread's resolved working directory (for git diff / status).
-  final String? cwd;
-
-  /// Tokens currently occupying the model context window.
-  final int? tokensUsed;
-
-  /// The model's context-window size in tokens.
-  final int? contextWindow;
-
-  /// The thread's sticky collaboration mode (`plan` / `default`), so the UI
-  /// plan toggle reflects the server's real state instead of guessing.
-  final String? collaborationMode;
-
-  /// The thread's current reasoning effort (`low`/`medium`/`high`), so the UI
-  /// can display the "thinking level" the thread runs with. Sourced from the
-  /// thread/resume response (thread/read doesn't expose it).
-  final String? reasoningEffort;
-
-  /// The effective model id the thread runs with, per the server (from the
-  /// start/resume response, kept fresh by `thread/settings/updated`). Null
-  /// when the server never reported it (older servers).
-  final String? model;
-
-  /// Provider of the effective model (e.g. `openai`), when reported.
-  final String? modelProvider;
-
-  /// The effective approval policy (`untrusted`/`on-failure`/`on-request`/
-  /// `never`/`granular`), when reported.
-  final String? approvalPolicy;
-
-  /// Effective reviewer (`user` or `auto_review`).
-  final String? approvalsReviewer;
-
-  /// Effective service tier.
-  final String? serviceTier;
-
-  /// The effective sandbox mode (`read-only`/`workspace-write`/
-  /// `danger-full-access`/`external-sandbox`), when reported.
-  final String? sandboxMode;
-
-  /// Whether a live `thread/settings/updated` notification has confirmed this
-  /// config (vs only a start/resume snapshot).
-  final bool configConfirmed;
-
-  /// Whether earlier items remain unread — [BridgeApi.appThreadOlderPage]
-  /// fetches them. False for a thread whose history arrives whole.
-  final bool hasOlder;
-
-  /// One entry per turn in the WHOLE thread, oldest first, including turns
-  /// whose items aren't loaded yet. The turn rail shows a conversation's shape,
-  /// so it needs every turn even before their bodies are read.
-  final List<TurnSummary> turns;
-
-  /// Actual oldest turn, confirmed by exhausting the server's summary cursor.
-  final String? firstTurnId;
-
-  /// Cached windows fetched through timeline navigation.
-  final List<TurnItemsPage> turnPages;
-}
-
-/// A bounded ascending window within one selected turn.
-class TurnItemsPage {
-  /// Creates a turn window.
-  const TurnItemsPage({
-    required this.turnId,
-    required this.items,
-    required this.hasMore,
-  });
-
-  /// Owning turn.
-  final String turnId;
-
-  /// Loaded prefix in chronological order.
-  final List<ThreadItem> items;
-
-  /// Whether the same turn has more items after this window.
-  final bool hasMore;
-}
-
-/// A turn reduced to what the rail shows: the question, and how it was answered.
-class TurnSummary {
-  /// Creates a turn summary.
-  const TurnSummary({
-    required this.turnId,
-    this.userText = '',
-    this.assistantText = '',
-    this.loaded = false,
-  });
-
-  /// Id of the turn, for fetching its items on demand.
-  final String turnId;
-
-  /// The user's message that opened the turn; empty when it had none.
-  final String userText;
-
-  /// The turn's final agent message; empty when it produced no prose.
-  final String assistantText;
-
-  /// Whether this turn's items are already in the transcript.
-  final bool loaded;
-}
-
-/// One page of older items, and whether history continues before them.
-class OlderPage {
-  /// Creates an older page.
-  const OlderPage({required this.items, required this.hasOlder});
-
-  /// Older items, oldest first, to prepend to the transcript.
-  final List<ThreadItem> items;
-
-  /// Whether older items still remain.
-  final bool hasOlder;
-}
-
-/// The server-reported runtime configuration of a thread — what its turns
-/// actually run with. Every field is null when the server hasn't said (never
-/// a guess), so the UI can distinguish "server default" from "unknown".
-class ThreadRuntimeConfig {
-  /// Creates a runtime config snapshot.
-  const ThreadRuntimeConfig({
-    this.model,
-    this.modelProvider,
-    this.reasoningEffort,
-    this.approvalPolicy,
-    this.approvalsReviewer,
-    this.serviceTier,
-    this.sandboxMode,
-    this.collaborationMode,
-    this.confirmedByUpdate = false,
-  });
-
-  /// Effective model id.
-  final String? model;
-
-  /// Provider of the effective model.
-  final String? modelProvider;
-
-  /// Effective reasoning effort.
-  final String? reasoningEffort;
-
-  /// Effective approval policy.
-  final String? approvalPolicy;
-
-  /// Effective reviewer (`user` or `auto_review`).
-  final String? approvalsReviewer;
-
-  /// Effective service tier.
-  final String? serviceTier;
-
-  /// Effective sandbox mode (kebab wire string).
-  final String? sandboxMode;
-
-  /// Effective collaboration mode (`plan`/`default`), when reported.
-  final String? collaborationMode;
-
-  /// True once a live `thread/settings/updated` confirmed this config.
-  final bool confirmedByUpdate;
-}
-
-/// One model offered by the app-server.
-class ModelInfo {
-  /// Creates model info.
-  const ModelInfo({
-    required this.id,
-    required this.displayName,
-    required this.description,
-    this.supportedReasoningEfforts = const [],
-    this.defaultReasoningEffort,
-    this.supportedServiceTiers = const [],
-    this.defaultServiceTier,
-    this.isDefault = false,
-  });
-
-  /// Model id (used as the `model` param).
-  final String id;
-
-  /// Human-readable name.
-  final String displayName;
-
-  /// Short description.
-  final String description;
-
-  /// Reasoning efforts this model accepts (`minimal`/`low`/`medium`/`high`/
-  /// `xhigh`/…), so the effort picker offers only the levels this model supports.
-  final List<String> supportedReasoningEfforts;
-
-  /// The model's default reasoning effort, if any.
-  final String? defaultReasoningEffort;
-
-  /// Service tier ids advertised by the model catalog.
-  final List<String> supportedServiceTiers;
-
-  /// Catalog default service tier.
-  final String? defaultServiceTier;
-
-  /// Whether this is the server default model.
-  final bool isDefault;
-
-  /// Whether this model advertises the Fast service tier.
-  bool get supportsFast => supportedServiceTiers.contains('priority');
-}
-
-/// One materialised conversation item from `thread/read`.
-class ThreadItem {
-  /// Creates a thread item.
-  const ThreadItem({
-    required this.id,
-    required this.itemType,
-    required this.title,
-    required this.text,
-    this.images = const [],
-    this.turnId = '',
-    this.turnCompletedAt,
-    this.turnDurationMs,
-    this.questionsJson,
-  });
-
-  /// Structured asynchronous questions from an agent message, as JSON.
-  final String? questionsJson;
-
-  /// Item id.
-  final String id;
-
-  /// Item type tag (`userMessage` / `agentMessage` / `commandExecution` /
-  /// `webSearch` / `mcpToolCall` / `fileChange` / `reasoning` / …).
-  final String itemType;
-
-  /// One-line summary for tool/activity items.
-  final String title;
-
-  /// Body / detail text.
-  final String text;
-
-  /// Image URLs attached to a `userMessage`: `data:image/...` URLs render
-  /// inline; a host-local path renders as a filename chip. Empty for every
-  /// other item kind.
-  final List<String> images;
-
-  /// Id of the turn this item belongs to — the server's own boundary, since
-  /// `thread/read` nests items under their turn. Empty when unknown (an item
-  /// recovered from the live stream buffer, or read from a rollout file on
-  /// disk, neither of which carries a turn envelope).
-  final String turnId;
-
-  /// Unix seconds when this item's turn completed; null while it still runs, or
-  /// when the source carried no turn.
-  final int? turnCompletedAt;
-
-  /// This item's turn duration in milliseconds, when the server reported it.
-  final int? turnDurationMs;
-}
-
-/// A process holding a session's rollout file open — a would-be force-takeover
-/// target.
-class Holder {
-  /// Creates a holder.
-  const Holder({required this.pid, required this.name});
-
-  /// Operating-system process id.
-  final int pid;
-
-  /// Process image name (e.g. `codex.exe`).
-  final String name;
-}
-
-/// One codex session discovered under the shared `CODEX_HOME`, annotated with
-/// whether it is safe to resume.
-class LocalSession {
-  /// Creates a local session entry.
-  const LocalSession({
-    required this.threadId,
-    this.cwd,
-    required this.preview,
-    this.source,
-    this.parentThreadId,
-    this.threadSource,
-    required this.updatedAt,
-    required this.turnState,
-    required this.heldOpen,
-    required this.safety,
-    required this.allowsResume,
-    required this.requiresTakeover,
-  });
-
-  /// Thread / conversation id.
-  final String threadId;
-
-  /// Working directory the session controls, when recorded.
-  final String? cwd;
-
-  /// Best-effort first-user-message preview.
-  final String preview;
-
-  /// Originating client (`cli` / `vscode` / …), when recorded.
-  final String? source;
-
-  /// Explicit spawning parent and persisted classification.
-  final String? parentThreadId;
-  final String? threadSource;
-  bool get isGuardian => threadSource == 'guardian_review';
-
-  /// Last-modified time of the rollout, unix seconds.
-  final int updatedAt;
-
-  /// Most-recent-turn state (`empty`/`completed`/`aborted`/`incomplete`).
-  final String turnState;
-
-  /// Whether the rollout is currently held open by a live process.
-  final bool heldOpen;
-
-  /// Resume-safety tag (`resumable`/`resumableUnfinished`/`ownedRunning`/
-  /// `ownedIdle`).
-  final String safety;
-
-  /// Whether the UI may offer a resume action (false only while a turn is
-  /// actively running).
-  final bool allowsResume;
-
-  /// Whether resuming requires a force takeover (a live owner must be evicted
-  /// first).
-  final bool requiresTakeover;
-}
-
-/// One session's liveness detail, including the processes a force takeover
-/// would terminate (Pocket-Codex's own app-server already excluded).
-class SessionLiveness {
-  /// Creates a liveness view.
-  const SessionLiveness({
-    required this.threadId,
-    required this.turnState,
-    required this.heldOpen,
-    required this.safety,
-    required this.allowsResume,
-    required this.requiresTakeover,
-    required this.holders,
-  });
-
-  /// Thread / conversation id.
-  final String threadId;
-
-  /// Most-recent-turn state tag.
-  final String turnState;
-
-  /// Whether the rollout is currently held open.
-  final bool heldOpen;
-
-  /// Resume-safety tag.
-  final String safety;
-
-  /// Whether the UI may offer a resume action.
-  final bool allowsResume;
-
-  /// Whether resuming requires a force takeover.
-  final bool requiresTakeover;
-
-  /// Processes a force takeover would attempt to terminate.
-  final List<Holder> holders;
-}
-
-/// One full read-only transcript + ownership snapshot from the host's live
-/// session follow stream.
-class SessionFollowUpdate {
-  /// Creates a live session snapshot.
-  const SessionFollowUpdate({
-    required this.liveness,
-    required this.items,
-    this.historyRevision,
-  });
-
-  /// Opaque revision when history is read through app-server pagination.
-  final String? historyRevision;
-
-  /// Current ownership and resume-safety state.
-  final SessionLiveness liveness;
-
-  /// Full materialised transcript at this rollout revision.
-  final List<ThreadItem> items;
-}
-
-/// Outcome of a force-resume: which holders were killed / survived, and whether
-/// the subsequent resume took.
-class ForceResumeReport {
-  /// Creates a force-resume report.
-  const ForceResumeReport({
-    required this.killed,
-    required this.survived,
-    required this.stillHeld,
-    required this.resumed,
-    this.resumeError,
-  });
-
-  /// Holders that were successfully terminated.
-  final List<Holder> killed;
-
-  /// Holders the kill could not reach.
-  final List<Holder> survived;
-
-  /// Whether the rollout is still held open after the attempt (the resume
-  /// proceeded regardless).
-  final bool stillHeld;
-
-  /// Whether the subsequent `thread/resume` succeeded.
-  final bool resumed;
-
-  /// The resume error message, when [resumed] is false.
-  final String? resumeError;
-}
-
-/// Per-thread session config persisted on the host (model / reasoning effort /
-/// permission mode / plan mode). Every field is nullable: null means "no stored
-/// preference", so the UI falls back to its own default.
-class ThreadConfig {
-  /// Creates a thread config.
-  const ThreadConfig({
-    this.model,
-    this.reasoningEffort,
-    this.permissionMode,
-    this.serviceTier,
-    this.planMode,
-  });
-
-  /// Selected model id, when pinned for this thread.
-  final String? model;
-
-  /// Reasoning-effort tag (`minimal`/`low`/`medium`/`high`), when set.
-  final String? reasoningEffort;
-
-  /// Permission / approval mode tag, when set.
-  final String? permissionMode;
-
-  /// Requested service tier (`priority` or explicit `default`).
-  final String? serviceTier;
-
-  /// Whether plan mode is on for this thread, when set.
-  final bool? planMode;
-
-  /// Whether every field is unset (no stored preference at all).
-  bool get isEmpty =>
-      model == null &&
-      reasoningEffort == null &&
-      permissionMode == null &&
-      serviceTier == null &&
-      planMode == null;
-
-  /// A copy with the given fields overridden.
-  ThreadConfig copyWith({
-    String? model,
-    String? reasoningEffort,
-    String? permissionMode,
-    String? serviceTier,
-    bool? planMode,
-  }) => ThreadConfig(
-    model: model ?? this.model,
-    reasoningEffort: reasoningEffort ?? this.reasoningEffort,
-    permissionMode: permissionMode ?? this.permissionMode,
-    serviceTier: serviceTier ?? this.serviceTier,
-    planMode: planMode ?? this.planMode,
-  );
-}
-
-/// A host's project-folder configuration: the roots the remote folder browser
-/// is confined to, and the default project new conversations open in. Both are
-/// host-side (shared to every device via the meta tunnel) so a phone starting a
-/// new session sees the same folders the desktop offers.
-class ProjectConfig {
-  /// Creates a project config.
-  const ProjectConfig({this.projectRoots = const [], this.defaultProject});
-
-  /// Absolute host paths the user configured as project roots.
-  final List<String> projectRoots;
-
-  /// Absolute host path new conversations default their cwd to (null = the
-  /// codex default). A configured root, or a folder within one.
-  final String? defaultProject;
-
-  /// Whether any project roots are configured (gates the tree browser).
-  bool get hasRoots => projectRoots.isNotEmpty;
-}
-
-/// One browsable child directory of a host folder, from [BridgeApi.metaListDir].
-class HostDirEntry {
-  /// Creates a directory entry.
-  const HostDirEntry({
-    required this.name,
-    required this.path,
-    this.isGitRepo = false,
-  });
-
-  /// The directory's own name (final path component).
-  final String name;
-
-  /// Absolute host path — browse into it, or use it as a session's cwd.
-  final String path;
-
-  /// Whether the directory is a git repository (a project hint).
-  final bool isGitRepo;
-}
-
-/// One file in a host directory, from [BridgeApi.metaListFiles].
-class HostFileEntry {
-  /// Creates a file entry.
-  const HostFileEntry({
-    required this.name,
-    required this.path,
-    required this.size,
-    required this.mtime,
-  });
-
-  /// The file's own name (final path component).
-  final String name;
-
-  /// Absolute host path.
-  final String path;
-
-  /// Size in bytes.
-  final int size;
-
-  /// Last-modified time in unix seconds (0 when unavailable).
-  final int mtime;
-}
-
-/// What the external Codex has on disk in `CODEX_HOME`, for the setup wizard.
-class CodexSetupStatus {
-  /// Creates a codex setup status.
-  const CodexSetupStatus({
-    required this.codexHome,
-    required this.hasConfig,
-    required this.hasAuth,
-    required this.hasCustomProvider,
-    this.authMode,
-    required this.needsSetup,
-    required this.promptVariant,
-  });
-
-  /// Resolved `CODEX_HOME` (display path).
-  final String codexHome;
-
-  /// `config.toml` exists.
-  final bool hasConfig;
-
-  /// A credential exists (`auth.json` or `CODEX_ACCESS_TOKEN`).
-  final bool hasAuth;
-
-  /// A non-OpenAI custom provider is configured (authorizes turns on its own,
-  /// so no `codex login` is required).
-  final bool hasCustomProvider;
-
-  /// `auth.json`'s `auth_mode` (`apikey` / `chatgpt` / …), when present.
-  final String? authMode;
-
-  /// Nothing lets codex authenticate a model call yet → show the wizard.
-  final bool needsSetup;
-
-  /// Active system-prompt variant (`default` / `non_degraded` / `custom`).
-  final String promptVariant;
-}
-
-/// A started ChatGPT login on the external Codex. [mode] is `browser` (open
-/// [authUrl] and poll) or `device` (open [verificationUrl], show [userCode], and
-/// poll) — codex falls back to device code when it can't bind its local OAuth
-/// callback port. Poll [BridgeApi.codexAuthStatus] until authenticated either way.
-class CodexLoginStart {
-  /// Creates a started codex login.
-  const CodexLoginStart({
-    required this.mode,
-    required this.loginId,
-    this.authUrl,
-    this.verificationUrl,
-    this.userCode,
-  });
-
-  /// `browser` or `device`.
-  final String mode;
-
-  /// Opaque id to pass back to [BridgeApi.codexLoginCancel].
-  final String loginId;
-
-  /// Browser flow: URL to open in a browser. Null for the device flow.
-  final String? authUrl;
-
-  /// Device flow: URL to open. Null for the browser flow.
-  final String? verificationUrl;
-
-  /// Device flow: one-time code the user enters. Null for the browser flow.
-  final String? userCode;
-}
-
-/// codex auth status for one app-server.
-class CodexAuthStatus {
-  /// Creates a codex auth status.
-  const CodexAuthStatus({required this.authenticated, this.method});
-
-  /// Whether a credential is active (login complete / provider key present).
-  final bool authenticated;
-
-  /// Auth method when signed in (`chatgpt` / `apikey` / …).
-  final String? method;
-}
-
-/// The whole engine surface the UI is allowed to touch. One real impl wraps
-/// flutter_rust_bridge; a fake backs widget tests.
-/// Controller-wide disposable disk-cache usage.
-class HistoryCacheStatus {
-  const HistoryCacheStatus({required this.limitMb, required this.usedBytes});
-  final int limitMb;
-  final int usedBytes;
-}
-
-/// Bounded file bytes and the original file size.
-class FilePreviewData {
-  const FilePreviewData({required this.bytes, required this.totalSize});
-  final Uint8List bytes;
-  final int totalSize;
-  bool get truncated => totalSize > bytes.length;
-}
+part 'bridge/capability_types.dart';
+part 'bridge/connection_types.dart';
+part 'bridge/host_session_types.dart';
+part 'bridge/native_session_types.dart';
+part 'bridge/hosting_types.dart';
+part 'bridge/provider_types.dart';
+part 'bridge/thread_types.dart';
+part 'bridge/session_control_types.dart';
 
 abstract interface class BridgeApi {
   /// Read only local disk; cached history is display-only until synchronized.
@@ -1284,12 +183,145 @@ abstract interface class BridgeApi {
   /// the UI can prompt the user to point at one.
   Future<String?> codexLocate();
 
+  /// Capabilities of the connection behind [serviceKey] (no network). Codex
+  /// is fixed; ACP reflects the host's current negotiation and
+  /// is conservative until connected.
+  AppCapabilities appCapabilities(String serviceKey);
+
+  /// Ids of sessions executing now, from the engine itself (ACP).
+  Future<List<String>> appRunningThreads(String serviceKey);
+
+  /// Built-in ACP agent presets (OpenCode: `opencode` + `acp`).
+  List<AcpPreset> acpPresets();
+
+  /// Whether this device can host ACP agents (Unix desktops).
+  bool acpHostingSupported();
+
+  /// The executable [program] resolves to on this device, or `null`.
+  Future<String?> acpLocate(String program, {String? profileId});
+
+  /// Detect the Claude preset's adapter, Node.js and native CLI (nothing is
+  /// installed or changed).
+  Future<AcpClaudeStatus> acpClaudeStatus();
+
+  /// Start preparing Claude's pinned ACP adapter in the app's cache, or join
+  /// the preparation already running.
+  Future<AcpClaudeSetup> acpClaudePrepareStart();
+
+  /// Where the adapter preparation is.
+  AcpClaudeSetup acpClaudePrepareState();
+
+  /// Cancel the running adapter preparation.
+  AcpClaudeSetup acpClaudePrepareCancel();
+
+  /// Cancel preparation run [run] only (the one its caller started); a later
+  /// run started by another caller keeps going.
+  AcpClaudeSetup acpClaudePrepareCancelRun(int run);
+
+  /// Launch and host an ACP agent as `acp:<name>` plus `meta:<name>`.
+  /// Stopping hosting stops the agent.
+  Future<AcpServeResult> appServeStartAcp({
+    String? name,
+    required AcpAgentSpec spec,
+  });
+
+  /// Restart the agent of a local ACP host.
+  Future<void> appServeRestartAcp(String name);
+
+  // --- Per-host model service ---
+
+  /// The saved configuration of host [name] (inherited when never saved).
+  Future<HostConfig> hostConfigGet(String name);
+
+  /// What a Codex host ([spec] null) or the ACP agent [spec] can select.
+  HostConfigSupport hostConfigSupported({AcpAgentSpec? spec});
+
+  /// Save host [name]'s configuration for a Codex host ([spec] null) or the
+  /// ACP agent [spec], and with [runtime] its desired runtime (an agent
+  /// runtime is checked as that agent). [key] is required for
+  /// [HostKeyAction.replace]. With [expectedRevision], a save made elsewhere
+  /// meanwhile is refused. A running host keeps its configuration until
+  /// [appServeApply].
+  Future<HostConfig> hostConfigSave({
+    required String name,
+    required HostConfigInput input,
+    required HostKeyAction keyAction,
+    String? key,
+    int? expectedRevision,
+    AcpAgentSpec? spec,
+    HostRuntime? runtime,
+  });
+
+  /// Restart running host [name] with its saved configuration and runtime.
+  /// [expectedIncarnation] ([HostActive.incarnation]) and [expectedRevision]
+  /// ([HostConfig.revision]) name what was reviewed: a replaced host or a
+  /// newer save is refused. A failed start restores the previous one exactly.
+  Future<HostApplyResult> appServeApply(
+    String name, {
+    String? expectedIncarnation,
+    int? expectedRevision,
+  });
+
+  /// Save and start a new host [name] with [runtime] and this configuration
+  /// as one operation; a failed start puts the previous saved configuration
+  /// back. Refused when the name is already hosting.
+  Future<HostStartResult> appServeStartConfigured({
+    String? name,
+    required HostRuntime runtime,
+    required HostConfigInput input,
+    required HostKeyAction keyAction,
+    String? key,
+  });
+
+  /// Start a private loopback codex for one official sign-in (never on the
+  /// relay), with [binary] (null: the saved codex, then `PATH`) and [proxy];
+  /// returns its session id.
+  Future<String> codexLocalSessionOpen({String? binary, String? proxy});
+
+  /// Stop the private sign-in codex [sessionId].
+  Future<void> codexLocalSessionClose(String sessionId);
+
+  /// Begin the official ChatGPT login on the private sign-in codex.
+  Future<CodexLoginStart> codexLocalLoginStart(String sessionId);
+
+  /// The private sign-in codex's account and, with [loginId], how that login
+  /// ended ([CodexAuthStatus.completed]).
+  Future<CodexAuthStatus> codexLocalAuthStatus(
+    String sessionId, {
+    String? loginId,
+  });
+
+  /// Cancel login [loginId] on the private sign-in codex.
+  Future<void> codexLocalLoginCancel(String sessionId, String loginId);
+
+  /// Sign codex out through the private sign-in codex.
+  Future<void> codexLocalLogout(String sessionId);
+
+  /// The ACP agent's latest per-session state (no network), or `null`.
+  SessionSettings? appSessionSettings(String serviceKey, String threadId);
+
+  /// Set an ACP select option to one of its advertised values.
+  Future<void> appSetSessionConfig(
+    String serviceKey,
+    String threadId,
+    String configId,
+    String value,
+  );
+
+  /// Switch an ACP session's legacy mode.
+  Future<void> appSetSessionMode(
+    String serviceKey,
+    String threadId,
+    String modeId,
+  );
+
   // --- App-server remote control ---
 
-  /// Connect to an app-server service: subscribe on `127.0.0.1:<localPort>`,
-  /// open the JSON-RPC websocket and run the `initialize` handshake. Pass
-  /// `localPort: 0` to let the bridge assign a free OS port per service (so
-  /// several services can coexist).
+  /// Connect to a session service, dispatched by its key's protocol: a Codex
+  /// app-server (subscribe on `127.0.0.1:<localPort>`, open the JSON-RPC
+  /// websocket, run `initialize`) or an ACP gateway (`/acp/v1` snapshot, then
+  /// its event stream). Pass `localPort: 0` to let the bridge assign a free
+  /// OS port per service (so several services can coexist).
   Future<void> appConnect(String serviceKey, int localPort);
 
   /// Whether a live app-server session exists for [serviceKey].
@@ -1298,10 +330,12 @@ abstract interface class BridgeApi {
   /// Disconnect the app-server session and its pb-mapper subscription.
   Future<void> appDisconnect(String serviceKey);
 
-  /// Probe whether an app-server is actually REACHABLE (its backend answers a
-  /// handshake) rather than merely registered on the relay. The services list
-  /// uses this so a registered-but-dead app-server shows as unreachable instead
-  /// of a false "online". A live session short-circuits to true.
+  /// Probe whether a session service is actually REACHABLE (a Codex
+  /// app-server answers `initialize`; an ACP gateway reports a ready agent)
+  /// rather than merely registered on the relay, dispatched by the key's
+  /// protocol. The services list uses this so a registered-but-dead host
+  /// shows as unreachable instead of a false "online". A live session
+  /// short-circuits to true.
   Future<bool> appProbe(String serviceKey);
 
   /// Why [appProbe] found a service unreachable, or null when it is reachable.
@@ -1477,6 +511,19 @@ abstract interface class BridgeApi {
     List<String> images = const [],
   });
 
+  /// Add input to the running turn [turnId] (Codex `turn/steer`, or an ACP
+  /// agent's negotiated steering). An ACP agent with no turn running
+  /// consumes nothing and says so (Codex fails instead); an error means it
+  /// was refused or its fate is unknown, and it must not be retried or
+  /// resent as a prompt.
+  Future<TurnSupplement> appTurnSupplement(
+    String serviceKey,
+    String threadId,
+    String? turnId,
+    String text, {
+    List<String> images = const [],
+  });
+
   /// Interrupt the running turn. [turnId] (from the latest `turn/started`) is
   /// required by the server to identify which turn to abort.
   Future<void> appTurnInterrupt(
@@ -1510,6 +557,24 @@ abstract interface class BridgeApi {
   /// each annotated with whether it is safe to resume. Reads local disk +
   /// the process table; no app-server connection required.
   Future<List<LocalSession>> appLocalSessions();
+
+  /// Read provider-native files on this computer without starting an agent.
+  Future<NativeSessionList> appNativeSessions(
+    String provider, {
+    String? cursor,
+    String? sourceId,
+  });
+  Future<NativeSessionPage> appNativeSessionPage(
+    String provider,
+    String threadId, {
+    String? before,
+    String? sourceId,
+  });
+  Future<NativeSessionRevision> appNativeSessionRevision(
+    String provider,
+    String threadId, {
+    String? sourceId,
+  });
 
   /// Inspect one session's live resume-safety and the processes a force
   /// takeover would evict. Poll before showing a resume button so the UI
@@ -1569,6 +634,19 @@ abstract interface class BridgeApi {
   /// confirmation; do not call while a turn is actively running.
   Future<ForceResumeReport> metaForceResume(String serviceKey, String threadId);
 
+  /// An ownership snapshot. Inspecting it never starts or restores a writer.
+  Future<SessionControl> appAcpSessionControl(
+    String serviceKey,
+    String threadId,
+  );
+
+  /// Apply the action to the exact displayed host, generation and source.
+  Future<void> appAcpControlSession(
+    String serviceKey,
+    SessionControl snapshot,
+    String action,
+  );
+
   /// Upload a document/file attachment to the host behind [serviceKey] (over
   /// its meta tunnel — loopback when this app is the host). Returns the
   /// absolute HOST filesystem path where it was stored; the turn text then
@@ -1579,6 +657,17 @@ abstract interface class BridgeApi {
     String serviceKey,
     String fileName,
     Uint8List bytes,
+  );
+
+  /// Capture the current destination context before reading attachment bytes.
+  String metaUploadContext();
+
+  /// Reject a context change before transmitting attachment bytes.
+  Future<String> metaUploadFileScoped(
+    String serviceKey,
+    String fileName,
+    Uint8List bytes,
+    String context,
   );
 
   /// Read a thread's persisted config from the host behind [serviceKey]

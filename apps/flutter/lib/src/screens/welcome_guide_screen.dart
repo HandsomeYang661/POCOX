@@ -9,6 +9,7 @@ import 'package:pocket_codex/l10n/gen/app_localizations.dart';
 import 'package:pocket_codex/src/bridge_api.dart';
 import 'package:pocket_codex/src/desktop_theme.dart';
 import 'package:pocket_codex/src/providers.dart';
+import 'package:pocket_codex/src/service_key.dart';
 import 'package:pocket_codex/src/theme.dart';
 import 'package:pocket_codex/src/ui_prefs.dart';
 import 'package:pocket_codex/src/widgets/brand_logo.dart';
@@ -70,10 +71,7 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
   void _enterChat() => context.go('/');
 
   Future<void> _startHosting() async {
-    await showDialog<void>(
-      context: context,
-      builder: (_) => const LocalHostDialog(),
-    );
+    await showHostingEditor(context);
     if (!mounted) return;
     ref.invalidate(localServeListProvider);
     ref.invalidate(servicesProvider);
@@ -220,7 +218,7 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
   List<Widget> _mobileSteps(AppLocalizations l10n, ColorScheme scheme) {
     final services =
         ref.watch(servicesProvider).valueOrNull ?? const <ServiceEntry>[];
-    final found = services.where((s) => s.kind == 'app').toList();
+    final found = services.where((s) => isSessionKind(s.kind)).toList();
     return [
       _stepCard(
         scheme: scheme,

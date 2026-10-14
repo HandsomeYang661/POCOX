@@ -4,6 +4,18 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/bridge.dart';
+import 'api/bridge/codex_setup.dart';
+import 'api/bridge/connection.dart';
+import 'api/bridge/events.dart';
+import 'api/bridge/host_config.dart';
+import 'api/bridge/host_sessions.dart';
+import 'api/bridge/hosted_account.dart';
+import 'api/bridge/hosting.dart';
+import 'api/bridge/native_sessions.dart';
+import 'api/bridge/services.dart';
+import 'api/bridge/session_config.dart';
+import 'api/bridge/session_control.dart';
+import 'api/bridge/threads.dart';
 import 'api/simple.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -67,7 +79,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 1705568786;
+  int get rustContentHash => -100442717;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -79,139 +91,225 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
-  Future<AccountUserDto?> crateApiBridgeAccountCurrentUser();
+  Future<AccountUserDto?> crateApiBridgeHostedAccountAccountCurrentUser();
 
-  Future<void> crateApiBridgeAccountDeregisterService({
+  Future<void> crateApiBridgeHostedAccountAccountDeregisterService({
     required String device,
     required String kind,
     required String name,
   });
 
-  Future<AccountPollDto> crateApiBridgeAccountLoginPoll({
+  Future<AccountPollDto> crateApiBridgeHostedAccountAccountLoginPoll({
     required String pollHandle,
     required String backend,
   });
 
-  Future<DeviceCodeDto> crateApiBridgeAccountLoginStart({String? backend});
+  Future<DeviceCodeDto> crateApiBridgeHostedAccountAccountLoginStart({
+    String? backend,
+  });
 
-  Future<void> crateApiBridgeAccountLogout();
+  Future<void> crateApiBridgeHostedAccountAccountLogout();
 
-  Future<List<AccountServiceDto>> crateApiBridgeAccountServices();
+  Future<List<AccountServiceDto>> crateApiBridgeHostedAccountAccountServices();
 
-  Future<AccountUserDto> crateApiBridgeAccountWebLoginExchange({
+  Future<AccountUserDto> crateApiBridgeHostedAccountAccountWebLoginExchange({
     required String exchangeCode,
     required String codeVerifier,
     required String backend,
   });
 
-  Future<WebLoginStartDto> crateApiBridgeAccountWebLoginStart({
+  Future<WebLoginStartDto> crateApiBridgeHostedAccountAccountWebLoginStart({
     required String redirectUri,
     String? backend,
   });
 
-  Future<bool> crateApiBridgeApiProbe({required String serviceKey});
+  AcpClaudeSetupDto crateApiBridgeHostingAcpClaudePrepareCancel();
 
-  Future<bool> crateApiBridgeApiProbeLocal({required String localAddr});
+  AcpClaudeSetupDto crateApiBridgeHostingAcpClaudePrepareCancelRun({
+    required BigInt run,
+  });
 
-  Future<SubStatusDto> crateApiBridgeApiSubscribe({
+  Future<AcpClaudeSetupDto> crateApiBridgeHostingAcpClaudePrepareStart();
+
+  AcpClaudeSetupDto crateApiBridgeHostingAcpClaudePrepareState();
+
+  Future<AcpClaudeStatusDto> crateApiBridgeHostingAcpClaudeStatus();
+
+  bool crateApiBridgeHostingAcpHostingSupported();
+
+  Future<String?> crateApiBridgeHostingAcpLocate({
+    required String program,
+    String? profileId,
+  });
+
+  List<AcpPresetDto> crateApiBridgeHostingAcpPresets();
+
+  Future<bool> crateApiBridgeConnectionApiProbe({required String serviceKey});
+
+  Future<bool> crateApiBridgeConnectionApiProbeLocal({
+    required String localAddr,
+  });
+
+  Future<SubStatusDto> crateApiBridgeServicesApiSubscribe({
     required String serviceKey,
     required int localPort,
   });
 
-  Future<void> crateApiBridgeApiUnsubscribe({required String serviceKey});
+  Future<void> crateApiBridgeServicesApiUnsubscribe({
+    required String serviceKey,
+  });
 
-  Future<void> crateApiBridgeAppCompact({
+  Future<void> crateApiBridgeSessionControlAppAcpControlSession({
+    required String serviceKey,
+    required SessionControlDto snapshot,
+    required String action,
+  });
+
+  Future<SessionControlDto> crateApiBridgeSessionControlAppAcpSessionControl({
     required String serviceKey,
     required String threadId,
   });
 
-  Future<void> crateApiBridgeAppConnect({
+  AppCapabilitiesDto crateApiBridgeConnectionAppCapabilities({
+    required String serviceKey,
+  });
+
+  Future<void> crateApiBridgeThreadsAppCompact({
+    required String serviceKey,
+    required String threadId,
+  });
+
+  Future<void> crateApiBridgeConnectionAppConnect({
     required String serviceKey,
     required int localPort,
   });
 
-  Future<void> crateApiBridgeAppDisconnect({required String serviceKey});
+  Future<void> crateApiBridgeConnectionAppDisconnect({
+    required String serviceKey,
+  });
 
-  Stream<AppEventDto> crateApiBridgeAppEvents({required String serviceKey});
+  Stream<AppEventDto> crateApiBridgeEventsAppEvents({
+    required String serviceKey,
+  });
 
-  Future<ForceResumeReportDto> crateApiBridgeAppForceResume({
+  Future<ForceResumeReportDto> crateApiBridgeHostSessionsAppForceResume({
     required String serviceKey,
     required String threadId,
   });
 
-  Future<String> crateApiBridgeAppGitDiff({
+  Future<String> crateApiBridgeThreadsAppGitDiff({
     required String serviceKey,
     required String cwd,
   });
 
-  Future<ThreadHistoryDto?> crateApiBridgeAppHistoryCached({
+  Future<ThreadHistoryDto?> crateApiBridgeThreadsAppHistoryCached({
     required String serviceKey,
     required String threadId,
   });
 
-  Future<void> crateApiBridgeAppHistoryFocus({
+  Future<void> crateApiBridgeThreadsAppHistoryFocus({
     required String serviceKey,
     String? threadId,
   });
 
-  Future<void> crateApiBridgeAppHistoryPrefetch({
+  Future<void> crateApiBridgeThreadsAppHistoryPrefetch({
     required String serviceKey,
     required String threadId,
   });
 
-  Future<bool> crateApiBridgeAppHistorySyncPrepare({
+  Future<bool> crateApiBridgeThreadsAppHistorySyncPrepare({
     required String serviceKey,
   });
 
-  bool crateApiBridgeAppIsConnected({required String serviceKey});
+  bool crateApiBridgeConnectionAppIsConnected({required String serviceKey});
 
-  Future<List<ThreadItemDto>> crateApiBridgeAppLocalSessionTranscript({
+  Future<List<ThreadItemDto>>
+  crateApiBridgeHostSessionsAppLocalSessionTranscript({
     required String threadId,
   });
 
-  Future<List<LocalSessionDto>> crateApiBridgeAppLocalSessions();
+  Future<List<LocalSessionDto>> crateApiBridgeHostSessionsAppLocalSessions();
 
-  Future<List<ModelInfoDto>> crateApiBridgeAppModelList({
+  Future<List<ModelInfoDto>> crateApiBridgeThreadsAppModelList({
     required String serviceKey,
   });
 
-  Future<bool> crateApiBridgeAppProbe({required String serviceKey});
+  Future<NativeSessionPageDto>
+  crateApiBridgeNativeSessionsAppNativeSessionPage({
+    required String provider,
+    required String threadId,
+    String? before,
+    String? sourceId,
+  });
 
-  Future<bool> crateApiBridgeAppProbeLocal({required String localAddr});
+  Future<NativeSessionRevisionDto>
+  crateApiBridgeNativeSessionsAppNativeSessionRevision({
+    required String provider,
+    required String threadId,
+    String? sourceId,
+  });
 
-  Future<String?> crateApiBridgeAppProbeReason({required String serviceKey});
+  Future<NativeSessionListDto> crateApiBridgeNativeSessionsAppNativeSessions({
+    required String provider,
+    String? cursor,
+    String? sourceId,
+  });
 
-  Future<String> crateApiBridgeAppRateLimits({required String serviceKey});
+  Future<bool> crateApiBridgeConnectionAppProbe({required String serviceKey});
 
-  Future<String> crateApiBridgeAppRealtimeRequest({
+  Future<bool> crateApiBridgeConnectionAppProbeLocal({
+    required String localAddr,
+  });
+
+  Future<String?> crateApiBridgeConnectionAppProbeReason({
+    required String serviceKey,
+  });
+
+  Future<String> crateApiBridgeThreadsAppRateLimits({
+    required String serviceKey,
+  });
+
+  Future<String> crateApiBridgeThreadsAppRealtimeRequest({
     required String serviceKey,
     required String method,
     required String paramsJson,
   });
 
-  Future<void> crateApiBridgeAppRespondApproval({
+  Future<void> crateApiBridgeThreadsAppRespondApproval({
     required String serviceKey,
     required String requestId,
     required String decision,
   });
 
-  Future<void> crateApiBridgeAppRespondUserInput({
+  Future<void> crateApiBridgeThreadsAppRespondUserInput({
     required String serviceKey,
     required String requestId,
     required String answersJson,
   });
 
-  Future<void> crateApiBridgeAppServeDeregister({
+  Future<List<String>> crateApiBridgeConnectionAppRunningThreads({
+    required String serviceKey,
+  });
+
+  Future<HostApplyDto> crateApiBridgeHostConfigAppServeApply({
+    required String name,
+    String? expectedIncarnation,
+    BigInt? expectedRevision,
+  });
+
+  Future<void> crateApiBridgeHostingAppServeDeregister({
     required String name,
     required String kind,
   });
 
-  Future<void> crateApiBridgeAppServeReregister({
+  Future<void> crateApiBridgeHostingAppServeReregister({
     required String name,
     required String kind,
   });
 
-  Future<AppServeDto> crateApiBridgeAppServeStart({
+  Future<void> crateApiBridgeHostingAppServeRestartAcp({required String name});
+
+  Future<AppServeDto> crateApiBridgeHostingAppServeStart({
     required int port,
     String? binaryOverride,
     String? name,
@@ -219,53 +317,84 @@ abstract class RustLibApi extends BaseApi {
     required bool embedded,
   });
 
-  Future<List<AppServeStatusDto>> crateApiBridgeAppServeStatus();
+  Future<AcpServeDto> crateApiBridgeHostingAppServeStartAcp({
+    String? name,
+    required AcpAgentSpecDto spec,
+  });
 
-  Future<void> crateApiBridgeAppServeStop({required String name});
+  Future<HostStartedDto> crateApiBridgeHostConfigAppServeStartConfigured({
+    String? name,
+    required HostRuntimeDto runtime,
+    required HostConfigInputDto input,
+    required String keyAction,
+    String? key,
+  });
 
-  Future<void> crateApiBridgeAppServeStopAll();
+  Future<List<AppServeStatusDto>> crateApiBridgeHostingAppServeStatus();
 
-  Future<SessionLivenessDto> crateApiBridgeAppSessionLiveness({
+  Future<void> crateApiBridgeHostingAppServeStop({required String name});
+
+  Future<void> crateApiBridgeHostingAppServeStopAll();
+
+  Future<SessionLivenessDto> crateApiBridgeHostSessionsAppSessionLiveness({
     required String threadId,
   });
 
-  Future<void> crateApiBridgeAppSetThreadName({
+  SessionSettingsDto? crateApiBridgeSessionConfigAppSessionSettings({
+    required String serviceKey,
+    required String threadId,
+  });
+
+  Future<void> crateApiBridgeSessionConfigAppSetSessionConfig({
+    required String serviceKey,
+    required String threadId,
+    required String configId,
+    required String value,
+  });
+
+  Future<void> crateApiBridgeSessionConfigAppSetSessionMode({
+    required String serviceKey,
+    required String threadId,
+    required String modeId,
+  });
+
+  Future<void> crateApiBridgeThreadsAppSetThreadName({
     required String serviceKey,
     required String threadId,
     required String name,
   });
 
-  Future<List<ThreadMetaDto>> crateApiBridgeAppThreadList({
+  Future<List<ThreadMetaDto>> crateApiBridgeThreadsAppThreadList({
     required String serviceKey,
   });
 
-  Future<ThreadMetaDto> crateApiBridgeAppThreadMetadata({
-    required String serviceKey,
-    required String threadId,
-  });
-
-  Future<OlderPageDto> crateApiBridgeAppThreadOlderPage({
+  Future<ThreadMetaDto> crateApiBridgeThreadsAppThreadMetadata({
     required String serviceKey,
     required String threadId,
   });
 
-  Future<ThreadHistoryDto> crateApiBridgeAppThreadRead({
+  Future<OlderPageDto> crateApiBridgeThreadsAppThreadOlderPage({
+    required String serviceKey,
+    required String threadId,
+  });
+
+  Future<ThreadHistoryDto> crateApiBridgeThreadsAppThreadRead({
     required String serviceKey,
     required String threadId,
     bool? includeTurnPages,
   });
 
-  Future<void> crateApiBridgeAppThreadResume({
+  Future<void> crateApiBridgeThreadsAppThreadResume({
     required String serviceKey,
     required String threadId,
   });
 
-  ThreadRuntimeConfigDto? crateApiBridgeAppThreadRuntimeConfig({
+  ThreadRuntimeConfigDto? crateApiBridgeThreadsAppThreadRuntimeConfig({
     required String serviceKey,
     required String threadId,
   });
 
-  Future<String> crateApiBridgeAppThreadStart({
+  Future<String> crateApiBridgeThreadsAppThreadStart({
     required String serviceKey,
     String? model,
     String? cwd,
@@ -275,18 +404,18 @@ abstract class RustLibApi extends BaseApi {
     String? sandbox,
   });
 
-  Future<String?> crateApiBridgeAppThreadSummary({
+  Future<String?> crateApiBridgeThreadsAppThreadSummary({
     required String serviceKey,
     required String threadId,
   });
 
-  Future<List<ThreadItemDto>> crateApiBridgeAppThreadTurnItems({
+  Future<List<ThreadItemDto>> crateApiBridgeThreadsAppThreadTurnItems({
     required String serviceKey,
     required String threadId,
     required String turnId,
   });
 
-  Future<TurnItemsPageDto> crateApiBridgeAppThreadTurnPage({
+  Future<TurnItemsPageDto> crateApiBridgeThreadsAppThreadTurnPage({
     required String serviceKey,
     required String threadId,
     required String turnId,
@@ -294,13 +423,13 @@ abstract class RustLibApi extends BaseApi {
     bool? deltaOnly,
   });
 
-  Future<void> crateApiBridgeAppTurnInterrupt({
+  Future<void> crateApiBridgeThreadsAppTurnInterrupt({
     required String serviceKey,
     required String threadId,
     String? turnId,
   });
 
-  Future<void> crateApiBridgeAppTurnStart({
+  Future<void> crateApiBridgeThreadsAppTurnStart({
     required String serviceKey,
     required String threadId,
     required String text,
@@ -314,7 +443,15 @@ abstract class RustLibApi extends BaseApi {
     String? reasoningEffort,
   });
 
-  Future<String> crateApiBridgeAppTurnSteer({
+  Future<String> crateApiBridgeThreadsAppTurnSteer({
+    required String serviceKey,
+    required String threadId,
+    String? turnId,
+    required String text,
+    List<String>? images,
+  });
+
+  Future<AppTurnSupplementDto> crateApiBridgeThreadsAppTurnSupplement({
     required String serviceKey,
     required String threadId,
     String? turnId,
@@ -324,38 +461,69 @@ abstract class RustLibApi extends BaseApi {
 
   String crateApiSimpleBridgeVersion();
 
-  Future<CodexAuthStatusDto> crateApiBridgeCodexAuthStatus({
+  Future<CodexAuthStatusDto> crateApiBridgeCodexSetupCodexAuthStatus({
     required String serviceKey,
   });
 
-  Future<String?> crateApiBridgeCodexLocate();
+  Future<CodexLocalAuthDto> crateApiBridgeHostConfigCodexLocalAuthStatus({
+    required String sessionId,
+    String? loginId,
+  });
 
-  Future<void> crateApiBridgeCodexLoginCancel({
+  Future<void> crateApiBridgeHostConfigCodexLocalLoginCancel({
+    required String sessionId,
+    required String loginId,
+  });
+
+  Future<CodexLoginStartDto> crateApiBridgeHostConfigCodexLocalLoginStart({
+    required String sessionId,
+  });
+
+  Future<void> crateApiBridgeHostConfigCodexLocalLogout({
+    required String sessionId,
+  });
+
+  Future<void> crateApiBridgeHostConfigCodexLocalSessionClose({
+    required String sessionId,
+  });
+
+  Future<String> crateApiBridgeHostConfigCodexLocalSessionOpen({
+    String? binary,
+    String? proxy,
+  });
+
+  Future<String?> crateApiBridgeHostingCodexLocate();
+
+  Future<void> crateApiBridgeCodexSetupCodexLoginCancel({
     required String serviceKey,
     required String loginId,
   });
 
-  Future<CodexLoginStartDto> crateApiBridgeCodexLoginChatgptStart({
+  Future<CodexLoginStartDto> crateApiBridgeCodexSetupCodexLoginChatgptStart({
     required String serviceKey,
   });
 
-  Future<void> crateApiBridgeCodexLogout({required String serviceKey});
+  Future<void> crateApiBridgeCodexSetupCodexLogout({
+    required String serviceKey,
+  });
 
-  Future<String> crateApiBridgeCodexPromptVariant();
+  Future<String> crateApiBridgeCodexSetupCodexPromptVariant();
 
-  Future<void> crateApiBridgeCodexSetPromptVariant({required String variant});
+  Future<void> crateApiBridgeCodexSetupCodexSetPromptVariant({
+    required String variant,
+  });
 
-  Future<void> crateApiBridgeCodexSetupProvider({
+  Future<void> crateApiBridgeCodexSetupCodexSetupProvider({
     required String baseUrl,
     required String apiKey,
     String? model,
   });
 
-  Future<CodexSetupStatusDto> crateApiBridgeCodexSetupStatus();
+  Future<CodexSetupStatusDto> crateApiBridgeCodexSetupCodexSetupStatus();
 
-  Future<List<ServiceIdDto>> crateApiBridgeDiscoverServices();
+  Future<List<ServiceIdDto>> crateApiBridgeServicesDiscoverServices();
 
-  Future<String> crateApiBridgeEmbeddedCodexVersion();
+  Future<String> crateApiBridgeHostingEmbeddedCodexVersion();
 
   Future<String> crateApiBridgeExportConfig();
 
@@ -363,9 +531,29 @@ abstract class RustLibApi extends BaseApi {
 
   String crateApiSimpleGreet({required String name});
 
-  Future<void> crateApiBridgeHistoryCacheSetLimit({required int limitMb});
+  Future<void> crateApiBridgeThreadsHistoryCacheSetLimit({
+    required int limitMb,
+  });
 
-  Future<HistoryCacheStatusDto> crateApiBridgeHistoryCacheStatus();
+  Future<HistoryCacheStatusDto> crateApiBridgeThreadsHistoryCacheStatus();
+
+  Future<HostConfigDto> crateApiBridgeHostConfigHostConfigGet({
+    required String name,
+  });
+
+  Future<HostConfigDto> crateApiBridgeHostConfigHostConfigSave({
+    required String name,
+    required HostConfigInputDto input,
+    required String keyAction,
+    String? key,
+    BigInt? expectedRevision,
+    AcpAgentSpecDto? spec,
+    HostRuntimeDto? runtime,
+  });
+
+  HostConfigSupportDto crateApiBridgeHostConfigHostConfigSupported({
+    AcpAgentSpecDto? spec,
+  });
 
   Future<String> crateApiBridgeImportConfig({required String text});
 
@@ -373,99 +561,110 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiBridgeInitBridge({required String supportDir});
 
-  Stream<LogLineDto> crateApiBridgeLogEvents();
+  Stream<LogLineDto> crateApiBridgeEventsLogEvents();
 
-  Future<void> crateApiBridgeMetaFileDownload({
+  Future<void> crateApiBridgeHostSessionsMetaFileDownload({
     required String serviceKey,
     String? threadId,
     required String href,
     required String destination,
   });
 
-  Future<FilePreviewDto> crateApiBridgeMetaFilePreview({
+  Future<FilePreviewDto> crateApiBridgeHostSessionsMetaFilePreview({
     required String serviceKey,
     String? threadId,
     required String href,
   });
 
-  Future<ForceResumeReportDto> crateApiBridgeMetaForceResume({
+  Future<ForceResumeReportDto> crateApiBridgeHostSessionsMetaForceResume({
     required String serviceKey,
     required String threadId,
   });
 
-  Future<bool> crateApiBridgeMetaHostIsLocal({required String serviceKey});
+  Future<bool> crateApiBridgeHostSessionsMetaHostIsLocal({
+    required String serviceKey,
+  });
 
-  Future<List<DirEntryDto>> crateApiBridgeMetaListDir({
+  Future<List<DirEntryDto>> crateApiBridgeHostSessionsMetaListDir({
     required String serviceKey,
     required String path,
   });
 
-  Future<List<FileEntryDto>> crateApiBridgeMetaListFiles({
+  Future<List<FileEntryDto>> crateApiBridgeHostSessionsMetaListFiles({
     required String serviceKey,
     required String path,
   });
 
-  Future<ProjectConfigDto> crateApiBridgeMetaProjectConfig({
+  Future<ProjectConfigDto> crateApiBridgeHostSessionsMetaProjectConfig({
     required String serviceKey,
   });
 
-  Future<Uint8List> crateApiBridgeMetaReadFile({
+  Future<Uint8List> crateApiBridgeHostSessionsMetaReadFile({
     required String serviceKey,
     required String path,
   });
 
-  Future<Uint8List> crateApiBridgeMetaReadThreadImage({
+  Future<Uint8List> crateApiBridgeHostSessionsMetaReadThreadImage({
     required String serviceKey,
     required String threadId,
     required String path,
   });
 
-  Stream<RetryProgressDto> crateApiBridgeMetaRetryEvents();
+  Stream<RetryProgressDto> crateApiBridgeEventsMetaRetryEvents();
 
-  Stream<SessionFollowUpdateDto> crateApiBridgeMetaSessionEvents({
+  Stream<SessionFollowUpdateDto> crateApiBridgeHostSessionsMetaSessionEvents({
     required String serviceKey,
     required String threadId,
   });
 
-  Future<SessionLivenessDto> crateApiBridgeMetaSessionLiveness({
+  Future<SessionLivenessDto> crateApiBridgeHostSessionsMetaSessionLiveness({
     required String serviceKey,
     required String threadId,
   });
 
-  Future<List<ThreadItemDto>> crateApiBridgeMetaSessionTranscript({
+  Future<List<ThreadItemDto>> crateApiBridgeHostSessionsMetaSessionTranscript({
     required String serviceKey,
     required String threadId,
   });
 
-  Future<List<LocalSessionDto>> crateApiBridgeMetaSessions({
+  Future<List<LocalSessionDto>> crateApiBridgeHostSessionsMetaSessions({
     required String serviceKey,
     bool? runningOnly,
   });
 
-  Future<ProjectConfigDto> crateApiBridgeMetaSetProjectConfig({
+  Future<ProjectConfigDto> crateApiBridgeHostSessionsMetaSetProjectConfig({
     required String serviceKey,
     required List<String> projectRoots,
     String? defaultProject,
   });
 
-  Future<ThreadConfigDto> crateApiBridgeMetaThreadConfigGet({
+  Future<ThreadConfigDto> crateApiBridgeHostSessionsMetaThreadConfigGet({
     required String serviceKey,
     required String threadId,
   });
 
-  Future<ThreadConfigDto> crateApiBridgeMetaThreadConfigSet({
+  Future<ThreadConfigDto> crateApiBridgeHostSessionsMetaThreadConfigSet({
     required String serviceKey,
     required String threadId,
     required ThreadConfigDto config,
   });
 
-  Future<String> crateApiBridgeMetaUploadFile({
+  String crateApiBridgeHostSessionsMetaUploadContext();
+
+  Future<String> crateApiBridgeHostSessionsMetaUploadFile({
     required String serviceKey,
     required String fileName,
     required List<int> bytes,
   });
 
-  Future<String> crateApiBridgeMetaWriteFile({
+  Future<String> crateApiBridgeHostSessionsMetaUploadFileScoped({
+    required String serviceKey,
+    required String fileName,
+    required List<int> bytes,
+    required String context,
+  });
+
+  Future<String> crateApiBridgeHostSessionsMetaWriteFile({
     required String serviceKey,
     required String dir,
     required String fileName,
@@ -478,7 +677,7 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiBridgeSetRelay({required String relay});
 
-  Future<List<SubStatusDto>> crateApiBridgeSubscriptions();
+  Future<List<SubStatusDto>> crateApiBridgeServicesSubscriptions();
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -490,7 +689,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
-  Future<AccountUserDto?> crateApiBridgeAccountCurrentUser() {
+  Future<AccountUserDto?> crateApiBridgeHostedAccountAccountCurrentUser() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -506,18 +705,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_opt_box_autoadd_account_user_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAccountCurrentUserConstMeta,
+        constMeta: kCrateApiBridgeHostedAccountAccountCurrentUserConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAccountCurrentUserConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostedAccountAccountCurrentUserConstMeta =>
       const TaskConstMeta(debugName: "account_current_user", argNames: []);
 
   @override
-  Future<void> crateApiBridgeAccountDeregisterService({
+  Future<void> crateApiBridgeHostedAccountAccountDeregisterService({
     required String device,
     required String kind,
     required String name,
@@ -540,21 +739,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAccountDeregisterServiceConstMeta,
+        constMeta:
+            kCrateApiBridgeHostedAccountAccountDeregisterServiceConstMeta,
         argValues: [device, kind, name],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAccountDeregisterServiceConstMeta =>
+  TaskConstMeta
+  get kCrateApiBridgeHostedAccountAccountDeregisterServiceConstMeta =>
       const TaskConstMeta(
         debugName: "account_deregister_service",
         argNames: ["device", "kind", "name"],
       );
 
   @override
-  Future<AccountPollDto> crateApiBridgeAccountLoginPoll({
+  Future<AccountPollDto> crateApiBridgeHostedAccountAccountLoginPoll({
     required String pollHandle,
     required String backend,
   }) {
@@ -575,21 +776,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_account_poll_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAccountLoginPollConstMeta,
+        constMeta: kCrateApiBridgeHostedAccountAccountLoginPollConstMeta,
         argValues: [pollHandle, backend],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAccountLoginPollConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostedAccountAccountLoginPollConstMeta =>
       const TaskConstMeta(
         debugName: "account_login_poll",
         argNames: ["pollHandle", "backend"],
       );
 
   @override
-  Future<DeviceCodeDto> crateApiBridgeAccountLoginStart({String? backend}) {
+  Future<DeviceCodeDto> crateApiBridgeHostedAccountAccountLoginStart({
+    String? backend,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -606,21 +809,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_device_code_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAccountLoginStartConstMeta,
+        constMeta: kCrateApiBridgeHostedAccountAccountLoginStartConstMeta,
         argValues: [backend],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAccountLoginStartConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostedAccountAccountLoginStartConstMeta =>
       const TaskConstMeta(
         debugName: "account_login_start",
         argNames: ["backend"],
       );
 
   @override
-  Future<void> crateApiBridgeAccountLogout() {
+  Future<void> crateApiBridgeHostedAccountAccountLogout() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -636,18 +839,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAccountLogoutConstMeta,
+        constMeta: kCrateApiBridgeHostedAccountAccountLogoutConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAccountLogoutConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostedAccountAccountLogoutConstMeta =>
       const TaskConstMeta(debugName: "account_logout", argNames: []);
 
   @override
-  Future<List<AccountServiceDto>> crateApiBridgeAccountServices() {
+  Future<List<AccountServiceDto>> crateApiBridgeHostedAccountAccountServices() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -663,18 +866,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_account_service_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAccountServicesConstMeta,
+        constMeta: kCrateApiBridgeHostedAccountAccountServicesConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAccountServicesConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostedAccountAccountServicesConstMeta =>
       const TaskConstMeta(debugName: "account_services", argNames: []);
 
   @override
-  Future<AccountUserDto> crateApiBridgeAccountWebLoginExchange({
+  Future<AccountUserDto> crateApiBridgeHostedAccountAccountWebLoginExchange({
     required String exchangeCode,
     required String codeVerifier,
     required String backend,
@@ -697,21 +900,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_account_user_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAccountWebLoginExchangeConstMeta,
+        constMeta: kCrateApiBridgeHostedAccountAccountWebLoginExchangeConstMeta,
         argValues: [exchangeCode, codeVerifier, backend],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAccountWebLoginExchangeConstMeta =>
+  TaskConstMeta
+  get kCrateApiBridgeHostedAccountAccountWebLoginExchangeConstMeta =>
       const TaskConstMeta(
         debugName: "account_web_login_exchange",
         argNames: ["exchangeCode", "codeVerifier", "backend"],
       );
 
   @override
-  Future<WebLoginStartDto> crateApiBridgeAccountWebLoginStart({
+  Future<WebLoginStartDto> crateApiBridgeHostedAccountAccountWebLoginStart({
     required String redirectUri,
     String? backend,
   }) {
@@ -732,89 +936,75 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_web_login_start_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAccountWebLoginStartConstMeta,
+        constMeta: kCrateApiBridgeHostedAccountAccountWebLoginStartConstMeta,
         argValues: [redirectUri, backend],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAccountWebLoginStartConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostedAccountAccountWebLoginStartConstMeta =>
       const TaskConstMeta(
         debugName: "account_web_login_start",
         argNames: ["redirectUri", "backend"],
       );
 
   @override
-  Future<bool> crateApiBridgeApiProbe({required String serviceKey}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
+  AcpClaudeSetupDto crateApiBridgeHostingAcpClaudePrepareCancel() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(serviceKey, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 9,
-            port: port_,
-          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 9)!;
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: sse_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiBridgeApiProbeConstMeta,
-        argValues: [serviceKey],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiBridgeApiProbeConstMeta =>
-      const TaskConstMeta(debugName: "api_probe", argNames: ["serviceKey"]);
-
-  @override
-  Future<bool> crateApiBridgeApiProbeLocal({required String localAddr}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(localAddr, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 10,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
+          decodeSuccessData: sse_decode_acp_claude_setup_dto,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiBridgeApiProbeLocalConstMeta,
-        argValues: [localAddr],
+        constMeta: kCrateApiBridgeHostingAcpClaudePrepareCancelConstMeta,
+        argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeApiProbeLocalConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostingAcpClaudePrepareCancelConstMeta =>
+      const TaskConstMeta(debugName: "acp_claude_prepare_cancel", argNames: []);
+
+  @override
+  AcpClaudeSetupDto crateApiBridgeHostingAcpClaudePrepareCancelRun({
+    required BigInt run,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(run, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 10)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_acp_claude_setup_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiBridgeHostingAcpClaudePrepareCancelRunConstMeta,
+        argValues: [run],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostingAcpClaudePrepareCancelRunConstMeta =>
       const TaskConstMeta(
-        debugName: "api_probe_local",
-        argNames: ["localAddr"],
+        debugName: "acp_claude_prepare_cancel_run",
+        argNames: ["run"],
       );
 
   @override
-  Future<SubStatusDto> crateApiBridgeApiSubscribe({
-    required String serviceKey,
-    required int localPort,
-  }) {
+  Future<AcpClaudeSetupDto> crateApiBridgeHostingAcpClaudePrepareStart() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(serviceKey, serializer);
-          sse_encode_u_16(localPort, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -823,63 +1013,47 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_sub_status_dto,
+          decodeSuccessData: sse_decode_acp_claude_setup_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeApiSubscribeConstMeta,
-        argValues: [serviceKey, localPort],
+        constMeta: kCrateApiBridgeHostingAcpClaudePrepareStartConstMeta,
+        argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeApiSubscribeConstMeta => const TaskConstMeta(
-    debugName: "api_subscribe",
-    argNames: ["serviceKey", "localPort"],
-  );
+  TaskConstMeta get kCrateApiBridgeHostingAcpClaudePrepareStartConstMeta =>
+      const TaskConstMeta(debugName: "acp_claude_prepare_start", argNames: []);
 
   @override
-  Future<void> crateApiBridgeApiUnsubscribe({required String serviceKey}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
+  AcpClaudeSetupDto crateApiBridgeHostingAcpClaudePrepareState() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(serviceKey, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 12,
-            port: port_,
-          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+          decodeSuccessData: sse_decode_acp_claude_setup_dto,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiBridgeApiUnsubscribeConstMeta,
-        argValues: [serviceKey],
+        constMeta: kCrateApiBridgeHostingAcpClaudePrepareStateConstMeta,
+        argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeApiUnsubscribeConstMeta =>
-      const TaskConstMeta(
-        debugName: "api_unsubscribe",
-        argNames: ["serviceKey"],
-      );
+  TaskConstMeta get kCrateApiBridgeHostingAcpClaudePrepareStateConstMeta =>
+      const TaskConstMeta(debugName: "acp_claude_prepare_state", argNames: []);
 
   @override
-  Future<void> crateApiBridgeAppCompact({
-    required String serviceKey,
-    required String threadId,
-  }) {
+  Future<AcpClaudeStatusDto> crateApiBridgeHostingAcpClaudeStatus() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(serviceKey, serializer);
-          sse_encode_String(threadId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -888,23 +1062,161 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+          decodeSuccessData: sse_decode_acp_claude_status_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppCompactConstMeta,
-        argValues: [serviceKey, threadId],
+        constMeta: kCrateApiBridgeHostingAcpClaudeStatusConstMeta,
+        argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppCompactConstMeta => const TaskConstMeta(
-    debugName: "app_compact",
-    argNames: ["serviceKey", "threadId"],
-  );
+  TaskConstMeta get kCrateApiBridgeHostingAcpClaudeStatusConstMeta =>
+      const TaskConstMeta(debugName: "acp_claude_status", argNames: []);
 
   @override
-  Future<void> crateApiBridgeAppConnect({
+  bool crateApiBridgeHostingAcpHostingSupported() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 14)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiBridgeHostingAcpHostingSupportedConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostingAcpHostingSupportedConstMeta =>
+      const TaskConstMeta(debugName: "acp_hosting_supported", argNames: []);
+
+  @override
+  Future<String?> crateApiBridgeHostingAcpLocate({
+    required String program,
+    String? profileId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(program, serializer);
+          sse_encode_opt_String(profileId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 15,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiBridgeHostingAcpLocateConstMeta,
+        argValues: [program, profileId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostingAcpLocateConstMeta =>
+      const TaskConstMeta(
+        debugName: "acp_locate",
+        argNames: ["program", "profileId"],
+      );
+
+  @override
+  List<AcpPresetDto> crateApiBridgeHostingAcpPresets() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_acp_preset_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiBridgeHostingAcpPresetsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostingAcpPresetsConstMeta =>
+      const TaskConstMeta(debugName: "acp_presets", argNames: []);
+
+  @override
+  Future<bool> crateApiBridgeConnectionApiProbe({required String serviceKey}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 17,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeConnectionApiProbeConstMeta,
+        argValues: [serviceKey],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeConnectionApiProbeConstMeta =>
+      const TaskConstMeta(debugName: "api_probe", argNames: ["serviceKey"]);
+
+  @override
+  Future<bool> crateApiBridgeConnectionApiProbeLocal({
+    required String localAddr,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(localAddr, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 18,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiBridgeConnectionApiProbeLocalConstMeta,
+        argValues: [localAddr],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeConnectionApiProbeLocalConstMeta =>
+      const TaskConstMeta(
+        debugName: "api_probe_local",
+        argNames: ["localAddr"],
+      );
+
+  @override
+  Future<SubStatusDto> crateApiBridgeServicesApiSubscribe({
     required String serviceKey,
     required int localPort,
   }) {
@@ -917,207 +1229,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 19,
             port: port_,
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
+          decodeSuccessData: sse_decode_sub_status_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppConnectConstMeta,
+        constMeta: kCrateApiBridgeServicesApiSubscribeConstMeta,
         argValues: [serviceKey, localPort],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppConnectConstMeta => const TaskConstMeta(
-    debugName: "app_connect",
-    argNames: ["serviceKey", "localPort"],
-  );
-
-  @override
-  Future<void> crateApiBridgeAppDisconnect({required String serviceKey}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(serviceKey, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 15,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiBridgeAppDisconnectConstMeta,
-        argValues: [serviceKey],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiBridgeAppDisconnectConstMeta =>
+  TaskConstMeta get kCrateApiBridgeServicesApiSubscribeConstMeta =>
       const TaskConstMeta(
-        debugName: "app_disconnect",
-        argNames: ["serviceKey"],
+        debugName: "api_subscribe",
+        argNames: ["serviceKey", "localPort"],
       );
 
   @override
-  Stream<AppEventDto> crateApiBridgeAppEvents({required String serviceKey}) {
-    final sink = RustStreamSink<AppEventDto>();
-    unawaited(
-      handler.executeNormal(
-        NormalTask(
-          callFfi: (port_) {
-            final serializer = SseSerializer(generalizedFrbRustBinding);
-            sse_encode_String(serviceKey, serializer);
-            sse_encode_StreamSink_app_event_dto_Sse(sink, serializer);
-            pdeCallFfi(
-              generalizedFrbRustBinding,
-              serializer,
-              funcId: 16,
-              port: port_,
-            );
-          },
-          codec: SseCodec(
-            decodeSuccessData: sse_decode_unit,
-            decodeErrorData: sse_decode_AnyhowException,
-          ),
-          constMeta: kCrateApiBridgeAppEventsConstMeta,
-          argValues: [serviceKey, sink],
-          apiImpl: this,
-        ),
-      ),
-    );
-    return sink.stream;
-  }
-
-  TaskConstMeta get kCrateApiBridgeAppEventsConstMeta => const TaskConstMeta(
-    debugName: "app_events",
-    argNames: ["serviceKey", "sink"],
-  );
-
-  @override
-  Future<ForceResumeReportDto> crateApiBridgeAppForceResume({
+  Future<void> crateApiBridgeServicesApiUnsubscribe({
     required String serviceKey,
-    required String threadId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(serviceKey, serializer);
-          sse_encode_String(threadId, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 17,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_force_resume_report_dto,
-          decodeErrorData: sse_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiBridgeAppForceResumeConstMeta,
-        argValues: [serviceKey, threadId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiBridgeAppForceResumeConstMeta =>
-      const TaskConstMeta(
-        debugName: "app_force_resume",
-        argNames: ["serviceKey", "threadId"],
-      );
-
-  @override
-  Future<String> crateApiBridgeAppGitDiff({
-    required String serviceKey,
-    required String cwd,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(serviceKey, serializer);
-          sse_encode_String(cwd, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 18,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
-          decodeErrorData: sse_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiBridgeAppGitDiffConstMeta,
-        argValues: [serviceKey, cwd],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiBridgeAppGitDiffConstMeta => const TaskConstMeta(
-    debugName: "app_git_diff",
-    argNames: ["serviceKey", "cwd"],
-  );
-
-  @override
-  Future<ThreadHistoryDto?> crateApiBridgeAppHistoryCached({
-    required String serviceKey,
-    required String threadId,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(serviceKey, serializer);
-          sse_encode_String(threadId, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 19,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_box_autoadd_thread_history_dto,
-          decodeErrorData: sse_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiBridgeAppHistoryCachedConstMeta,
-        argValues: [serviceKey, threadId],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiBridgeAppHistoryCachedConstMeta =>
-      const TaskConstMeta(
-        debugName: "app_history_cached",
-        argNames: ["serviceKey", "threadId"],
-      );
-
-  @override
-  Future<void> crateApiBridgeAppHistoryFocus({
-    required String serviceKey,
-    String? threadId,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(serviceKey, serializer);
-          sse_encode_opt_String(threadId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1127,32 +1268,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: null,
         ),
-        constMeta: kCrateApiBridgeAppHistoryFocusConstMeta,
-        argValues: [serviceKey, threadId],
+        constMeta: kCrateApiBridgeServicesApiUnsubscribeConstMeta,
+        argValues: [serviceKey],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppHistoryFocusConstMeta =>
+  TaskConstMeta get kCrateApiBridgeServicesApiUnsubscribeConstMeta =>
       const TaskConstMeta(
-        debugName: "app_history_focus",
-        argNames: ["serviceKey", "threadId"],
+        debugName: "api_unsubscribe",
+        argNames: ["serviceKey"],
       );
 
   @override
-  Future<void> crateApiBridgeAppHistoryPrefetch({
+  Future<void> crateApiBridgeSessionControlAppAcpControlSession({
     required String serviceKey,
-    required String threadId,
+    required SessionControlDto snapshot,
+    required String action,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(serviceKey, serializer);
-          sse_encode_String(threadId, serializer);
+          sse_encode_box_autoadd_session_control_dto(snapshot, serializer);
+          sse_encode_String(action, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1164,28 +1307,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppHistoryPrefetchConstMeta,
-        argValues: [serviceKey, threadId],
+        constMeta: kCrateApiBridgeSessionControlAppAcpControlSessionConstMeta,
+        argValues: [serviceKey, snapshot, action],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppHistoryPrefetchConstMeta =>
+  TaskConstMeta
+  get kCrateApiBridgeSessionControlAppAcpControlSessionConstMeta =>
       const TaskConstMeta(
-        debugName: "app_history_prefetch",
-        argNames: ["serviceKey", "threadId"],
+        debugName: "app_acp_control_session",
+        argNames: ["serviceKey", "snapshot", "action"],
       );
 
   @override
-  Future<bool> crateApiBridgeAppHistorySyncPrepare({
+  Future<SessionControlDto> crateApiBridgeSessionControlAppAcpSessionControl({
     required String serviceKey,
+    required String threadId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(serviceKey, serializer);
+          sse_encode_String(threadId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1194,24 +1340,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
+          decodeSuccessData: sse_decode_session_control_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppHistorySyncPrepareConstMeta,
-        argValues: [serviceKey],
+        constMeta: kCrateApiBridgeSessionControlAppAcpSessionControlConstMeta,
+        argValues: [serviceKey, threadId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppHistorySyncPrepareConstMeta =>
+  TaskConstMeta
+  get kCrateApiBridgeSessionControlAppAcpSessionControlConstMeta =>
       const TaskConstMeta(
-        debugName: "app_history_sync_prepare",
-        argNames: ["serviceKey"],
+        debugName: "app_acp_session_control",
+        argNames: ["serviceKey", "threadId"],
       );
 
   @override
-  bool crateApiBridgeAppIsConnected({required String serviceKey}) {
+  AppCapabilitiesDto crateApiBridgeConnectionAppCapabilities({
+    required String serviceKey,
+  }) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
@@ -1220,30 +1369,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 23)!;
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
+          decodeSuccessData: sse_decode_app_capabilities_dto,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiBridgeAppIsConnectedConstMeta,
+        constMeta: kCrateApiBridgeConnectionAppCapabilitiesConstMeta,
         argValues: [serviceKey],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppIsConnectedConstMeta =>
+  TaskConstMeta get kCrateApiBridgeConnectionAppCapabilitiesConstMeta =>
       const TaskConstMeta(
-        debugName: "app_is_connected",
+        debugName: "app_capabilities",
         argNames: ["serviceKey"],
       );
 
   @override
-  Future<List<ThreadItemDto>> crateApiBridgeAppLocalSessionTranscript({
+  Future<void> crateApiBridgeThreadsAppCompact({
+    required String serviceKey,
     required String threadId,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
           sse_encode_String(threadId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
@@ -1253,28 +1404,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_list_thread_item_dto,
+          decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppLocalSessionTranscriptConstMeta,
-        argValues: [threadId],
+        constMeta: kCrateApiBridgeThreadsAppCompactConstMeta,
+        argValues: [serviceKey, threadId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppLocalSessionTranscriptConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppCompactConstMeta =>
       const TaskConstMeta(
-        debugName: "app_local_session_transcript",
-        argNames: ["threadId"],
+        debugName: "app_compact",
+        argNames: ["serviceKey", "threadId"],
       );
 
   @override
-  Future<List<LocalSessionDto>> crateApiBridgeAppLocalSessions() {
+  Future<void> crateApiBridgeConnectionAppConnect({
+    required String serviceKey,
+    required int localPort,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          sse_encode_u_16(localPort, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1283,21 +1439,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_list_local_session_dto,
+          decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppLocalSessionsConstMeta,
-        argValues: [],
+        constMeta: kCrateApiBridgeConnectionAppConnectConstMeta,
+        argValues: [serviceKey, localPort],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppLocalSessionsConstMeta =>
-      const TaskConstMeta(debugName: "app_local_sessions", argNames: []);
+  TaskConstMeta get kCrateApiBridgeConnectionAppConnectConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_connect",
+        argNames: ["serviceKey", "localPort"],
+      );
 
   @override
-  Future<List<ModelInfoDto>> crateApiBridgeAppModelList({
+  Future<void> crateApiBridgeConnectionAppDisconnect({
     required String serviceKey,
   }) {
     return handler.executeNormal(
@@ -1313,56 +1472,71 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_list_model_info_dto,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
         ),
-        constMeta: kCrateApiBridgeAppModelListConstMeta,
+        constMeta: kCrateApiBridgeConnectionAppDisconnectConstMeta,
         argValues: [serviceKey],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppModelListConstMeta => const TaskConstMeta(
-    debugName: "app_model_list",
-    argNames: ["serviceKey"],
-  );
+  TaskConstMeta get kCrateApiBridgeConnectionAppDisconnectConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_disconnect",
+        argNames: ["serviceKey"],
+      );
 
   @override
-  Future<bool> crateApiBridgeAppProbe({required String serviceKey}) {
+  Stream<AppEventDto> crateApiBridgeEventsAppEvents({
+    required String serviceKey,
+  }) {
+    final sink = RustStreamSink<AppEventDto>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_String(serviceKey, serializer);
+            sse_encode_StreamSink_app_event_dto_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 27,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_AnyhowException,
+          ),
+          constMeta: kCrateApiBridgeEventsAppEventsConstMeta,
+          argValues: [serviceKey, sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiBridgeEventsAppEventsConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_events",
+        argNames: ["serviceKey", "sink"],
+      );
+
+  @override
+  Future<ForceResumeReportDto> crateApiBridgeHostSessionsAppForceResume({
+    required String serviceKey,
+    required String threadId,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(serviceKey, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 27,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: sse_decode_AnyhowException,
-        ),
-        constMeta: kCrateApiBridgeAppProbeConstMeta,
-        argValues: [serviceKey],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiBridgeAppProbeConstMeta =>
-      const TaskConstMeta(debugName: "app_probe", argNames: ["serviceKey"]);
-
-  @override
-  Future<bool> crateApiBridgeAppProbeLocal({required String localAddr}) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_String(localAddr, serializer);
+          sse_encode_String(threadId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1371,29 +1545,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: null,
+          decodeSuccessData: sse_decode_force_resume_report_dto,
+          decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppProbeLocalConstMeta,
-        argValues: [localAddr],
+        constMeta: kCrateApiBridgeHostSessionsAppForceResumeConstMeta,
+        argValues: [serviceKey, threadId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppProbeLocalConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsAppForceResumeConstMeta =>
       const TaskConstMeta(
-        debugName: "app_probe_local",
-        argNames: ["localAddr"],
+        debugName: "app_force_resume",
+        argNames: ["serviceKey", "threadId"],
       );
 
   @override
-  Future<String?> crateApiBridgeAppProbeReason({required String serviceKey}) {
+  Future<String> crateApiBridgeThreadsAppGitDiff({
+    required String serviceKey,
+    required String cwd,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(serviceKey, serializer);
+          sse_encode_String(cwd, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1402,29 +1580,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_opt_String,
+          decodeSuccessData: sse_decode_String,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppProbeReasonConstMeta,
-        argValues: [serviceKey],
+        constMeta: kCrateApiBridgeThreadsAppGitDiffConstMeta,
+        argValues: [serviceKey, cwd],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppProbeReasonConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppGitDiffConstMeta =>
       const TaskConstMeta(
-        debugName: "app_probe_reason",
-        argNames: ["serviceKey"],
+        debugName: "app_git_diff",
+        argNames: ["serviceKey", "cwd"],
       );
 
   @override
-  Future<String> crateApiBridgeAppRateLimits({required String serviceKey}) {
+  Future<ThreadHistoryDto?> crateApiBridgeThreadsAppHistoryCached({
+    required String serviceKey,
+    required String threadId,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(serviceKey, serializer);
+          sse_encode_String(threadId, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -1433,24 +1615,494 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_String,
+          decodeSuccessData: sse_decode_opt_box_autoadd_thread_history_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppRateLimitsConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppHistoryCachedConstMeta,
+        argValues: [serviceKey, threadId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeThreadsAppHistoryCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_history_cached",
+        argNames: ["serviceKey", "threadId"],
+      );
+
+  @override
+  Future<void> crateApiBridgeThreadsAppHistoryFocus({
+    required String serviceKey,
+    String? threadId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          sse_encode_opt_String(threadId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 31,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeThreadsAppHistoryFocusConstMeta,
+        argValues: [serviceKey, threadId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeThreadsAppHistoryFocusConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_history_focus",
+        argNames: ["serviceKey", "threadId"],
+      );
+
+  @override
+  Future<void> crateApiBridgeThreadsAppHistoryPrefetch({
+    required String serviceKey,
+    required String threadId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          sse_encode_String(threadId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 32,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeThreadsAppHistoryPrefetchConstMeta,
+        argValues: [serviceKey, threadId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeThreadsAppHistoryPrefetchConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_history_prefetch",
+        argNames: ["serviceKey", "threadId"],
+      );
+
+  @override
+  Future<bool> crateApiBridgeThreadsAppHistorySyncPrepare({
+    required String serviceKey,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 33,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeThreadsAppHistorySyncPrepareConstMeta,
         argValues: [serviceKey],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppRateLimitsConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppHistorySyncPrepareConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_history_sync_prepare",
+        argNames: ["serviceKey"],
+      );
+
+  @override
+  bool crateApiBridgeConnectionAppIsConnected({required String serviceKey}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiBridgeConnectionAppIsConnectedConstMeta,
+        argValues: [serviceKey],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeConnectionAppIsConnectedConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_is_connected",
+        argNames: ["serviceKey"],
+      );
+
+  @override
+  Future<List<ThreadItemDto>>
+  crateApiBridgeHostSessionsAppLocalSessionTranscript({
+    required String threadId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(threadId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 35,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_thread_item_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta:
+            kCrateApiBridgeHostSessionsAppLocalSessionTranscriptConstMeta,
+        argValues: [threadId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiBridgeHostSessionsAppLocalSessionTranscriptConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_local_session_transcript",
+        argNames: ["threadId"],
+      );
+
+  @override
+  Future<List<LocalSessionDto>> crateApiBridgeHostSessionsAppLocalSessions() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 36,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_local_session_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostSessionsAppLocalSessionsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostSessionsAppLocalSessionsConstMeta =>
+      const TaskConstMeta(debugName: "app_local_sessions", argNames: []);
+
+  @override
+  Future<List<ModelInfoDto>> crateApiBridgeThreadsAppModelList({
+    required String serviceKey,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 37,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_model_info_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeThreadsAppModelListConstMeta,
+        argValues: [serviceKey],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeThreadsAppModelListConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_model_list",
+        argNames: ["serviceKey"],
+      );
+
+  @override
+  Future<NativeSessionPageDto>
+  crateApiBridgeNativeSessionsAppNativeSessionPage({
+    required String provider,
+    required String threadId,
+    String? before,
+    String? sourceId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(provider, serializer);
+          sse_encode_String(threadId, serializer);
+          sse_encode_opt_String(before, serializer);
+          sse_encode_opt_String(sourceId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 38,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_native_session_page_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeNativeSessionsAppNativeSessionPageConstMeta,
+        argValues: [provider, threadId, before, sourceId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiBridgeNativeSessionsAppNativeSessionPageConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_native_session_page",
+        argNames: ["provider", "threadId", "before", "sourceId"],
+      );
+
+  @override
+  Future<NativeSessionRevisionDto>
+  crateApiBridgeNativeSessionsAppNativeSessionRevision({
+    required String provider,
+    required String threadId,
+    String? sourceId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(provider, serializer);
+          sse_encode_String(threadId, serializer);
+          sse_encode_opt_String(sourceId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 39,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_native_session_revision_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta:
+            kCrateApiBridgeNativeSessionsAppNativeSessionRevisionConstMeta,
+        argValues: [provider, threadId, sourceId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiBridgeNativeSessionsAppNativeSessionRevisionConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_native_session_revision",
+        argNames: ["provider", "threadId", "sourceId"],
+      );
+
+  @override
+  Future<NativeSessionListDto> crateApiBridgeNativeSessionsAppNativeSessions({
+    required String provider,
+    String? cursor,
+    String? sourceId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(provider, serializer);
+          sse_encode_opt_String(cursor, serializer);
+          sse_encode_opt_String(sourceId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 40,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_native_session_list_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeNativeSessionsAppNativeSessionsConstMeta,
+        argValues: [provider, cursor, sourceId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeNativeSessionsAppNativeSessionsConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_native_sessions",
+        argNames: ["provider", "cursor", "sourceId"],
+      );
+
+  @override
+  Future<bool> crateApiBridgeConnectionAppProbe({required String serviceKey}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 41,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeConnectionAppProbeConstMeta,
+        argValues: [serviceKey],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeConnectionAppProbeConstMeta =>
+      const TaskConstMeta(debugName: "app_probe", argNames: ["serviceKey"]);
+
+  @override
+  Future<bool> crateApiBridgeConnectionAppProbeLocal({
+    required String localAddr,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(localAddr, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 42,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiBridgeConnectionAppProbeLocalConstMeta,
+        argValues: [localAddr],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeConnectionAppProbeLocalConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_probe_local",
+        argNames: ["localAddr"],
+      );
+
+  @override
+  Future<String?> crateApiBridgeConnectionAppProbeReason({
+    required String serviceKey,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 43,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_String,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeConnectionAppProbeReasonConstMeta,
+        argValues: [serviceKey],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeConnectionAppProbeReasonConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_probe_reason",
+        argNames: ["serviceKey"],
+      );
+
+  @override
+  Future<String> crateApiBridgeThreadsAppRateLimits({
+    required String serviceKey,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 44,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeThreadsAppRateLimitsConstMeta,
+        argValues: [serviceKey],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeThreadsAppRateLimitsConstMeta =>
       const TaskConstMeta(
         debugName: "app_rate_limits",
         argNames: ["serviceKey"],
       );
 
   @override
-  Future<String> crateApiBridgeAppRealtimeRequest({
+  Future<String> crateApiBridgeThreadsAppRealtimeRequest({
     required String serviceKey,
     required String method,
     required String paramsJson,
@@ -1465,7 +2117,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 45,
             port: port_,
           );
         },
@@ -1473,21 +2125,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_String,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppRealtimeRequestConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppRealtimeRequestConstMeta,
         argValues: [serviceKey, method, paramsJson],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppRealtimeRequestConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppRealtimeRequestConstMeta =>
       const TaskConstMeta(
         debugName: "app_realtime_request",
         argNames: ["serviceKey", "method", "paramsJson"],
       );
 
   @override
-  Future<void> crateApiBridgeAppRespondApproval({
+  Future<void> crateApiBridgeThreadsAppRespondApproval({
     required String serviceKey,
     required String requestId,
     required String decision,
@@ -1502,7 +2154,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 32,
+            funcId: 46,
             port: port_,
           );
         },
@@ -1510,21 +2162,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppRespondApprovalConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppRespondApprovalConstMeta,
         argValues: [serviceKey, requestId, decision],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppRespondApprovalConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppRespondApprovalConstMeta =>
       const TaskConstMeta(
         debugName: "app_respond_approval",
         argNames: ["serviceKey", "requestId", "decision"],
       );
 
   @override
-  Future<void> crateApiBridgeAppRespondUserInput({
+  Future<void> crateApiBridgeThreadsAppRespondUserInput({
     required String serviceKey,
     required String requestId,
     required String answersJson,
@@ -1539,7 +2191,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 33,
+            funcId: 47,
             port: port_,
           );
         },
@@ -1547,21 +2199,91 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppRespondUserInputConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppRespondUserInputConstMeta,
         argValues: [serviceKey, requestId, answersJson],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppRespondUserInputConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppRespondUserInputConstMeta =>
       const TaskConstMeta(
         debugName: "app_respond_user_input",
         argNames: ["serviceKey", "requestId", "answersJson"],
       );
 
   @override
-  Future<void> crateApiBridgeAppServeDeregister({
+  Future<List<String>> crateApiBridgeConnectionAppRunningThreads({
+    required String serviceKey,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 48,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_String,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeConnectionAppRunningThreadsConstMeta,
+        argValues: [serviceKey],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeConnectionAppRunningThreadsConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_running_threads",
+        argNames: ["serviceKey"],
+      );
+
+  @override
+  Future<HostApplyDto> crateApiBridgeHostConfigAppServeApply({
+    required String name,
+    String? expectedIncarnation,
+    BigInt? expectedRevision,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(name, serializer);
+          sse_encode_opt_String(expectedIncarnation, serializer);
+          sse_encode_opt_box_autoadd_u_64(expectedRevision, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 49,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_host_apply_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostConfigAppServeApplyConstMeta,
+        argValues: [name, expectedIncarnation, expectedRevision],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostConfigAppServeApplyConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_serve_apply",
+        argNames: ["name", "expectedIncarnation", "expectedRevision"],
+      );
+
+  @override
+  Future<void> crateApiBridgeHostingAppServeDeregister({
     required String name,
     required String kind,
   }) {
@@ -1574,7 +2296,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 50,
             port: port_,
           );
         },
@@ -1582,21 +2304,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppServeDeregisterConstMeta,
+        constMeta: kCrateApiBridgeHostingAppServeDeregisterConstMeta,
         argValues: [name, kind],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppServeDeregisterConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostingAppServeDeregisterConstMeta =>
       const TaskConstMeta(
         debugName: "app_serve_deregister",
         argNames: ["name", "kind"],
       );
 
   @override
-  Future<void> crateApiBridgeAppServeReregister({
+  Future<void> crateApiBridgeHostingAppServeReregister({
     required String name,
     required String kind,
   }) {
@@ -1609,7 +2331,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 51,
             port: port_,
           );
         },
@@ -1617,21 +2339,52 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppServeReregisterConstMeta,
+        constMeta: kCrateApiBridgeHostingAppServeReregisterConstMeta,
         argValues: [name, kind],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppServeReregisterConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostingAppServeReregisterConstMeta =>
       const TaskConstMeta(
         debugName: "app_serve_reregister",
         argNames: ["name", "kind"],
       );
 
   @override
-  Future<AppServeDto> crateApiBridgeAppServeStart({
+  Future<void> crateApiBridgeHostingAppServeRestartAcp({required String name}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(name, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 52,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostingAppServeRestartAcpConstMeta,
+        argValues: [name],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostingAppServeRestartAcpConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_serve_restart_acp",
+        argNames: ["name"],
+      );
+
+  @override
+  Future<AppServeDto> crateApiBridgeHostingAppServeStart({
     required int port,
     String? binaryOverride,
     String? name,
@@ -1650,7 +2403,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 53,
             port: port_,
           );
         },
@@ -1658,21 +2411,97 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_app_serve_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppServeStartConstMeta,
+        constMeta: kCrateApiBridgeHostingAppServeStartConstMeta,
         argValues: [port, binaryOverride, name, proxy, embedded],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppServeStartConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostingAppServeStartConstMeta =>
       const TaskConstMeta(
         debugName: "app_serve_start",
         argNames: ["port", "binaryOverride", "name", "proxy", "embedded"],
       );
 
   @override
-  Future<List<AppServeStatusDto>> crateApiBridgeAppServeStatus() {
+  Future<AcpServeDto> crateApiBridgeHostingAppServeStartAcp({
+    String? name,
+    required AcpAgentSpecDto spec,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_opt_String(name, serializer);
+          sse_encode_box_autoadd_acp_agent_spec_dto(spec, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 54,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_acp_serve_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostingAppServeStartAcpConstMeta,
+        argValues: [name, spec],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostingAppServeStartAcpConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_serve_start_acp",
+        argNames: ["name", "spec"],
+      );
+
+  @override
+  Future<HostStartedDto> crateApiBridgeHostConfigAppServeStartConfigured({
+    String? name,
+    required HostRuntimeDto runtime,
+    required HostConfigInputDto input,
+    required String keyAction,
+    String? key,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_opt_String(name, serializer);
+          sse_encode_box_autoadd_host_runtime_dto(runtime, serializer);
+          sse_encode_box_autoadd_host_config_input_dto(input, serializer);
+          sse_encode_String(keyAction, serializer);
+          sse_encode_opt_String(key, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 55,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_host_started_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostConfigAppServeStartConfiguredConstMeta,
+        argValues: [name, runtime, input, keyAction, key],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostConfigAppServeStartConfiguredConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_serve_start_configured",
+        argNames: ["name", "runtime", "input", "keyAction", "key"],
+      );
+
+  @override
+  Future<List<AppServeStatusDto>> crateApiBridgeHostingAppServeStatus() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -1680,7 +2509,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 56,
             port: port_,
           );
         },
@@ -1688,18 +2517,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_app_serve_status_dto,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiBridgeAppServeStatusConstMeta,
+        constMeta: kCrateApiBridgeHostingAppServeStatusConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppServeStatusConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostingAppServeStatusConstMeta =>
       const TaskConstMeta(debugName: "app_serve_status", argNames: []);
 
   @override
-  Future<void> crateApiBridgeAppServeStop({required String name}) {
+  Future<void> crateApiBridgeHostingAppServeStop({required String name}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -1708,7 +2537,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 57,
             port: port_,
           );
         },
@@ -1716,18 +2545,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppServeStopConstMeta,
+        constMeta: kCrateApiBridgeHostingAppServeStopConstMeta,
         argValues: [name],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppServeStopConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostingAppServeStopConstMeta =>
       const TaskConstMeta(debugName: "app_serve_stop", argNames: ["name"]);
 
   @override
-  Future<void> crateApiBridgeAppServeStopAll() {
+  Future<void> crateApiBridgeHostingAppServeStopAll() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -1735,7 +2564,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 39,
+            funcId: 58,
             port: port_,
           );
         },
@@ -1743,18 +2572,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppServeStopAllConstMeta,
+        constMeta: kCrateApiBridgeHostingAppServeStopAllConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppServeStopAllConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostingAppServeStopAllConstMeta =>
       const TaskConstMeta(debugName: "app_serve_stop_all", argNames: []);
 
   @override
-  Future<SessionLivenessDto> crateApiBridgeAppSessionLiveness({
+  Future<SessionLivenessDto> crateApiBridgeHostSessionsAppSessionLiveness({
     required String threadId,
   }) {
     return handler.executeNormal(
@@ -1765,7 +2594,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 59,
             port: port_,
           );
         },
@@ -1773,21 +2602,127 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_session_liveness_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppSessionLivenessConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsAppSessionLivenessConstMeta,
         argValues: [threadId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppSessionLivenessConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsAppSessionLivenessConstMeta =>
       const TaskConstMeta(
         debugName: "app_session_liveness",
         argNames: ["threadId"],
       );
 
   @override
-  Future<void> crateApiBridgeAppSetThreadName({
+  SessionSettingsDto? crateApiBridgeSessionConfigAppSessionSettings({
+    required String serviceKey,
+    required String threadId,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          sse_encode_String(threadId, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 60)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_session_settings_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiBridgeSessionConfigAppSessionSettingsConstMeta,
+        argValues: [serviceKey, threadId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeSessionConfigAppSessionSettingsConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_session_settings",
+        argNames: ["serviceKey", "threadId"],
+      );
+
+  @override
+  Future<void> crateApiBridgeSessionConfigAppSetSessionConfig({
+    required String serviceKey,
+    required String threadId,
+    required String configId,
+    required String value,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          sse_encode_String(threadId, serializer);
+          sse_encode_String(configId, serializer);
+          sse_encode_String(value, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 61,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeSessionConfigAppSetSessionConfigConstMeta,
+        argValues: [serviceKey, threadId, configId, value],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeSessionConfigAppSetSessionConfigConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_set_session_config",
+        argNames: ["serviceKey", "threadId", "configId", "value"],
+      );
+
+  @override
+  Future<void> crateApiBridgeSessionConfigAppSetSessionMode({
+    required String serviceKey,
+    required String threadId,
+    required String modeId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          sse_encode_String(threadId, serializer);
+          sse_encode_String(modeId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 62,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeSessionConfigAppSetSessionModeConstMeta,
+        argValues: [serviceKey, threadId, modeId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeSessionConfigAppSetSessionModeConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_set_session_mode",
+        argNames: ["serviceKey", "threadId", "modeId"],
+      );
+
+  @override
+  Future<void> crateApiBridgeThreadsAppSetThreadName({
     required String serviceKey,
     required String threadId,
     required String name,
@@ -1802,7 +2737,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 63,
             port: port_,
           );
         },
@@ -1810,21 +2745,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppSetThreadNameConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppSetThreadNameConstMeta,
         argValues: [serviceKey, threadId, name],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppSetThreadNameConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppSetThreadNameConstMeta =>
       const TaskConstMeta(
         debugName: "app_set_thread_name",
         argNames: ["serviceKey", "threadId", "name"],
       );
 
   @override
-  Future<List<ThreadMetaDto>> crateApiBridgeAppThreadList({
+  Future<List<ThreadMetaDto>> crateApiBridgeThreadsAppThreadList({
     required String serviceKey,
   }) {
     return handler.executeNormal(
@@ -1835,7 +2770,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 64,
             port: port_,
           );
         },
@@ -1843,21 +2778,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_thread_meta_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppThreadListConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppThreadListConstMeta,
         argValues: [serviceKey],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppThreadListConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppThreadListConstMeta =>
       const TaskConstMeta(
         debugName: "app_thread_list",
         argNames: ["serviceKey"],
       );
 
   @override
-  Future<ThreadMetaDto> crateApiBridgeAppThreadMetadata({
+  Future<ThreadMetaDto> crateApiBridgeThreadsAppThreadMetadata({
     required String serviceKey,
     required String threadId,
   }) {
@@ -1870,7 +2805,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 65,
             port: port_,
           );
         },
@@ -1878,21 +2813,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_thread_meta_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppThreadMetadataConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppThreadMetadataConstMeta,
         argValues: [serviceKey, threadId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppThreadMetadataConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppThreadMetadataConstMeta =>
       const TaskConstMeta(
         debugName: "app_thread_metadata",
         argNames: ["serviceKey", "threadId"],
       );
 
   @override
-  Future<OlderPageDto> crateApiBridgeAppThreadOlderPage({
+  Future<OlderPageDto> crateApiBridgeThreadsAppThreadOlderPage({
     required String serviceKey,
     required String threadId,
   }) {
@@ -1905,7 +2840,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 66,
             port: port_,
           );
         },
@@ -1913,21 +2848,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_older_page_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppThreadOlderPageConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppThreadOlderPageConstMeta,
         argValues: [serviceKey, threadId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppThreadOlderPageConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppThreadOlderPageConstMeta =>
       const TaskConstMeta(
         debugName: "app_thread_older_page",
         argNames: ["serviceKey", "threadId"],
       );
 
   @override
-  Future<ThreadHistoryDto> crateApiBridgeAppThreadRead({
+  Future<ThreadHistoryDto> crateApiBridgeThreadsAppThreadRead({
     required String serviceKey,
     required String threadId,
     bool? includeTurnPages,
@@ -1942,7 +2877,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 67,
             port: port_,
           );
         },
@@ -1950,21 +2885,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_thread_history_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppThreadReadConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppThreadReadConstMeta,
         argValues: [serviceKey, threadId, includeTurnPages],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppThreadReadConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppThreadReadConstMeta =>
       const TaskConstMeta(
         debugName: "app_thread_read",
         argNames: ["serviceKey", "threadId", "includeTurnPages"],
       );
 
   @override
-  Future<void> crateApiBridgeAppThreadResume({
+  Future<void> crateApiBridgeThreadsAppThreadResume({
     required String serviceKey,
     required String threadId,
   }) {
@@ -1977,7 +2912,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 68,
             port: port_,
           );
         },
@@ -1985,21 +2920,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppThreadResumeConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppThreadResumeConstMeta,
         argValues: [serviceKey, threadId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppThreadResumeConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppThreadResumeConstMeta =>
       const TaskConstMeta(
         debugName: "app_thread_resume",
         argNames: ["serviceKey", "threadId"],
       );
 
   @override
-  ThreadRuntimeConfigDto? crateApiBridgeAppThreadRuntimeConfig({
+  ThreadRuntimeConfigDto? crateApiBridgeThreadsAppThreadRuntimeConfig({
     required String serviceKey,
     required String threadId,
   }) {
@@ -2009,28 +2944,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(serviceKey, serializer);
           sse_encode_String(threadId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 47)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 69)!;
         },
         codec: SseCodec(
           decodeSuccessData:
               sse_decode_opt_box_autoadd_thread_runtime_config_dto,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiBridgeAppThreadRuntimeConfigConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppThreadRuntimeConfigConstMeta,
         argValues: [serviceKey, threadId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppThreadRuntimeConfigConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppThreadRuntimeConfigConstMeta =>
       const TaskConstMeta(
         debugName: "app_thread_runtime_config",
         argNames: ["serviceKey", "threadId"],
       );
 
   @override
-  Future<String> crateApiBridgeAppThreadStart({
+  Future<String> crateApiBridgeThreadsAppThreadStart({
     required String serviceKey,
     String? model,
     String? cwd,
@@ -2053,7 +2988,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 48,
+            funcId: 70,
             port: port_,
           );
         },
@@ -2061,7 +2996,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_String,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppThreadStartConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppThreadStartConstMeta,
         argValues: [
           serviceKey,
           model,
@@ -2076,7 +3011,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppThreadStartConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppThreadStartConstMeta =>
       const TaskConstMeta(
         debugName: "app_thread_start",
         argNames: [
@@ -2091,7 +3026,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<String?> crateApiBridgeAppThreadSummary({
+  Future<String?> crateApiBridgeThreadsAppThreadSummary({
     required String serviceKey,
     required String threadId,
   }) {
@@ -2104,7 +3039,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 71,
             port: port_,
           );
         },
@@ -2112,21 +3047,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_opt_String,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppThreadSummaryConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppThreadSummaryConstMeta,
         argValues: [serviceKey, threadId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppThreadSummaryConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppThreadSummaryConstMeta =>
       const TaskConstMeta(
         debugName: "app_thread_summary",
         argNames: ["serviceKey", "threadId"],
       );
 
   @override
-  Future<List<ThreadItemDto>> crateApiBridgeAppThreadTurnItems({
+  Future<List<ThreadItemDto>> crateApiBridgeThreadsAppThreadTurnItems({
     required String serviceKey,
     required String threadId,
     required String turnId,
@@ -2141,7 +3076,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 50,
+            funcId: 72,
             port: port_,
           );
         },
@@ -2149,21 +3084,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_thread_item_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppThreadTurnItemsConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppThreadTurnItemsConstMeta,
         argValues: [serviceKey, threadId, turnId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppThreadTurnItemsConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppThreadTurnItemsConstMeta =>
       const TaskConstMeta(
         debugName: "app_thread_turn_items",
         argNames: ["serviceKey", "threadId", "turnId"],
       );
 
   @override
-  Future<TurnItemsPageDto> crateApiBridgeAppThreadTurnPage({
+  Future<TurnItemsPageDto> crateApiBridgeThreadsAppThreadTurnPage({
     required String serviceKey,
     required String threadId,
     required String turnId,
@@ -2182,7 +3117,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 51,
+            funcId: 73,
             port: port_,
           );
         },
@@ -2190,21 +3125,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_turn_items_page_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppThreadTurnPageConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppThreadTurnPageConstMeta,
         argValues: [serviceKey, threadId, turnId, loadMore, deltaOnly],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppThreadTurnPageConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppThreadTurnPageConstMeta =>
       const TaskConstMeta(
         debugName: "app_thread_turn_page",
         argNames: ["serviceKey", "threadId", "turnId", "loadMore", "deltaOnly"],
       );
 
   @override
-  Future<void> crateApiBridgeAppTurnInterrupt({
+  Future<void> crateApiBridgeThreadsAppTurnInterrupt({
     required String serviceKey,
     required String threadId,
     String? turnId,
@@ -2219,7 +3154,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 52,
+            funcId: 74,
             port: port_,
           );
         },
@@ -2227,21 +3162,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppTurnInterruptConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppTurnInterruptConstMeta,
         argValues: [serviceKey, threadId, turnId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppTurnInterruptConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsAppTurnInterruptConstMeta =>
       const TaskConstMeta(
         debugName: "app_turn_interrupt",
         argNames: ["serviceKey", "threadId", "turnId"],
       );
 
   @override
-  Future<void> crateApiBridgeAppTurnStart({
+  Future<void> crateApiBridgeThreadsAppTurnStart({
     required String serviceKey,
     required String threadId,
     required String text,
@@ -2272,7 +3207,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 53,
+            funcId: 75,
             port: port_,
           );
         },
@@ -2280,7 +3215,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppTurnStartConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppTurnStartConstMeta,
         argValues: [
           serviceKey,
           threadId,
@@ -2299,25 +3234,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppTurnStartConstMeta => const TaskConstMeta(
-    debugName: "app_turn_start",
-    argNames: [
-      "serviceKey",
-      "threadId",
-      "text",
-      "images",
-      "model",
-      "approvalPolicy",
-      "approvalsReviewer",
-      "serviceTier",
-      "sandbox",
-      "collaborationMode",
-      "reasoningEffort",
-    ],
-  );
+  TaskConstMeta get kCrateApiBridgeThreadsAppTurnStartConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_turn_start",
+        argNames: [
+          "serviceKey",
+          "threadId",
+          "text",
+          "images",
+          "model",
+          "approvalPolicy",
+          "approvalsReviewer",
+          "serviceTier",
+          "sandbox",
+          "collaborationMode",
+          "reasoningEffort",
+        ],
+      );
 
   @override
-  Future<String> crateApiBridgeAppTurnSteer({
+  Future<String> crateApiBridgeThreadsAppTurnSteer({
     required String serviceKey,
     required String threadId,
     String? turnId,
@@ -2336,7 +3272,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 54,
+            funcId: 76,
             port: port_,
           );
         },
@@ -2344,17 +3280,59 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_String,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeAppTurnSteerConstMeta,
+        constMeta: kCrateApiBridgeThreadsAppTurnSteerConstMeta,
         argValues: [serviceKey, threadId, turnId, text, images],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeAppTurnSteerConstMeta => const TaskConstMeta(
-    debugName: "app_turn_steer",
-    argNames: ["serviceKey", "threadId", "turnId", "text", "images"],
-  );
+  TaskConstMeta get kCrateApiBridgeThreadsAppTurnSteerConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_turn_steer",
+        argNames: ["serviceKey", "threadId", "turnId", "text", "images"],
+      );
+
+  @override
+  Future<AppTurnSupplementDto> crateApiBridgeThreadsAppTurnSupplement({
+    required String serviceKey,
+    required String threadId,
+    String? turnId,
+    required String text,
+    List<String>? images,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          sse_encode_String(threadId, serializer);
+          sse_encode_opt_String(turnId, serializer);
+          sse_encode_String(text, serializer);
+          sse_encode_opt_list_String(images, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 77,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_app_turn_supplement_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeThreadsAppTurnSupplementConstMeta,
+        argValues: [serviceKey, threadId, turnId, text, images],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeThreadsAppTurnSupplementConstMeta =>
+      const TaskConstMeta(
+        debugName: "app_turn_supplement",
+        argNames: ["serviceKey", "threadId", "turnId", "text", "images"],
+      );
 
   @override
   String crateApiSimpleBridgeVersion() {
@@ -2362,7 +3340,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 78)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -2379,7 +3357,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "bridge_version", argNames: []);
 
   @override
-  Future<CodexAuthStatusDto> crateApiBridgeCodexAuthStatus({
+  Future<CodexAuthStatusDto> crateApiBridgeCodexSetupCodexAuthStatus({
     required String serviceKey,
   }) {
     return handler.executeNormal(
@@ -2390,7 +3368,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 56,
+            funcId: 79,
             port: port_,
           );
         },
@@ -2398,21 +3376,225 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_codex_auth_status_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeCodexAuthStatusConstMeta,
+        constMeta: kCrateApiBridgeCodexSetupCodexAuthStatusConstMeta,
         argValues: [serviceKey],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeCodexAuthStatusConstMeta =>
+  TaskConstMeta get kCrateApiBridgeCodexSetupCodexAuthStatusConstMeta =>
       const TaskConstMeta(
         debugName: "codex_auth_status",
         argNames: ["serviceKey"],
       );
 
   @override
-  Future<String?> crateApiBridgeCodexLocate() {
+  Future<CodexLocalAuthDto> crateApiBridgeHostConfigCodexLocalAuthStatus({
+    required String sessionId,
+    String? loginId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(sessionId, serializer);
+          sse_encode_opt_String(loginId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 80,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_codex_local_auth_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostConfigCodexLocalAuthStatusConstMeta,
+        argValues: [sessionId, loginId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostConfigCodexLocalAuthStatusConstMeta =>
+      const TaskConstMeta(
+        debugName: "codex_local_auth_status",
+        argNames: ["sessionId", "loginId"],
+      );
+
+  @override
+  Future<void> crateApiBridgeHostConfigCodexLocalLoginCancel({
+    required String sessionId,
+    required String loginId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(sessionId, serializer);
+          sse_encode_String(loginId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 81,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostConfigCodexLocalLoginCancelConstMeta,
+        argValues: [sessionId, loginId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostConfigCodexLocalLoginCancelConstMeta =>
+      const TaskConstMeta(
+        debugName: "codex_local_login_cancel",
+        argNames: ["sessionId", "loginId"],
+      );
+
+  @override
+  Future<CodexLoginStartDto> crateApiBridgeHostConfigCodexLocalLoginStart({
+    required String sessionId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(sessionId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 82,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_codex_login_start_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostConfigCodexLocalLoginStartConstMeta,
+        argValues: [sessionId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostConfigCodexLocalLoginStartConstMeta =>
+      const TaskConstMeta(
+        debugName: "codex_local_login_start",
+        argNames: ["sessionId"],
+      );
+
+  @override
+  Future<void> crateApiBridgeHostConfigCodexLocalLogout({
+    required String sessionId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(sessionId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 83,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostConfigCodexLocalLogoutConstMeta,
+        argValues: [sessionId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostConfigCodexLocalLogoutConstMeta =>
+      const TaskConstMeta(
+        debugName: "codex_local_logout",
+        argNames: ["sessionId"],
+      );
+
+  @override
+  Future<void> crateApiBridgeHostConfigCodexLocalSessionClose({
+    required String sessionId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(sessionId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 84,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostConfigCodexLocalSessionCloseConstMeta,
+        argValues: [sessionId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostConfigCodexLocalSessionCloseConstMeta =>
+      const TaskConstMeta(
+        debugName: "codex_local_session_close",
+        argNames: ["sessionId"],
+      );
+
+  @override
+  Future<String> crateApiBridgeHostConfigCodexLocalSessionOpen({
+    String? binary,
+    String? proxy,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_opt_String(binary, serializer);
+          sse_encode_opt_String(proxy, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 85,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostConfigCodexLocalSessionOpenConstMeta,
+        argValues: [binary, proxy],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostConfigCodexLocalSessionOpenConstMeta =>
+      const TaskConstMeta(
+        debugName: "codex_local_session_open",
+        argNames: ["binary", "proxy"],
+      );
+
+  @override
+  Future<String?> crateApiBridgeHostingCodexLocate() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2420,7 +3602,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 57,
+            funcId: 86,
             port: port_,
           );
         },
@@ -2428,18 +3610,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_opt_String,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiBridgeCodexLocateConstMeta,
+        constMeta: kCrateApiBridgeHostingCodexLocateConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeCodexLocateConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostingCodexLocateConstMeta =>
       const TaskConstMeta(debugName: "codex_locate", argNames: []);
 
   @override
-  Future<void> crateApiBridgeCodexLoginCancel({
+  Future<void> crateApiBridgeCodexSetupCodexLoginCancel({
     required String serviceKey,
     required String loginId,
   }) {
@@ -2452,7 +3634,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 58,
+            funcId: 87,
             port: port_,
           );
         },
@@ -2460,21 +3642,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeCodexLoginCancelConstMeta,
+        constMeta: kCrateApiBridgeCodexSetupCodexLoginCancelConstMeta,
         argValues: [serviceKey, loginId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeCodexLoginCancelConstMeta =>
+  TaskConstMeta get kCrateApiBridgeCodexSetupCodexLoginCancelConstMeta =>
       const TaskConstMeta(
         debugName: "codex_login_cancel",
         argNames: ["serviceKey", "loginId"],
       );
 
   @override
-  Future<CodexLoginStartDto> crateApiBridgeCodexLoginChatgptStart({
+  Future<CodexLoginStartDto> crateApiBridgeCodexSetupCodexLoginChatgptStart({
     required String serviceKey,
   }) {
     return handler.executeNormal(
@@ -2485,7 +3667,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 59,
+            funcId: 88,
             port: port_,
           );
         },
@@ -2493,21 +3675,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_codex_login_start_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeCodexLoginChatgptStartConstMeta,
+        constMeta: kCrateApiBridgeCodexSetupCodexLoginChatgptStartConstMeta,
         argValues: [serviceKey],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeCodexLoginChatgptStartConstMeta =>
+  TaskConstMeta get kCrateApiBridgeCodexSetupCodexLoginChatgptStartConstMeta =>
       const TaskConstMeta(
         debugName: "codex_login_chatgpt_start",
         argNames: ["serviceKey"],
       );
 
   @override
-  Future<void> crateApiBridgeCodexLogout({required String serviceKey}) {
+  Future<void> crateApiBridgeCodexSetupCodexLogout({
+    required String serviceKey,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2516,7 +3700,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 60,
+            funcId: 89,
             port: port_,
           );
         },
@@ -2524,18 +3708,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeCodexLogoutConstMeta,
+        constMeta: kCrateApiBridgeCodexSetupCodexLogoutConstMeta,
         argValues: [serviceKey],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeCodexLogoutConstMeta =>
+  TaskConstMeta get kCrateApiBridgeCodexSetupCodexLogoutConstMeta =>
       const TaskConstMeta(debugName: "codex_logout", argNames: ["serviceKey"]);
 
   @override
-  Future<String> crateApiBridgeCodexPromptVariant() {
+  Future<String> crateApiBridgeCodexSetupCodexPromptVariant() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2543,7 +3727,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 61,
+            funcId: 90,
             port: port_,
           );
         },
@@ -2551,18 +3735,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_String,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeCodexPromptVariantConstMeta,
+        constMeta: kCrateApiBridgeCodexSetupCodexPromptVariantConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeCodexPromptVariantConstMeta =>
+  TaskConstMeta get kCrateApiBridgeCodexSetupCodexPromptVariantConstMeta =>
       const TaskConstMeta(debugName: "codex_prompt_variant", argNames: []);
 
   @override
-  Future<void> crateApiBridgeCodexSetPromptVariant({required String variant}) {
+  Future<void> crateApiBridgeCodexSetupCodexSetPromptVariant({
+    required String variant,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2571,7 +3757,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 62,
+            funcId: 91,
             port: port_,
           );
         },
@@ -2579,21 +3765,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeCodexSetPromptVariantConstMeta,
+        constMeta: kCrateApiBridgeCodexSetupCodexSetPromptVariantConstMeta,
         argValues: [variant],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeCodexSetPromptVariantConstMeta =>
+  TaskConstMeta get kCrateApiBridgeCodexSetupCodexSetPromptVariantConstMeta =>
       const TaskConstMeta(
         debugName: "codex_set_prompt_variant",
         argNames: ["variant"],
       );
 
   @override
-  Future<void> crateApiBridgeCodexSetupProvider({
+  Future<void> crateApiBridgeCodexSetupCodexSetupProvider({
     required String baseUrl,
     required String apiKey,
     String? model,
@@ -2608,7 +3794,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 63,
+            funcId: 92,
             port: port_,
           );
         },
@@ -2616,21 +3802,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeCodexSetupProviderConstMeta,
+        constMeta: kCrateApiBridgeCodexSetupCodexSetupProviderConstMeta,
         argValues: [baseUrl, apiKey, model],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeCodexSetupProviderConstMeta =>
+  TaskConstMeta get kCrateApiBridgeCodexSetupCodexSetupProviderConstMeta =>
       const TaskConstMeta(
         debugName: "codex_setup_provider",
         argNames: ["baseUrl", "apiKey", "model"],
       );
 
   @override
-  Future<CodexSetupStatusDto> crateApiBridgeCodexSetupStatus() {
+  Future<CodexSetupStatusDto> crateApiBridgeCodexSetupCodexSetupStatus() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2638,7 +3824,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 64,
+            funcId: 93,
             port: port_,
           );
         },
@@ -2646,18 +3832,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_codex_setup_status_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeCodexSetupStatusConstMeta,
+        constMeta: kCrateApiBridgeCodexSetupCodexSetupStatusConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeCodexSetupStatusConstMeta =>
+  TaskConstMeta get kCrateApiBridgeCodexSetupCodexSetupStatusConstMeta =>
       const TaskConstMeta(debugName: "codex_setup_status", argNames: []);
 
   @override
-  Future<List<ServiceIdDto>> crateApiBridgeDiscoverServices() {
+  Future<List<ServiceIdDto>> crateApiBridgeServicesDiscoverServices() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2665,7 +3851,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 65,
+            funcId: 94,
             port: port_,
           );
         },
@@ -2673,18 +3859,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_service_id_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeDiscoverServicesConstMeta,
+        constMeta: kCrateApiBridgeServicesDiscoverServicesConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeDiscoverServicesConstMeta =>
+  TaskConstMeta get kCrateApiBridgeServicesDiscoverServicesConstMeta =>
       const TaskConstMeta(debugName: "discover_services", argNames: []);
 
   @override
-  Future<String> crateApiBridgeEmbeddedCodexVersion() {
+  Future<String> crateApiBridgeHostingEmbeddedCodexVersion() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2692,7 +3878,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 66,
+            funcId: 95,
             port: port_,
           );
         },
@@ -2700,14 +3886,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_String,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiBridgeEmbeddedCodexVersionConstMeta,
+        constMeta: kCrateApiBridgeHostingEmbeddedCodexVersionConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeEmbeddedCodexVersionConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostingEmbeddedCodexVersionConstMeta =>
       const TaskConstMeta(debugName: "embedded_codex_version", argNames: []);
 
   @override
@@ -2719,7 +3905,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 67,
+            funcId: 96,
             port: port_,
           );
         },
@@ -2746,7 +3932,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 68,
+            funcId: 97,
             port: port_,
           );
         },
@@ -2771,7 +3957,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 69)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 98)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -2788,7 +3974,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "greet", argNames: ["name"]);
 
   @override
-  Future<void> crateApiBridgeHistoryCacheSetLimit({required int limitMb}) {
+  Future<void> crateApiBridgeThreadsHistoryCacheSetLimit({
+    required int limitMb,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2797,7 +3985,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 70,
+            funcId: 99,
             port: port_,
           );
         },
@@ -2805,21 +3993,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeHistoryCacheSetLimitConstMeta,
+        constMeta: kCrateApiBridgeThreadsHistoryCacheSetLimitConstMeta,
         argValues: [limitMb],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeHistoryCacheSetLimitConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsHistoryCacheSetLimitConstMeta =>
       const TaskConstMeta(
         debugName: "history_cache_set_limit",
         argNames: ["limitMb"],
       );
 
   @override
-  Future<HistoryCacheStatusDto> crateApiBridgeHistoryCacheStatus() {
+  Future<HistoryCacheStatusDto> crateApiBridgeThreadsHistoryCacheStatus() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2827,7 +4015,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 71,
+            funcId: 100,
             port: port_,
           );
         },
@@ -2835,15 +4023,138 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_history_cache_status_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeHistoryCacheStatusConstMeta,
+        constMeta: kCrateApiBridgeThreadsHistoryCacheStatusConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeHistoryCacheStatusConstMeta =>
+  TaskConstMeta get kCrateApiBridgeThreadsHistoryCacheStatusConstMeta =>
       const TaskConstMeta(debugName: "history_cache_status", argNames: []);
+
+  @override
+  Future<HostConfigDto> crateApiBridgeHostConfigHostConfigGet({
+    required String name,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(name, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 101,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_host_config_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostConfigHostConfigGetConstMeta,
+        argValues: [name],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostConfigHostConfigGetConstMeta =>
+      const TaskConstMeta(debugName: "host_config_get", argNames: ["name"]);
+
+  @override
+  Future<HostConfigDto> crateApiBridgeHostConfigHostConfigSave({
+    required String name,
+    required HostConfigInputDto input,
+    required String keyAction,
+    String? key,
+    BigInt? expectedRevision,
+    AcpAgentSpecDto? spec,
+    HostRuntimeDto? runtime,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(name, serializer);
+          sse_encode_box_autoadd_host_config_input_dto(input, serializer);
+          sse_encode_String(keyAction, serializer);
+          sse_encode_opt_String(key, serializer);
+          sse_encode_opt_box_autoadd_u_64(expectedRevision, serializer);
+          sse_encode_opt_box_autoadd_acp_agent_spec_dto(spec, serializer);
+          sse_encode_opt_box_autoadd_host_runtime_dto(runtime, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 102,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_host_config_dto,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostConfigHostConfigSaveConstMeta,
+        argValues: [
+          name,
+          input,
+          keyAction,
+          key,
+          expectedRevision,
+          spec,
+          runtime,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostConfigHostConfigSaveConstMeta =>
+      const TaskConstMeta(
+        debugName: "host_config_save",
+        argNames: [
+          "name",
+          "input",
+          "keyAction",
+          "key",
+          "expectedRevision",
+          "spec",
+          "runtime",
+        ],
+      );
+
+  @override
+  HostConfigSupportDto crateApiBridgeHostConfigHostConfigSupported({
+    AcpAgentSpecDto? spec,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_opt_box_autoadd_acp_agent_spec_dto(spec, serializer);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 103,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_host_config_support_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiBridgeHostConfigHostConfigSupportedConstMeta,
+        argValues: [spec],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostConfigHostConfigSupportedConstMeta =>
+      const TaskConstMeta(
+        debugName: "host_config_supported",
+        argNames: ["spec"],
+      );
 
   @override
   Future<String> crateApiBridgeImportConfig({required String text}) {
@@ -2855,7 +4166,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 72,
+            funcId: 104,
             port: port_,
           );
         },
@@ -2882,7 +4193,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 73,
+            funcId: 105,
             port: port_,
           );
         },
@@ -2910,7 +4221,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 74,
+            funcId: 106,
             port: port_,
           );
         },
@@ -2929,7 +4240,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "init_bridge", argNames: ["supportDir"]);
 
   @override
-  Stream<LogLineDto> crateApiBridgeLogEvents() {
+  Stream<LogLineDto> crateApiBridgeEventsLogEvents() {
     final sink = RustStreamSink<LogLineDto>();
     unawaited(
       handler.executeNormal(
@@ -2940,7 +4251,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 75,
+              funcId: 107,
               port: port_,
             );
           },
@@ -2948,7 +4259,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             decodeSuccessData: sse_decode_unit,
             decodeErrorData: sse_decode_AnyhowException,
           ),
-          constMeta: kCrateApiBridgeLogEventsConstMeta,
+          constMeta: kCrateApiBridgeEventsLogEventsConstMeta,
           argValues: [sink],
           apiImpl: this,
         ),
@@ -2957,11 +4268,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return sink.stream;
   }
 
-  TaskConstMeta get kCrateApiBridgeLogEventsConstMeta =>
+  TaskConstMeta get kCrateApiBridgeEventsLogEventsConstMeta =>
       const TaskConstMeta(debugName: "log_events", argNames: ["sink"]);
 
   @override
-  Future<void> crateApiBridgeMetaFileDownload({
+  Future<void> crateApiBridgeHostSessionsMetaFileDownload({
     required String serviceKey,
     String? threadId,
     required String href,
@@ -2978,7 +4289,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 76,
+            funcId: 108,
             port: port_,
           );
         },
@@ -2986,21 +4297,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaFileDownloadConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaFileDownloadConstMeta,
         argValues: [serviceKey, threadId, href, destination],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaFileDownloadConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaFileDownloadConstMeta =>
       const TaskConstMeta(
         debugName: "meta_file_download",
         argNames: ["serviceKey", "threadId", "href", "destination"],
       );
 
   @override
-  Future<FilePreviewDto> crateApiBridgeMetaFilePreview({
+  Future<FilePreviewDto> crateApiBridgeHostSessionsMetaFilePreview({
     required String serviceKey,
     String? threadId,
     required String href,
@@ -3015,7 +4326,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 77,
+            funcId: 109,
             port: port_,
           );
         },
@@ -3023,21 +4334,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_file_preview_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaFilePreviewConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaFilePreviewConstMeta,
         argValues: [serviceKey, threadId, href],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaFilePreviewConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaFilePreviewConstMeta =>
       const TaskConstMeta(
         debugName: "meta_file_preview",
         argNames: ["serviceKey", "threadId", "href"],
       );
 
   @override
-  Future<ForceResumeReportDto> crateApiBridgeMetaForceResume({
+  Future<ForceResumeReportDto> crateApiBridgeHostSessionsMetaForceResume({
     required String serviceKey,
     required String threadId,
   }) {
@@ -3050,7 +4361,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 78,
+            funcId: 110,
             port: port_,
           );
         },
@@ -3058,21 +4369,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_force_resume_report_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaForceResumeConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaForceResumeConstMeta,
         argValues: [serviceKey, threadId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaForceResumeConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaForceResumeConstMeta =>
       const TaskConstMeta(
         debugName: "meta_force_resume",
         argNames: ["serviceKey", "threadId"],
       );
 
   @override
-  Future<bool> crateApiBridgeMetaHostIsLocal({required String serviceKey}) {
+  Future<bool> crateApiBridgeHostSessionsMetaHostIsLocal({
+    required String serviceKey,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -3081,7 +4394,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 79,
+            funcId: 111,
             port: port_,
           );
         },
@@ -3089,21 +4402,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_bool,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaHostIsLocalConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaHostIsLocalConstMeta,
         argValues: [serviceKey],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaHostIsLocalConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaHostIsLocalConstMeta =>
       const TaskConstMeta(
         debugName: "meta_host_is_local",
         argNames: ["serviceKey"],
       );
 
   @override
-  Future<List<DirEntryDto>> crateApiBridgeMetaListDir({
+  Future<List<DirEntryDto>> crateApiBridgeHostSessionsMetaListDir({
     required String serviceKey,
     required String path,
   }) {
@@ -3116,7 +4429,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 80,
+            funcId: 112,
             port: port_,
           );
         },
@@ -3124,20 +4437,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_dir_entry_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaListDirConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaListDirConstMeta,
         argValues: [serviceKey, path],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaListDirConstMeta => const TaskConstMeta(
-    debugName: "meta_list_dir",
-    argNames: ["serviceKey", "path"],
-  );
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaListDirConstMeta =>
+      const TaskConstMeta(
+        debugName: "meta_list_dir",
+        argNames: ["serviceKey", "path"],
+      );
 
   @override
-  Future<List<FileEntryDto>> crateApiBridgeMetaListFiles({
+  Future<List<FileEntryDto>> crateApiBridgeHostSessionsMetaListFiles({
     required String serviceKey,
     required String path,
   }) {
@@ -3150,7 +4464,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 81,
+            funcId: 113,
             port: port_,
           );
         },
@@ -3158,21 +4472,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_file_entry_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaListFilesConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaListFilesConstMeta,
         argValues: [serviceKey, path],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaListFilesConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaListFilesConstMeta =>
       const TaskConstMeta(
         debugName: "meta_list_files",
         argNames: ["serviceKey", "path"],
       );
 
   @override
-  Future<ProjectConfigDto> crateApiBridgeMetaProjectConfig({
+  Future<ProjectConfigDto> crateApiBridgeHostSessionsMetaProjectConfig({
     required String serviceKey,
   }) {
     return handler.executeNormal(
@@ -3183,7 +4497,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 82,
+            funcId: 114,
             port: port_,
           );
         },
@@ -3191,21 +4505,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_project_config_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaProjectConfigConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaProjectConfigConstMeta,
         argValues: [serviceKey],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaProjectConfigConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaProjectConfigConstMeta =>
       const TaskConstMeta(
         debugName: "meta_project_config",
         argNames: ["serviceKey"],
       );
 
   @override
-  Future<Uint8List> crateApiBridgeMetaReadFile({
+  Future<Uint8List> crateApiBridgeHostSessionsMetaReadFile({
     required String serviceKey,
     required String path,
   }) {
@@ -3218,7 +4532,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 83,
+            funcId: 115,
             port: port_,
           );
         },
@@ -3226,20 +4540,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_prim_u_8_strict,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaReadFileConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaReadFileConstMeta,
         argValues: [serviceKey, path],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaReadFileConstMeta => const TaskConstMeta(
-    debugName: "meta_read_file",
-    argNames: ["serviceKey", "path"],
-  );
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaReadFileConstMeta =>
+      const TaskConstMeta(
+        debugName: "meta_read_file",
+        argNames: ["serviceKey", "path"],
+      );
 
   @override
-  Future<Uint8List> crateApiBridgeMetaReadThreadImage({
+  Future<Uint8List> crateApiBridgeHostSessionsMetaReadThreadImage({
     required String serviceKey,
     required String threadId,
     required String path,
@@ -3254,7 +4569,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 84,
+            funcId: 116,
             port: port_,
           );
         },
@@ -3262,21 +4577,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_prim_u_8_strict,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaReadThreadImageConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaReadThreadImageConstMeta,
         argValues: [serviceKey, threadId, path],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaReadThreadImageConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaReadThreadImageConstMeta =>
       const TaskConstMeta(
         debugName: "meta_read_thread_image",
         argNames: ["serviceKey", "threadId", "path"],
       );
 
   @override
-  Stream<RetryProgressDto> crateApiBridgeMetaRetryEvents() {
+  Stream<RetryProgressDto> crateApiBridgeEventsMetaRetryEvents() {
     final sink = RustStreamSink<RetryProgressDto>();
     unawaited(
       handler.executeNormal(
@@ -3287,7 +4602,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 85,
+              funcId: 117,
               port: port_,
             );
           },
@@ -3295,7 +4610,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             decodeSuccessData: sse_decode_unit,
             decodeErrorData: sse_decode_AnyhowException,
           ),
-          constMeta: kCrateApiBridgeMetaRetryEventsConstMeta,
+          constMeta: kCrateApiBridgeEventsMetaRetryEventsConstMeta,
           argValues: [sink],
           apiImpl: this,
         ),
@@ -3304,11 +4619,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return sink.stream;
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaRetryEventsConstMeta =>
+  TaskConstMeta get kCrateApiBridgeEventsMetaRetryEventsConstMeta =>
       const TaskConstMeta(debugName: "meta_retry_events", argNames: ["sink"]);
 
   @override
-  Stream<SessionFollowUpdateDto> crateApiBridgeMetaSessionEvents({
+  Stream<SessionFollowUpdateDto> crateApiBridgeHostSessionsMetaSessionEvents({
     required String serviceKey,
     required String threadId,
   }) {
@@ -3327,7 +4642,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 86,
+              funcId: 118,
               port: port_,
             );
           },
@@ -3335,7 +4650,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             decodeSuccessData: sse_decode_unit,
             decodeErrorData: sse_decode_AnyhowException,
           ),
-          constMeta: kCrateApiBridgeMetaSessionEventsConstMeta,
+          constMeta: kCrateApiBridgeHostSessionsMetaSessionEventsConstMeta,
           argValues: [serviceKey, threadId, sink],
           apiImpl: this,
         ),
@@ -3344,14 +4659,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return sink.stream;
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaSessionEventsConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaSessionEventsConstMeta =>
       const TaskConstMeta(
         debugName: "meta_session_events",
         argNames: ["serviceKey", "threadId", "sink"],
       );
 
   @override
-  Future<SessionLivenessDto> crateApiBridgeMetaSessionLiveness({
+  Future<SessionLivenessDto> crateApiBridgeHostSessionsMetaSessionLiveness({
     required String serviceKey,
     required String threadId,
   }) {
@@ -3364,7 +4679,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 87,
+            funcId: 119,
             port: port_,
           );
         },
@@ -3372,21 +4687,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_session_liveness_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaSessionLivenessConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaSessionLivenessConstMeta,
         argValues: [serviceKey, threadId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaSessionLivenessConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaSessionLivenessConstMeta =>
       const TaskConstMeta(
         debugName: "meta_session_liveness",
         argNames: ["serviceKey", "threadId"],
       );
 
   @override
-  Future<List<ThreadItemDto>> crateApiBridgeMetaSessionTranscript({
+  Future<List<ThreadItemDto>> crateApiBridgeHostSessionsMetaSessionTranscript({
     required String serviceKey,
     required String threadId,
   }) {
@@ -3399,7 +4714,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 88,
+            funcId: 120,
             port: port_,
           );
         },
@@ -3407,21 +4722,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_thread_item_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaSessionTranscriptConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaSessionTranscriptConstMeta,
         argValues: [serviceKey, threadId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaSessionTranscriptConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaSessionTranscriptConstMeta =>
       const TaskConstMeta(
         debugName: "meta_session_transcript",
         argNames: ["serviceKey", "threadId"],
       );
 
   @override
-  Future<List<LocalSessionDto>> crateApiBridgeMetaSessions({
+  Future<List<LocalSessionDto>> crateApiBridgeHostSessionsMetaSessions({
     required String serviceKey,
     bool? runningOnly,
   }) {
@@ -3434,7 +4749,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 89,
+            funcId: 121,
             port: port_,
           );
         },
@@ -3442,20 +4757,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_local_session_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaSessionsConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaSessionsConstMeta,
         argValues: [serviceKey, runningOnly],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaSessionsConstMeta => const TaskConstMeta(
-    debugName: "meta_sessions",
-    argNames: ["serviceKey", "runningOnly"],
-  );
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaSessionsConstMeta =>
+      const TaskConstMeta(
+        debugName: "meta_sessions",
+        argNames: ["serviceKey", "runningOnly"],
+      );
 
   @override
-  Future<ProjectConfigDto> crateApiBridgeMetaSetProjectConfig({
+  Future<ProjectConfigDto> crateApiBridgeHostSessionsMetaSetProjectConfig({
     required String serviceKey,
     required List<String> projectRoots,
     String? defaultProject,
@@ -3470,7 +4786,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 90,
+            funcId: 122,
             port: port_,
           );
         },
@@ -3478,21 +4794,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_project_config_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaSetProjectConfigConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaSetProjectConfigConstMeta,
         argValues: [serviceKey, projectRoots, defaultProject],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaSetProjectConfigConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaSetProjectConfigConstMeta =>
       const TaskConstMeta(
         debugName: "meta_set_project_config",
         argNames: ["serviceKey", "projectRoots", "defaultProject"],
       );
 
   @override
-  Future<ThreadConfigDto> crateApiBridgeMetaThreadConfigGet({
+  Future<ThreadConfigDto> crateApiBridgeHostSessionsMetaThreadConfigGet({
     required String serviceKey,
     required String threadId,
   }) {
@@ -3505,7 +4821,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 91,
+            funcId: 123,
             port: port_,
           );
         },
@@ -3513,21 +4829,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_thread_config_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaThreadConfigGetConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaThreadConfigGetConstMeta,
         argValues: [serviceKey, threadId],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaThreadConfigGetConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaThreadConfigGetConstMeta =>
       const TaskConstMeta(
         debugName: "meta_thread_config_get",
         argNames: ["serviceKey", "threadId"],
       );
 
   @override
-  Future<ThreadConfigDto> crateApiBridgeMetaThreadConfigSet({
+  Future<ThreadConfigDto> crateApiBridgeHostSessionsMetaThreadConfigSet({
     required String serviceKey,
     required String threadId,
     required ThreadConfigDto config,
@@ -3542,7 +4858,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 92,
+            funcId: 124,
             port: port_,
           );
         },
@@ -3550,21 +4866,47 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_thread_config_dto,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaThreadConfigSetConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaThreadConfigSetConstMeta,
         argValues: [serviceKey, threadId, config],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaThreadConfigSetConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaThreadConfigSetConstMeta =>
       const TaskConstMeta(
         debugName: "meta_thread_config_set",
         argNames: ["serviceKey", "threadId", "config"],
       );
 
   @override
-  Future<String> crateApiBridgeMetaUploadFile({
+  String crateApiBridgeHostSessionsMetaUploadContext() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 125,
+          )!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostSessionsMetaUploadContextConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaUploadContextConstMeta =>
+      const TaskConstMeta(debugName: "meta_upload_context", argNames: []);
+
+  @override
+  Future<String> crateApiBridgeHostSessionsMetaUploadFile({
     required String serviceKey,
     required String fileName,
     required List<int> bytes,
@@ -3579,7 +4921,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 93,
+            funcId: 126,
             port: port_,
           );
         },
@@ -3587,21 +4929,60 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_String,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaUploadFileConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaUploadFileConstMeta,
         argValues: [serviceKey, fileName, bytes],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaUploadFileConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaUploadFileConstMeta =>
       const TaskConstMeta(
         debugName: "meta_upload_file",
         argNames: ["serviceKey", "fileName", "bytes"],
       );
 
   @override
-  Future<String> crateApiBridgeMetaWriteFile({
+  Future<String> crateApiBridgeHostSessionsMetaUploadFileScoped({
+    required String serviceKey,
+    required String fileName,
+    required List<int> bytes,
+    required String context,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(serviceKey, serializer);
+          sse_encode_String(fileName, serializer);
+          sse_encode_list_prim_u_8_loose(bytes, serializer);
+          sse_encode_String(context, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 127,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiBridgeHostSessionsMetaUploadFileScopedConstMeta,
+        argValues: [serviceKey, fileName, bytes, context],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaUploadFileScopedConstMeta =>
+      const TaskConstMeta(
+        debugName: "meta_upload_file_scoped",
+        argNames: ["serviceKey", "fileName", "bytes", "context"],
+      );
+
+  @override
+  Future<String> crateApiBridgeHostSessionsMetaWriteFile({
     required String serviceKey,
     required String dir,
     required String fileName,
@@ -3618,7 +4999,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 94,
+            funcId: 128,
             port: port_,
           );
         },
@@ -3626,14 +5007,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_String,
           decodeErrorData: sse_decode_AnyhowException,
         ),
-        constMeta: kCrateApiBridgeMetaWriteFileConstMeta,
+        constMeta: kCrateApiBridgeHostSessionsMetaWriteFileConstMeta,
         argValues: [serviceKey, dir, fileName, bytes],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeMetaWriteFileConstMeta =>
+  TaskConstMeta get kCrateApiBridgeHostSessionsMetaWriteFileConstMeta =>
       const TaskConstMeta(
         debugName: "meta_write_file",
         argNames: ["serviceKey", "dir", "fileName", "bytes"],
@@ -3649,7 +5030,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 95,
+            funcId: 129,
             port: port_,
           );
         },
@@ -3677,7 +5058,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 96,
+            funcId: 130,
             port: port_,
           );
         },
@@ -3705,7 +5086,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 97,
+            funcId: 131,
             port: port_,
           );
         },
@@ -3724,7 +5105,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "set_relay", argNames: ["relay"]);
 
   @override
-  Future<List<SubStatusDto>> crateApiBridgeSubscriptions() {
+  Future<List<SubStatusDto>> crateApiBridgeServicesSubscriptions() {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -3732,7 +5113,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 98,
+            funcId: 132,
             port: port_,
           );
         },
@@ -3740,14 +5121,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeSuccessData: sse_decode_list_sub_status_dto,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiBridgeSubscriptionsConstMeta,
+        constMeta: kCrateApiBridgeServicesSubscriptionsConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiBridgeSubscriptionsConstMeta =>
+  TaskConstMeta get kCrateApiBridgeServicesSubscriptionsConstMeta =>
       const TaskConstMeta(debugName: "subscriptions", argNames: []);
 
   @protected
@@ -3832,6 +5213,166 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AcpAgentSpecDto dco_decode_acp_agent_spec_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return AcpAgentSpecDto(
+      profileId: dco_decode_String(arr[0]),
+      displayName: dco_decode_String(arr[1]),
+      program: dco_decode_String(arr[2]),
+      args: dco_decode_list_String(arr[3]),
+    );
+  }
+
+  @protected
+  AcpCatalogProviderDto dco_decode_acp_catalog_provider_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return AcpCatalogProviderDto(
+      id: dco_decode_String(arr[0]),
+      status: dco_decode_String(arr[1]),
+      reason: dco_decode_opt_String(arr[2]),
+      listed: dco_decode_u_32(arr[3]),
+      added: dco_decode_u_32(arr[4]),
+      excluded: dco_decode_u_32(arr[5]),
+      unsafeIds: dco_decode_u_32(arr[6]),
+      keySource: dco_decode_String(arr[7]),
+    );
+  }
+
+  @protected
+  AcpCatalogStatusDto dco_decode_acp_catalog_status_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return AcpCatalogStatusDto(
+      state: dco_decode_String(arr[0]),
+      reason: dco_decode_opt_String(arr[1]),
+      plugin: dco_decode_opt_String(arr[2]),
+      providers: dco_decode_list_acp_catalog_provider_dto(arr[3]),
+      routeState: dco_decode_opt_String(arr[4]),
+      routeReasons: dco_decode_list_String(arr[5]),
+      routeProjects: dco_decode_list_String(arr[6]),
+    );
+  }
+
+  @protected
+  AcpClaudeSetupDto dco_decode_acp_claude_setup_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return AcpClaudeSetupDto(
+      state: dco_decode_String(arr[0]),
+      stage: dco_decode_opt_String(arr[1]),
+      elapsedMs: dco_decode_u_64(arr[2]),
+      downloadedBytes: dco_decode_opt_box_autoadd_u_64(arr[3]),
+      downloadBytesPerSecond: dco_decode_opt_box_autoadd_u_64(arr[4]),
+      error: dco_decode_opt_String(arr[5]),
+      run: dco_decode_u_64(arr[6]),
+      started: dco_decode_bool(arr[7]),
+    );
+  }
+
+  @protected
+  AcpClaudeStatusDto dco_decode_acp_claude_status_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    return AcpClaudeStatusDto(
+      ready: dco_decode_bool(arr[0]),
+      adapter: dco_decode_String(arr[1]),
+      adapterPath: dco_decode_opt_String(arr[2]),
+      runtime: dco_decode_String(arr[3]),
+      runtimeVersion: dco_decode_opt_String(arr[4]),
+      runtimePath: dco_decode_opt_String(arr[5]),
+      cli: dco_decode_String(arr[6]),
+      cliPath: dco_decode_opt_String(arr[7]),
+      canPrepare: dco_decode_bool(arr[8]),
+      package: dco_decode_String(arr[9]),
+      problem: dco_decode_opt_String(arr[10]),
+    );
+  }
+
+  @protected
+  AcpPresetDto dco_decode_acp_preset_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return AcpPresetDto(
+      id: dco_decode_String(arr[0]),
+      displayName: dco_decode_String(arr[1]),
+      program: dco_decode_String(arr[2]),
+      args: dco_decode_list_String(arr[3]),
+    );
+  }
+
+  @protected
+  AcpServeDto dco_decode_acp_serve_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return AcpServeDto(
+      device: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      serviceKey: dco_decode_String(arr[2]),
+      listenAddr: dco_decode_String(arr[3]),
+      metaServiceKey: dco_decode_String(arr[4]),
+      profileId: dco_decode_String(arr[5]),
+      displayName: dco_decode_String(arr[6]),
+      reused: dco_decode_bool(arr[7]),
+    );
+  }
+
+  @protected
+  AppCapabilitiesDto dco_decode_app_capabilities_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 30)
+      throw Exception('unexpected arr length: expect 30 but see ${arr.length}');
+    return AppCapabilitiesDto(
+      provider: dco_decode_String(arr[0]),
+      fast: dco_decode_bool(arr[1]),
+      permissionPresets: dco_decode_bool(arr[2]),
+      guardian: dco_decode_bool(arr[3]),
+      rateLimits: dco_decode_bool(arr[4]),
+      takeover: dco_decode_bool(arr[5]),
+      externalWriterMonitor: dco_decode_bool(arr[6]),
+      localSessions: dco_decode_bool(arr[7]),
+      planMode: dco_decode_bool(arr[8]),
+      protocol: dco_decode_String(arr[9]),
+      providerName: dco_decode_String(arr[10]),
+      profileId: dco_decode_String(arr[11]),
+      negotiated: dco_decode_bool(arr[12]),
+      generation: dco_decode_u_64(arr[13]),
+      voice: dco_decode_bool(arr[14]),
+      dictation: dco_decode_bool(arr[15]),
+      imageInput: dco_decode_bool(arr[16]),
+      steer: dco_decode_bool(arr[17]),
+      rename: dco_decode_bool(arr[18]),
+      compact: dco_decode_bool(arr[19]),
+      gitDiff: dco_decode_bool(arr[20]),
+      modelCatalog: dco_decode_bool(arr[21]),
+      sessionConfig: dco_decode_bool(arr[22]),
+      permissionOptions: dco_decode_bool(arr[23]),
+      nativeMetadata: dco_decode_bool(arr[24]),
+      sessionReopen: dco_decode_String(arr[25]),
+      sessionList: dco_decode_String(arr[26]),
+      historyScope: dco_decode_String(arr[27]),
+      runningInventory: dco_decode_String(arr[28]),
+      authRequired: dco_decode_bool(arr[29]),
+    );
+  }
+
+  @protected
   AppEventDto dco_decode_app_event_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -3874,8 +5415,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AppServeStatusDto dco_decode_app_serve_status_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 16)
-      throw Exception('unexpected arr length: expect 16 but see ${arr.length}');
+    if (arr.length != 29)
+      throw Exception('unexpected arr length: expect 29 but see ${arr.length}');
     return AppServeStatusDto(
       name: dco_decode_String(arr[0]),
       device: dco_decode_String(arr[1]),
@@ -3893,6 +5434,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       embedded: dco_decode_bool(arr[13]),
       codexBinary: dco_decode_opt_String(arr[14]),
       proxy: dco_decode_opt_String(arr[15]),
+      provider: dco_decode_String(arr[16]),
+      providerVersion: dco_decode_opt_String(arr[17]),
+      protocol: dco_decode_String(arr[18]),
+      providerName: dco_decode_String(arr[19]),
+      profileId: dco_decode_opt_String(arr[20]),
+      agentPhase: dco_decode_opt_String(arr[21]),
+      agentError: dco_decode_opt_String(arr[22]),
+      authRequired: dco_decode_bool(arr[23]),
+      catalog: dco_decode_opt_box_autoadd_acp_catalog_status_dto(arr[24]),
+      configSource: dco_decode_opt_String(arr[25]),
+      configRevision: dco_decode_opt_box_autoadd_u_64(arr[26]),
+      incarnation: dco_decode_opt_String(arr[27]),
+      busy: dco_decode_opt_String(arr[28]),
+    );
+  }
+
+  @protected
+  AppTurnSupplementDto dco_decode_app_turn_supplement_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return AppTurnSupplementDto(
+      outcome: dco_decode_String(arr[0]),
+      turnId: dco_decode_opt_String(arr[1]),
     );
   }
 
@@ -3909,15 +5475,59 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AcpAgentSpecDto dco_decode_box_autoadd_acp_agent_spec_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_acp_agent_spec_dto(raw);
+  }
+
+  @protected
+  AcpCatalogStatusDto dco_decode_box_autoadd_acp_catalog_status_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_acp_catalog_status_dto(raw);
+  }
+
+  @protected
   bool dco_decode_box_autoadd_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as bool;
   }
 
   @protected
+  HostActiveDto dco_decode_box_autoadd_host_active_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_host_active_dto(raw);
+  }
+
+  @protected
+  HostConfigInputDto dco_decode_box_autoadd_host_config_input_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_host_config_input_dto(raw);
+  }
+
+  @protected
+  HostRuntimeDto dco_decode_box_autoadd_host_runtime_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_host_runtime_dto(raw);
+  }
+
+  @protected
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_i_64(raw);
+  }
+
+  @protected
+  SessionControlDto dco_decode_box_autoadd_session_control_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_session_control_dto(raw);
+  }
+
+  @protected
+  SessionSettingsDto dco_decode_box_autoadd_session_settings_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_session_settings_dto(raw);
   }
 
   @protected
@@ -3947,6 +5557,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt dco_decode_box_autoadd_u_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_u_64(raw);
+  }
+
+  @protected
+  ClaudeVariableDto dco_decode_claude_variable_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return ClaudeVariableDto(
+      name: dco_decode_String(arr[0]),
+      group: dco_decode_String(arr[1]),
+      secret: dco_decode_bool(arr[2]),
+      choices: dco_decode_list_String(arr[3]),
+    );
+  }
+
+  @protected
   CodexAuthStatusDto dco_decode_codex_auth_status_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -3955,6 +5585,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return CodexAuthStatusDto(
       authenticated: dco_decode_bool(arr[0]),
       method: dco_decode_opt_String(arr[1]),
+    );
+  }
+
+  @protected
+  CodexLocalAuthDto dco_decode_codex_local_auth_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return CodexLocalAuthDto(
+      authenticated: dco_decode_bool(arr[0]),
+      method: dco_decode_opt_String(arr[1]),
+      completed: dco_decode_opt_box_autoadd_bool(arr[2]),
+      error: dco_decode_opt_String(arr[3]),
     );
   }
 
@@ -3977,8 +5621,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   CodexSetupStatusDto dco_decode_codex_setup_status_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
     return CodexSetupStatusDto(
       codexHome: dco_decode_String(arr[0]),
       hasConfig: dco_decode_bool(arr[1]),
@@ -3987,6 +5631,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       authMode: dco_decode_opt_String(arr[4]),
       needsSetup: dco_decode_bool(arr[5]),
       promptVariant: dco_decode_String(arr[6]),
+      selectedProvider: dco_decode_opt_String(arr[7]),
+      configError: dco_decode_bool(arr[8]),
+      effectiveSource: dco_decode_String(arr[9]),
     );
   }
 
@@ -4102,6 +5749,127 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  HostActiveDto dco_decode_host_active_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return HostActiveDto(
+      incarnation: dco_decode_String(arr[0]),
+      runtime: dco_decode_host_runtime_dto(arr[1]),
+      source: dco_decode_String(arr[2]),
+      revision: dco_decode_u_64(arr[3]),
+    );
+  }
+
+  @protected
+  HostApplyDto dco_decode_host_apply_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return HostApplyDto(
+      name: dco_decode_String(arr[0]),
+      applied: dco_decode_bool(arr[1]),
+      restoredPrevious: dco_decode_bool(arr[2]),
+      error: dco_decode_opt_String(arr[3]),
+      restoreError: dco_decode_opt_String(arr[4]),
+      revision: dco_decode_opt_box_autoadd_u_64(arr[5]),
+    );
+  }
+
+  @protected
+  HostConfigDto dco_decode_host_config_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    return HostConfigDto(
+      claudeEnv: dco_decode_list_host_environment_entry_dto(arr[0]),
+      source: dco_decode_String(arr[1]),
+      protocol: dco_decode_opt_String(arr[2]),
+      baseUrl: dco_decode_opt_String(arr[3]),
+      model: dco_decode_opt_String(arr[4]),
+      keySet: dco_decode_bool(arr[5]),
+      revision: dco_decode_u_64(arr[6]),
+      runtime: dco_decode_opt_box_autoadd_host_runtime_dto(arr[7]),
+      problem: dco_decode_opt_String(arr[8]),
+      active: dco_decode_opt_box_autoadd_host_active_dto(arr[9]),
+    );
+  }
+
+  @protected
+  HostConfigInputDto dco_decode_host_config_input_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return HostConfigInputDto(
+      claudeEnv: dco_decode_opt_list_host_environment_entry_dto(arr[0]),
+      source: dco_decode_String(arr[1]),
+      protocol: dco_decode_opt_String(arr[2]),
+      baseUrl: dco_decode_opt_String(arr[3]),
+      model: dco_decode_opt_String(arr[4]),
+    );
+  }
+
+  @protected
+  HostConfigSupportDto dco_decode_host_config_support_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return HostConfigSupportDto(
+      claudeVariables: dco_decode_list_claude_variable_dto(arr[0]),
+      sources: dco_decode_list_String(arr[1]),
+      protocols: dco_decode_list_String(arr[2]),
+      modelRequired: dco_decode_bool(arr[3]),
+      keyRequired: dco_decode_bool(arr[4]),
+    );
+  }
+
+  @protected
+  HostEnvironmentEntryDto dco_decode_host_environment_entry_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return HostEnvironmentEntryDto(
+      name: dco_decode_String(arr[0]),
+      value: dco_decode_opt_String(arr[1]),
+    );
+  }
+
+  @protected
+  HostRuntimeDto dco_decode_host_runtime_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return HostRuntimeDto(
+      kind: dco_decode_String(arr[0]),
+      binary: dco_decode_opt_String(arr[1]),
+      port: dco_decode_u_16(arr[2]),
+      proxy: dco_decode_opt_String(arr[3]),
+      agent: dco_decode_opt_box_autoadd_acp_agent_spec_dto(arr[4]),
+    );
+  }
+
+  @protected
+  HostStartedDto dco_decode_host_started_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return HostStartedDto(
+      name: dco_decode_String(arr[0]),
+      provider: dco_decode_String(arr[1]),
+      serviceKey: dco_decode_String(arr[2]),
+      reused: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeI64(raw);
@@ -4120,9 +5888,31 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<AcpCatalogProviderDto> dco_decode_list_acp_catalog_provider_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_acp_catalog_provider_dto)
+        .toList();
+  }
+
+  @protected
+  List<AcpPresetDto> dco_decode_list_acp_preset_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_acp_preset_dto).toList();
+  }
+
+  @protected
   List<AppServeStatusDto> dco_decode_list_app_serve_status_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_app_serve_status_dto).toList();
+  }
+
+  @protected
+  List<ClaudeVariableDto> dco_decode_list_claude_variable_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_claude_variable_dto).toList();
   }
 
   @protected
@@ -4141,6 +5931,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<HolderDto> dco_decode_list_holder_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_holder_dto).toList();
+  }
+
+  @protected
+  List<HostEnvironmentEntryDto> dco_decode_list_host_environment_entry_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_host_environment_entry_dto)
+        .toList();
   }
 
   @protected
@@ -4171,6 +5971,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<ServiceIdDto> dco_decode_list_service_id_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_service_id_dto).toList();
+  }
+
+  @protected
+  List<SessionConfigOptionDto> dco_decode_list_session_config_option_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_session_config_option_dto)
+        .toList();
+  }
+
+  @protected
+  List<SessionConfigValueDto> dco_decode_list_session_config_value_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_session_config_value_dto)
+        .toList();
+  }
+
+  @protected
+  List<SessionModeDto> dco_decode_list_session_mode_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_session_mode_dto).toList();
   }
 
   @protected
@@ -4258,6 +6084,50 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  NativeSessionListDto dco_decode_native_session_list_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return NativeSessionListDto(
+      sourceId: dco_decode_String(arr[0]),
+      location: dco_decode_String(arr[1]),
+      sessions: dco_decode_list_local_session_dto(arr[2]),
+      nextCursor: dco_decode_opt_String(arr[3]),
+    );
+  }
+
+  @protected
+  NativeSessionPageDto dco_decode_native_session_page_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return NativeSessionPageDto(
+      sourceId: dco_decode_String(arr[0]),
+      generation: dco_decode_String(arr[1]),
+      revision: dco_decode_String(arr[2]),
+      items: dco_decode_list_thread_item_dto(arr[3]),
+      nextBefore: dco_decode_opt_String(arr[4]),
+      truncated: dco_decode_bool(arr[5]),
+    );
+  }
+
+  @protected
+  NativeSessionRevisionDto dco_decode_native_session_revision_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return NativeSessionRevisionDto(
+      sourceId: dco_decode_String(arr[0]),
+      generation: dco_decode_String(arr[1]),
+      revision: dco_decode_String(arr[2]),
+      liveness: dco_decode_session_liveness_dto(arr[3]),
+    );
+  }
+
+  @protected
   OlderPageDto dco_decode_older_page_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -4282,15 +6152,53 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AcpAgentSpecDto? dco_decode_opt_box_autoadd_acp_agent_spec_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_acp_agent_spec_dto(raw);
+  }
+
+  @protected
+  AcpCatalogStatusDto? dco_decode_opt_box_autoadd_acp_catalog_status_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_acp_catalog_status_dto(raw);
+  }
+
+  @protected
   bool? dco_decode_opt_box_autoadd_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_bool(raw);
   }
 
   @protected
+  HostActiveDto? dco_decode_opt_box_autoadd_host_active_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_host_active_dto(raw);
+  }
+
+  @protected
+  HostRuntimeDto? dco_decode_opt_box_autoadd_host_runtime_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_host_runtime_dto(raw);
+  }
+
+  @protected
   PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_i_64(raw);
+  }
+
+  @protected
+  SessionSettingsDto? dco_decode_opt_box_autoadd_session_settings_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_session_settings_dto(raw);
   }
 
   @protected
@@ -4316,9 +6224,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
+  }
+
+  @protected
   List<String>? dco_decode_opt_list_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_list_String(raw);
+  }
+
+  @protected
+  List<HostEnvironmentEntryDto>? dco_decode_opt_list_host_environment_entry_dto(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_list_host_environment_entry_dto(raw);
   }
 
   @protected
@@ -4360,6 +6282,55 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SessionConfigOptionDto dco_decode_session_config_option_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return SessionConfigOptionDto(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      category: dco_decode_opt_String(arr[2]),
+      description: dco_decode_opt_String(arr[3]),
+      currentValue: dco_decode_String(arr[4]),
+      values: dco_decode_list_session_config_value_dto(arr[5]),
+    );
+  }
+
+  @protected
+  SessionConfigValueDto dco_decode_session_config_value_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return SessionConfigValueDto(
+      value: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      group: dco_decode_opt_String(arr[2]),
+      description: dco_decode_opt_String(arr[3]),
+    );
+  }
+
+  @protected
+  SessionControlDto dco_decode_session_control_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return SessionControlDto(
+      sessionId: dco_decode_String(arr[0]),
+      hostId: dco_decode_String(arr[1]),
+      generation: dco_decode_u_64(arr[2]),
+      sourceGeneration: dco_decode_opt_String(arr[3]),
+      provider: dco_decode_String(arr[4]),
+      status: dco_decode_String(arr[5]),
+      canContinue: dco_decode_bool(arr[6]),
+      canRelease: dco_decode_bool(arr[7]),
+      canAcquire: dco_decode_bool(arr[8]),
+    );
+  }
+
+  @protected
   SessionFollowUpdateDto dco_decode_session_follow_update_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -4386,6 +6357,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       allowsResume: dco_decode_bool(arr[4]),
       requiresTakeover: dco_decode_bool(arr[5]),
       holders: dco_decode_list_holder_dto(arr[6]),
+    );
+  }
+
+  @protected
+  SessionModeDto dco_decode_session_mode_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return SessionModeDto(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      description: dco_decode_opt_String(arr[2]),
+    );
+  }
+
+  @protected
+  SessionSettingsDto dco_decode_session_settings_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7)
+      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return SessionSettingsDto(
+      configOptions: dco_decode_list_session_config_option_dto(arr[0]),
+      currentMode: dco_decode_opt_String(arr[1]),
+      modes: dco_decode_list_session_mode_dto(arr[2]),
+      usageUsed: dco_decode_opt_box_autoadd_i_64(arr[3]),
+      usageSize: dco_decode_opt_box_autoadd_i_64(arr[4]),
+      running: dco_decode_bool(arr[5]),
+      cancelRequested: dco_decode_bool(arr[6]),
     );
   }
 
@@ -4658,6 +6659,234 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AcpAgentSpecDto sse_decode_acp_agent_spec_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_profileId = sse_decode_String(deserializer);
+    var var_displayName = sse_decode_String(deserializer);
+    var var_program = sse_decode_String(deserializer);
+    var var_args = sse_decode_list_String(deserializer);
+    return AcpAgentSpecDto(
+      profileId: var_profileId,
+      displayName: var_displayName,
+      program: var_program,
+      args: var_args,
+    );
+  }
+
+  @protected
+  AcpCatalogProviderDto sse_decode_acp_catalog_provider_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_reason = sse_decode_opt_String(deserializer);
+    var var_listed = sse_decode_u_32(deserializer);
+    var var_added = sse_decode_u_32(deserializer);
+    var var_excluded = sse_decode_u_32(deserializer);
+    var var_unsafeIds = sse_decode_u_32(deserializer);
+    var var_keySource = sse_decode_String(deserializer);
+    return AcpCatalogProviderDto(
+      id: var_id,
+      status: var_status,
+      reason: var_reason,
+      listed: var_listed,
+      added: var_added,
+      excluded: var_excluded,
+      unsafeIds: var_unsafeIds,
+      keySource: var_keySource,
+    );
+  }
+
+  @protected
+  AcpCatalogStatusDto sse_decode_acp_catalog_status_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_state = sse_decode_String(deserializer);
+    var var_reason = sse_decode_opt_String(deserializer);
+    var var_plugin = sse_decode_opt_String(deserializer);
+    var var_providers = sse_decode_list_acp_catalog_provider_dto(deserializer);
+    var var_routeState = sse_decode_opt_String(deserializer);
+    var var_routeReasons = sse_decode_list_String(deserializer);
+    var var_routeProjects = sse_decode_list_String(deserializer);
+    return AcpCatalogStatusDto(
+      state: var_state,
+      reason: var_reason,
+      plugin: var_plugin,
+      providers: var_providers,
+      routeState: var_routeState,
+      routeReasons: var_routeReasons,
+      routeProjects: var_routeProjects,
+    );
+  }
+
+  @protected
+  AcpClaudeSetupDto sse_decode_acp_claude_setup_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_state = sse_decode_String(deserializer);
+    var var_stage = sse_decode_opt_String(deserializer);
+    var var_elapsedMs = sse_decode_u_64(deserializer);
+    var var_downloadedBytes = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_downloadBytesPerSecond = sse_decode_opt_box_autoadd_u_64(
+      deserializer,
+    );
+    var var_error = sse_decode_opt_String(deserializer);
+    var var_run = sse_decode_u_64(deserializer);
+    var var_started = sse_decode_bool(deserializer);
+    return AcpClaudeSetupDto(
+      state: var_state,
+      stage: var_stage,
+      elapsedMs: var_elapsedMs,
+      downloadedBytes: var_downloadedBytes,
+      downloadBytesPerSecond: var_downloadBytesPerSecond,
+      error: var_error,
+      run: var_run,
+      started: var_started,
+    );
+  }
+
+  @protected
+  AcpClaudeStatusDto sse_decode_acp_claude_status_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_ready = sse_decode_bool(deserializer);
+    var var_adapter = sse_decode_String(deserializer);
+    var var_adapterPath = sse_decode_opt_String(deserializer);
+    var var_runtime = sse_decode_String(deserializer);
+    var var_runtimeVersion = sse_decode_opt_String(deserializer);
+    var var_runtimePath = sse_decode_opt_String(deserializer);
+    var var_cli = sse_decode_String(deserializer);
+    var var_cliPath = sse_decode_opt_String(deserializer);
+    var var_canPrepare = sse_decode_bool(deserializer);
+    var var_package = sse_decode_String(deserializer);
+    var var_problem = sse_decode_opt_String(deserializer);
+    return AcpClaudeStatusDto(
+      ready: var_ready,
+      adapter: var_adapter,
+      adapterPath: var_adapterPath,
+      runtime: var_runtime,
+      runtimeVersion: var_runtimeVersion,
+      runtimePath: var_runtimePath,
+      cli: var_cli,
+      cliPath: var_cliPath,
+      canPrepare: var_canPrepare,
+      package: var_package,
+      problem: var_problem,
+    );
+  }
+
+  @protected
+  AcpPresetDto sse_decode_acp_preset_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_displayName = sse_decode_String(deserializer);
+    var var_program = sse_decode_String(deserializer);
+    var var_args = sse_decode_list_String(deserializer);
+    return AcpPresetDto(
+      id: var_id,
+      displayName: var_displayName,
+      program: var_program,
+      args: var_args,
+    );
+  }
+
+  @protected
+  AcpServeDto sse_decode_acp_serve_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_device = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_serviceKey = sse_decode_String(deserializer);
+    var var_listenAddr = sse_decode_String(deserializer);
+    var var_metaServiceKey = sse_decode_String(deserializer);
+    var var_profileId = sse_decode_String(deserializer);
+    var var_displayName = sse_decode_String(deserializer);
+    var var_reused = sse_decode_bool(deserializer);
+    return AcpServeDto(
+      device: var_device,
+      name: var_name,
+      serviceKey: var_serviceKey,
+      listenAddr: var_listenAddr,
+      metaServiceKey: var_metaServiceKey,
+      profileId: var_profileId,
+      displayName: var_displayName,
+      reused: var_reused,
+    );
+  }
+
+  @protected
+  AppCapabilitiesDto sse_decode_app_capabilities_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_provider = sse_decode_String(deserializer);
+    var var_fast = sse_decode_bool(deserializer);
+    var var_permissionPresets = sse_decode_bool(deserializer);
+    var var_guardian = sse_decode_bool(deserializer);
+    var var_rateLimits = sse_decode_bool(deserializer);
+    var var_takeover = sse_decode_bool(deserializer);
+    var var_externalWriterMonitor = sse_decode_bool(deserializer);
+    var var_localSessions = sse_decode_bool(deserializer);
+    var var_planMode = sse_decode_bool(deserializer);
+    var var_protocol = sse_decode_String(deserializer);
+    var var_providerName = sse_decode_String(deserializer);
+    var var_profileId = sse_decode_String(deserializer);
+    var var_negotiated = sse_decode_bool(deserializer);
+    var var_generation = sse_decode_u_64(deserializer);
+    var var_voice = sse_decode_bool(deserializer);
+    var var_dictation = sse_decode_bool(deserializer);
+    var var_imageInput = sse_decode_bool(deserializer);
+    var var_steer = sse_decode_bool(deserializer);
+    var var_rename = sse_decode_bool(deserializer);
+    var var_compact = sse_decode_bool(deserializer);
+    var var_gitDiff = sse_decode_bool(deserializer);
+    var var_modelCatalog = sse_decode_bool(deserializer);
+    var var_sessionConfig = sse_decode_bool(deserializer);
+    var var_permissionOptions = sse_decode_bool(deserializer);
+    var var_nativeMetadata = sse_decode_bool(deserializer);
+    var var_sessionReopen = sse_decode_String(deserializer);
+    var var_sessionList = sse_decode_String(deserializer);
+    var var_historyScope = sse_decode_String(deserializer);
+    var var_runningInventory = sse_decode_String(deserializer);
+    var var_authRequired = sse_decode_bool(deserializer);
+    return AppCapabilitiesDto(
+      provider: var_provider,
+      fast: var_fast,
+      permissionPresets: var_permissionPresets,
+      guardian: var_guardian,
+      rateLimits: var_rateLimits,
+      takeover: var_takeover,
+      externalWriterMonitor: var_externalWriterMonitor,
+      localSessions: var_localSessions,
+      planMode: var_planMode,
+      protocol: var_protocol,
+      providerName: var_providerName,
+      profileId: var_profileId,
+      negotiated: var_negotiated,
+      generation: var_generation,
+      voice: var_voice,
+      dictation: var_dictation,
+      imageInput: var_imageInput,
+      steer: var_steer,
+      rename: var_rename,
+      compact: var_compact,
+      gitDiff: var_gitDiff,
+      modelCatalog: var_modelCatalog,
+      sessionConfig: var_sessionConfig,
+      permissionOptions: var_permissionOptions,
+      nativeMetadata: var_nativeMetadata,
+      sessionReopen: var_sessionReopen,
+      sessionList: var_sessionList,
+      historyScope: var_historyScope,
+      runningInventory: var_runningInventory,
+      authRequired: var_authRequired,
+    );
+  }
+
+  @protected
   AppEventDto sse_decode_app_event_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_kind = sse_decode_String(deserializer);
@@ -4730,6 +6959,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_embedded = sse_decode_bool(deserializer);
     var var_codexBinary = sse_decode_opt_String(deserializer);
     var var_proxy = sse_decode_opt_String(deserializer);
+    var var_provider = sse_decode_String(deserializer);
+    var var_providerVersion = sse_decode_opt_String(deserializer);
+    var var_protocol = sse_decode_String(deserializer);
+    var var_providerName = sse_decode_String(deserializer);
+    var var_profileId = sse_decode_opt_String(deserializer);
+    var var_agentPhase = sse_decode_opt_String(deserializer);
+    var var_agentError = sse_decode_opt_String(deserializer);
+    var var_authRequired = sse_decode_bool(deserializer);
+    var var_catalog = sse_decode_opt_box_autoadd_acp_catalog_status_dto(
+      deserializer,
+    );
+    var var_configSource = sse_decode_opt_String(deserializer);
+    var var_configRevision = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_incarnation = sse_decode_opt_String(deserializer);
+    var var_busy = sse_decode_opt_String(deserializer);
     return AppServeStatusDto(
       name: var_name,
       device: var_device,
@@ -4747,7 +6991,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       embedded: var_embedded,
       codexBinary: var_codexBinary,
       proxy: var_proxy,
+      provider: var_provider,
+      providerVersion: var_providerVersion,
+      protocol: var_protocol,
+      providerName: var_providerName,
+      profileId: var_profileId,
+      agentPhase: var_agentPhase,
+      agentError: var_agentError,
+      authRequired: var_authRequired,
+      catalog: var_catalog,
+      configSource: var_configSource,
+      configRevision: var_configRevision,
+      incarnation: var_incarnation,
+      busy: var_busy,
     );
+  }
+
+  @protected
+  AppTurnSupplementDto sse_decode_app_turn_supplement_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_outcome = sse_decode_String(deserializer);
+    var var_turnId = sse_decode_opt_String(deserializer);
+    return AppTurnSupplementDto(outcome: var_outcome, turnId: var_turnId);
   }
 
   @protected
@@ -4765,15 +7032,71 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AcpAgentSpecDto sse_decode_box_autoadd_acp_agent_spec_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_acp_agent_spec_dto(deserializer));
+  }
+
+  @protected
+  AcpCatalogStatusDto sse_decode_box_autoadd_acp_catalog_status_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_acp_catalog_status_dto(deserializer));
+  }
+
+  @protected
   bool sse_decode_box_autoadd_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_bool(deserializer));
   }
 
   @protected
+  HostActiveDto sse_decode_box_autoadd_host_active_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_host_active_dto(deserializer));
+  }
+
+  @protected
+  HostConfigInputDto sse_decode_box_autoadd_host_config_input_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_host_config_input_dto(deserializer));
+  }
+
+  @protected
+  HostRuntimeDto sse_decode_box_autoadd_host_runtime_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_host_runtime_dto(deserializer));
+  }
+
+  @protected
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_i_64(deserializer));
+  }
+
+  @protected
+  SessionControlDto sse_decode_box_autoadd_session_control_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_session_control_dto(deserializer));
+  }
+
+  @protected
+  SessionSettingsDto sse_decode_box_autoadd_session_settings_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_session_settings_dto(deserializer));
   }
 
   @protected
@@ -4807,6 +7130,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_64(deserializer));
+  }
+
+  @protected
+  ClaudeVariableDto sse_decode_claude_variable_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_name = sse_decode_String(deserializer);
+    var var_group = sse_decode_String(deserializer);
+    var var_secret = sse_decode_bool(deserializer);
+    var var_choices = sse_decode_list_String(deserializer);
+    return ClaudeVariableDto(
+      name: var_name,
+      group: var_group,
+      secret: var_secret,
+      choices: var_choices,
+    );
+  }
+
+  @protected
   CodexAuthStatusDto sse_decode_codex_auth_status_dto(
     SseDeserializer deserializer,
   ) {
@@ -4816,6 +7162,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return CodexAuthStatusDto(
       authenticated: var_authenticated,
       method: var_method,
+    );
+  }
+
+  @protected
+  CodexLocalAuthDto sse_decode_codex_local_auth_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_authenticated = sse_decode_bool(deserializer);
+    var var_method = sse_decode_opt_String(deserializer);
+    var var_completed = sse_decode_opt_box_autoadd_bool(deserializer);
+    var var_error = sse_decode_opt_String(deserializer);
+    return CodexLocalAuthDto(
+      authenticated: var_authenticated,
+      method: var_method,
+      completed: var_completed,
+      error: var_error,
     );
   }
 
@@ -4850,6 +7213,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_authMode = sse_decode_opt_String(deserializer);
     var var_needsSetup = sse_decode_bool(deserializer);
     var var_promptVariant = sse_decode_String(deserializer);
+    var var_selectedProvider = sse_decode_opt_String(deserializer);
+    var var_configError = sse_decode_bool(deserializer);
+    var var_effectiveSource = sse_decode_String(deserializer);
     return CodexSetupStatusDto(
       codexHome: var_codexHome,
       hasConfig: var_hasConfig,
@@ -4858,6 +7224,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       authMode: var_authMode,
       needsSetup: var_needsSetup,
       promptVariant: var_promptVariant,
+      selectedProvider: var_selectedProvider,
+      configError: var_configError,
+      effectiveSource: var_effectiveSource,
     );
   }
 
@@ -4978,6 +7347,151 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  HostActiveDto sse_decode_host_active_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_incarnation = sse_decode_String(deserializer);
+    var var_runtime = sse_decode_host_runtime_dto(deserializer);
+    var var_source = sse_decode_String(deserializer);
+    var var_revision = sse_decode_u_64(deserializer);
+    return HostActiveDto(
+      incarnation: var_incarnation,
+      runtime: var_runtime,
+      source: var_source,
+      revision: var_revision,
+    );
+  }
+
+  @protected
+  HostApplyDto sse_decode_host_apply_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_name = sse_decode_String(deserializer);
+    var var_applied = sse_decode_bool(deserializer);
+    var var_restoredPrevious = sse_decode_bool(deserializer);
+    var var_error = sse_decode_opt_String(deserializer);
+    var var_restoreError = sse_decode_opt_String(deserializer);
+    var var_revision = sse_decode_opt_box_autoadd_u_64(deserializer);
+    return HostApplyDto(
+      name: var_name,
+      applied: var_applied,
+      restoredPrevious: var_restoredPrevious,
+      error: var_error,
+      restoreError: var_restoreError,
+      revision: var_revision,
+    );
+  }
+
+  @protected
+  HostConfigDto sse_decode_host_config_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_claudeEnv = sse_decode_list_host_environment_entry_dto(
+      deserializer,
+    );
+    var var_source = sse_decode_String(deserializer);
+    var var_protocol = sse_decode_opt_String(deserializer);
+    var var_baseUrl = sse_decode_opt_String(deserializer);
+    var var_model = sse_decode_opt_String(deserializer);
+    var var_keySet = sse_decode_bool(deserializer);
+    var var_revision = sse_decode_u_64(deserializer);
+    var var_runtime = sse_decode_opt_box_autoadd_host_runtime_dto(deserializer);
+    var var_problem = sse_decode_opt_String(deserializer);
+    var var_active = sse_decode_opt_box_autoadd_host_active_dto(deserializer);
+    return HostConfigDto(
+      claudeEnv: var_claudeEnv,
+      source: var_source,
+      protocol: var_protocol,
+      baseUrl: var_baseUrl,
+      model: var_model,
+      keySet: var_keySet,
+      revision: var_revision,
+      runtime: var_runtime,
+      problem: var_problem,
+      active: var_active,
+    );
+  }
+
+  @protected
+  HostConfigInputDto sse_decode_host_config_input_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_claudeEnv = sse_decode_opt_list_host_environment_entry_dto(
+      deserializer,
+    );
+    var var_source = sse_decode_String(deserializer);
+    var var_protocol = sse_decode_opt_String(deserializer);
+    var var_baseUrl = sse_decode_opt_String(deserializer);
+    var var_model = sse_decode_opt_String(deserializer);
+    return HostConfigInputDto(
+      claudeEnv: var_claudeEnv,
+      source: var_source,
+      protocol: var_protocol,
+      baseUrl: var_baseUrl,
+      model: var_model,
+    );
+  }
+
+  @protected
+  HostConfigSupportDto sse_decode_host_config_support_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_claudeVariables = sse_decode_list_claude_variable_dto(deserializer);
+    var var_sources = sse_decode_list_String(deserializer);
+    var var_protocols = sse_decode_list_String(deserializer);
+    var var_modelRequired = sse_decode_bool(deserializer);
+    var var_keyRequired = sse_decode_bool(deserializer);
+    return HostConfigSupportDto(
+      claudeVariables: var_claudeVariables,
+      sources: var_sources,
+      protocols: var_protocols,
+      modelRequired: var_modelRequired,
+      keyRequired: var_keyRequired,
+    );
+  }
+
+  @protected
+  HostEnvironmentEntryDto sse_decode_host_environment_entry_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_name = sse_decode_String(deserializer);
+    var var_value = sse_decode_opt_String(deserializer);
+    return HostEnvironmentEntryDto(name: var_name, value: var_value);
+  }
+
+  @protected
+  HostRuntimeDto sse_decode_host_runtime_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_kind = sse_decode_String(deserializer);
+    var var_binary = sse_decode_opt_String(deserializer);
+    var var_port = sse_decode_u_16(deserializer);
+    var var_proxy = sse_decode_opt_String(deserializer);
+    var var_agent = sse_decode_opt_box_autoadd_acp_agent_spec_dto(deserializer);
+    return HostRuntimeDto(
+      kind: var_kind,
+      binary: var_binary,
+      port: var_port,
+      proxy: var_proxy,
+      agent: var_agent,
+    );
+  }
+
+  @protected
+  HostStartedDto sse_decode_host_started_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_name = sse_decode_String(deserializer);
+    var var_provider = sse_decode_String(deserializer);
+    var var_serviceKey = sse_decode_String(deserializer);
+    var var_reused = sse_decode_bool(deserializer);
+    return HostStartedDto(
+      name: var_name,
+      provider: var_provider,
+      serviceKey: var_serviceKey,
+      reused: var_reused,
+    );
+  }
+
+  @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getPlatformInt64();
@@ -5010,6 +7524,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<AcpCatalogProviderDto> sse_decode_list_acp_catalog_provider_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <AcpCatalogProviderDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_acp_catalog_provider_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<AcpPresetDto> sse_decode_list_acp_preset_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <AcpPresetDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_acp_preset_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<AppServeStatusDto> sse_decode_list_app_serve_status_dto(
     SseDeserializer deserializer,
   ) {
@@ -5019,6 +7561,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <AppServeStatusDto>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_app_serve_status_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<ClaudeVariableDto> sse_decode_list_claude_variable_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <ClaudeVariableDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_claude_variable_dto(deserializer));
     }
     return ans_;
   }
@@ -5059,6 +7615,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <HolderDto>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_holder_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<HostEnvironmentEntryDto> sse_decode_list_host_environment_entry_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <HostEnvironmentEntryDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_host_environment_entry_dto(deserializer));
     }
     return ans_;
   }
@@ -5115,6 +7685,48 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <ServiceIdDto>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_service_id_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<SessionConfigOptionDto> sse_decode_list_session_config_option_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <SessionConfigOptionDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_session_config_option_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<SessionConfigValueDto> sse_decode_list_session_config_value_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <SessionConfigValueDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_session_config_value_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<SessionModeDto> sse_decode_list_session_mode_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <SessionModeDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_session_mode_dto(deserializer));
     }
     return ans_;
   }
@@ -5259,6 +7871,61 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  NativeSessionListDto sse_decode_native_session_list_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_sourceId = sse_decode_String(deserializer);
+    var var_location = sse_decode_String(deserializer);
+    var var_sessions = sse_decode_list_local_session_dto(deserializer);
+    var var_nextCursor = sse_decode_opt_String(deserializer);
+    return NativeSessionListDto(
+      sourceId: var_sourceId,
+      location: var_location,
+      sessions: var_sessions,
+      nextCursor: var_nextCursor,
+    );
+  }
+
+  @protected
+  NativeSessionPageDto sse_decode_native_session_page_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_sourceId = sse_decode_String(deserializer);
+    var var_generation = sse_decode_String(deserializer);
+    var var_revision = sse_decode_String(deserializer);
+    var var_items = sse_decode_list_thread_item_dto(deserializer);
+    var var_nextBefore = sse_decode_opt_String(deserializer);
+    var var_truncated = sse_decode_bool(deserializer);
+    return NativeSessionPageDto(
+      sourceId: var_sourceId,
+      generation: var_generation,
+      revision: var_revision,
+      items: var_items,
+      nextBefore: var_nextBefore,
+      truncated: var_truncated,
+    );
+  }
+
+  @protected
+  NativeSessionRevisionDto sse_decode_native_session_revision_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_sourceId = sse_decode_String(deserializer);
+    var var_generation = sse_decode_String(deserializer);
+    var var_revision = sse_decode_String(deserializer);
+    var var_liveness = sse_decode_session_liveness_dto(deserializer);
+    return NativeSessionRevisionDto(
+      sourceId: var_sourceId,
+      generation: var_generation,
+      revision: var_revision,
+      liveness: var_liveness,
+    );
+  }
+
+  @protected
   OlderPageDto sse_decode_older_page_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_items = sse_decode_list_thread_item_dto(deserializer);
@@ -5291,6 +7958,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  AcpAgentSpecDto? sse_decode_opt_box_autoadd_acp_agent_spec_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_acp_agent_spec_dto(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  AcpCatalogStatusDto? sse_decode_opt_box_autoadd_acp_catalog_status_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_acp_catalog_status_dto(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -5302,11 +7995,50 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  HostActiveDto? sse_decode_opt_box_autoadd_host_active_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_host_active_dto(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  HostRuntimeDto? sse_decode_opt_box_autoadd_host_runtime_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_host_runtime_dto(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_i_64(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  SessionSettingsDto? sse_decode_opt_box_autoadd_session_settings_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_session_settings_dto(deserializer));
     } else {
       return null;
     }
@@ -5350,11 +8082,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_u_64(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   List<String>? sse_decode_opt_list_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_list_String(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  List<HostEnvironmentEntryDto>? sse_decode_opt_list_host_environment_entry_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_list_host_environment_entry_dto(deserializer));
     } else {
       return null;
     }
@@ -5395,6 +8151,71 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  SessionConfigOptionDto sse_decode_session_config_option_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_category = sse_decode_opt_String(deserializer);
+    var var_description = sse_decode_opt_String(deserializer);
+    var var_currentValue = sse_decode_String(deserializer);
+    var var_values = sse_decode_list_session_config_value_dto(deserializer);
+    return SessionConfigOptionDto(
+      id: var_id,
+      name: var_name,
+      category: var_category,
+      description: var_description,
+      currentValue: var_currentValue,
+      values: var_values,
+    );
+  }
+
+  @protected
+  SessionConfigValueDto sse_decode_session_config_value_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_value = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_group = sse_decode_opt_String(deserializer);
+    var var_description = sse_decode_opt_String(deserializer);
+    return SessionConfigValueDto(
+      value: var_value,
+      name: var_name,
+      group: var_group,
+      description: var_description,
+    );
+  }
+
+  @protected
+  SessionControlDto sse_decode_session_control_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_sessionId = sse_decode_String(deserializer);
+    var var_hostId = sse_decode_String(deserializer);
+    var var_generation = sse_decode_u_64(deserializer);
+    var var_sourceGeneration = sse_decode_opt_String(deserializer);
+    var var_provider = sse_decode_String(deserializer);
+    var var_status = sse_decode_String(deserializer);
+    var var_canContinue = sse_decode_bool(deserializer);
+    var var_canRelease = sse_decode_bool(deserializer);
+    var var_canAcquire = sse_decode_bool(deserializer);
+    return SessionControlDto(
+      sessionId: var_sessionId,
+      hostId: var_hostId,
+      generation: var_generation,
+      sourceGeneration: var_sourceGeneration,
+      provider: var_provider,
+      status: var_status,
+      canContinue: var_canContinue,
+      canRelease: var_canRelease,
+      canAcquire: var_canAcquire,
+    );
+  }
+
+  @protected
   SessionFollowUpdateDto sse_decode_session_follow_update_dto(
     SseDeserializer deserializer,
   ) {
@@ -5429,6 +8250,44 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       allowsResume: var_allowsResume,
       requiresTakeover: var_requiresTakeover,
       holders: var_holders,
+    );
+  }
+
+  @protected
+  SessionModeDto sse_decode_session_mode_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_description = sse_decode_opt_String(deserializer);
+    return SessionModeDto(
+      id: var_id,
+      name: var_name,
+      description: var_description,
+    );
+  }
+
+  @protected
+  SessionSettingsDto sse_decode_session_settings_dto(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_configOptions = sse_decode_list_session_config_option_dto(
+      deserializer,
+    );
+    var var_currentMode = sse_decode_opt_String(deserializer);
+    var var_modes = sse_decode_list_session_mode_dto(deserializer);
+    var var_usageUsed = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_usageSize = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_running = sse_decode_bool(deserializer);
+    var var_cancelRequested = sse_decode_bool(deserializer);
+    return SessionSettingsDto(
+      configOptions: var_configOptions,
+      currentMode: var_currentMode,
+      modes: var_modes,
+      usageUsed: var_usageUsed,
+      usageSize: var_usageSize,
+      running: var_running,
+      cancelRequested: var_cancelRequested,
     );
   }
 
@@ -5782,6 +8641,144 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_acp_agent_spec_dto(
+    AcpAgentSpecDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.profileId, serializer);
+    sse_encode_String(self.displayName, serializer);
+    sse_encode_String(self.program, serializer);
+    sse_encode_list_String(self.args, serializer);
+  }
+
+  @protected
+  void sse_encode_acp_catalog_provider_dto(
+    AcpCatalogProviderDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_opt_String(self.reason, serializer);
+    sse_encode_u_32(self.listed, serializer);
+    sse_encode_u_32(self.added, serializer);
+    sse_encode_u_32(self.excluded, serializer);
+    sse_encode_u_32(self.unsafeIds, serializer);
+    sse_encode_String(self.keySource, serializer);
+  }
+
+  @protected
+  void sse_encode_acp_catalog_status_dto(
+    AcpCatalogStatusDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.state, serializer);
+    sse_encode_opt_String(self.reason, serializer);
+    sse_encode_opt_String(self.plugin, serializer);
+    sse_encode_list_acp_catalog_provider_dto(self.providers, serializer);
+    sse_encode_opt_String(self.routeState, serializer);
+    sse_encode_list_String(self.routeReasons, serializer);
+    sse_encode_list_String(self.routeProjects, serializer);
+  }
+
+  @protected
+  void sse_encode_acp_claude_setup_dto(
+    AcpClaudeSetupDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.state, serializer);
+    sse_encode_opt_String(self.stage, serializer);
+    sse_encode_u_64(self.elapsedMs, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.downloadedBytes, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.downloadBytesPerSecond, serializer);
+    sse_encode_opt_String(self.error, serializer);
+    sse_encode_u_64(self.run, serializer);
+    sse_encode_bool(self.started, serializer);
+  }
+
+  @protected
+  void sse_encode_acp_claude_status_dto(
+    AcpClaudeStatusDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.ready, serializer);
+    sse_encode_String(self.adapter, serializer);
+    sse_encode_opt_String(self.adapterPath, serializer);
+    sse_encode_String(self.runtime, serializer);
+    sse_encode_opt_String(self.runtimeVersion, serializer);
+    sse_encode_opt_String(self.runtimePath, serializer);
+    sse_encode_String(self.cli, serializer);
+    sse_encode_opt_String(self.cliPath, serializer);
+    sse_encode_bool(self.canPrepare, serializer);
+    sse_encode_String(self.package, serializer);
+    sse_encode_opt_String(self.problem, serializer);
+  }
+
+  @protected
+  void sse_encode_acp_preset_dto(AcpPresetDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.displayName, serializer);
+    sse_encode_String(self.program, serializer);
+    sse_encode_list_String(self.args, serializer);
+  }
+
+  @protected
+  void sse_encode_acp_serve_dto(AcpServeDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.device, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.serviceKey, serializer);
+    sse_encode_String(self.listenAddr, serializer);
+    sse_encode_String(self.metaServiceKey, serializer);
+    sse_encode_String(self.profileId, serializer);
+    sse_encode_String(self.displayName, serializer);
+    sse_encode_bool(self.reused, serializer);
+  }
+
+  @protected
+  void sse_encode_app_capabilities_dto(
+    AppCapabilitiesDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.provider, serializer);
+    sse_encode_bool(self.fast, serializer);
+    sse_encode_bool(self.permissionPresets, serializer);
+    sse_encode_bool(self.guardian, serializer);
+    sse_encode_bool(self.rateLimits, serializer);
+    sse_encode_bool(self.takeover, serializer);
+    sse_encode_bool(self.externalWriterMonitor, serializer);
+    sse_encode_bool(self.localSessions, serializer);
+    sse_encode_bool(self.planMode, serializer);
+    sse_encode_String(self.protocol, serializer);
+    sse_encode_String(self.providerName, serializer);
+    sse_encode_String(self.profileId, serializer);
+    sse_encode_bool(self.negotiated, serializer);
+    sse_encode_u_64(self.generation, serializer);
+    sse_encode_bool(self.voice, serializer);
+    sse_encode_bool(self.dictation, serializer);
+    sse_encode_bool(self.imageInput, serializer);
+    sse_encode_bool(self.steer, serializer);
+    sse_encode_bool(self.rename, serializer);
+    sse_encode_bool(self.compact, serializer);
+    sse_encode_bool(self.gitDiff, serializer);
+    sse_encode_bool(self.modelCatalog, serializer);
+    sse_encode_bool(self.sessionConfig, serializer);
+    sse_encode_bool(self.permissionOptions, serializer);
+    sse_encode_bool(self.nativeMetadata, serializer);
+    sse_encode_String(self.sessionReopen, serializer);
+    sse_encode_String(self.sessionList, serializer);
+    sse_encode_String(self.historyScope, serializer);
+    sse_encode_String(self.runningInventory, serializer);
+    sse_encode_bool(self.authRequired, serializer);
+  }
+
+  @protected
   void sse_encode_app_event_dto(AppEventDto self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.kind, serializer);
@@ -5832,6 +8829,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.embedded, serializer);
     sse_encode_opt_String(self.codexBinary, serializer);
     sse_encode_opt_String(self.proxy, serializer);
+    sse_encode_String(self.provider, serializer);
+    sse_encode_opt_String(self.providerVersion, serializer);
+    sse_encode_String(self.protocol, serializer);
+    sse_encode_String(self.providerName, serializer);
+    sse_encode_opt_String(self.profileId, serializer);
+    sse_encode_opt_String(self.agentPhase, serializer);
+    sse_encode_opt_String(self.agentError, serializer);
+    sse_encode_bool(self.authRequired, serializer);
+    sse_encode_opt_box_autoadd_acp_catalog_status_dto(self.catalog, serializer);
+    sse_encode_opt_String(self.configSource, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.configRevision, serializer);
+    sse_encode_opt_String(self.incarnation, serializer);
+    sse_encode_opt_String(self.busy, serializer);
+  }
+
+  @protected
+  void sse_encode_app_turn_supplement_dto(
+    AppTurnSupplementDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.outcome, serializer);
+    sse_encode_opt_String(self.turnId, serializer);
   }
 
   @protected
@@ -5850,9 +8870,54 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_acp_agent_spec_dto(
+    AcpAgentSpecDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_acp_agent_spec_dto(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_acp_catalog_status_dto(
+    AcpCatalogStatusDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_acp_catalog_status_dto(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bool(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_host_active_dto(
+    HostActiveDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_host_active_dto(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_host_config_input_dto(
+    HostConfigInputDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_host_config_input_dto(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_host_runtime_dto(
+    HostRuntimeDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_host_runtime_dto(self, serializer);
   }
 
   @protected
@@ -5862,6 +8927,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_64(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_session_control_dto(
+    SessionControlDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_session_control_dto(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_session_settings_dto(
+    SessionSettingsDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_session_settings_dto(self, serializer);
   }
 
   @protected
@@ -5898,6 +8981,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self, serializer);
+  }
+
+  @protected
+  void sse_encode_claude_variable_dto(
+    ClaudeVariableDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.group, serializer);
+    sse_encode_bool(self.secret, serializer);
+    sse_encode_list_String(self.choices, serializer);
+  }
+
+  @protected
   void sse_encode_codex_auth_status_dto(
     CodexAuthStatusDto self,
     SseSerializer serializer,
@@ -5905,6 +9006,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bool(self.authenticated, serializer);
     sse_encode_opt_String(self.method, serializer);
+  }
+
+  @protected
+  void sse_encode_codex_local_auth_dto(
+    CodexLocalAuthDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.authenticated, serializer);
+    sse_encode_opt_String(self.method, serializer);
+    sse_encode_opt_box_autoadd_bool(self.completed, serializer);
+    sse_encode_opt_String(self.error, serializer);
   }
 
   @protected
@@ -5933,6 +9046,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.authMode, serializer);
     sse_encode_bool(self.needsSetup, serializer);
     sse_encode_String(self.promptVariant, serializer);
+    sse_encode_opt_String(self.selectedProvider, serializer);
+    sse_encode_bool(self.configError, serializer);
+    sse_encode_String(self.effectiveSource, serializer);
   }
 
   @protected
@@ -6019,6 +9135,108 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_host_active_dto(
+    HostActiveDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.incarnation, serializer);
+    sse_encode_host_runtime_dto(self.runtime, serializer);
+    sse_encode_String(self.source, serializer);
+    sse_encode_u_64(self.revision, serializer);
+  }
+
+  @protected
+  void sse_encode_host_apply_dto(HostApplyDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.name, serializer);
+    sse_encode_bool(self.applied, serializer);
+    sse_encode_bool(self.restoredPrevious, serializer);
+    sse_encode_opt_String(self.error, serializer);
+    sse_encode_opt_String(self.restoreError, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.revision, serializer);
+  }
+
+  @protected
+  void sse_encode_host_config_dto(
+    HostConfigDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_host_environment_entry_dto(self.claudeEnv, serializer);
+    sse_encode_String(self.source, serializer);
+    sse_encode_opt_String(self.protocol, serializer);
+    sse_encode_opt_String(self.baseUrl, serializer);
+    sse_encode_opt_String(self.model, serializer);
+    sse_encode_bool(self.keySet, serializer);
+    sse_encode_u_64(self.revision, serializer);
+    sse_encode_opt_box_autoadd_host_runtime_dto(self.runtime, serializer);
+    sse_encode_opt_String(self.problem, serializer);
+    sse_encode_opt_box_autoadd_host_active_dto(self.active, serializer);
+  }
+
+  @protected
+  void sse_encode_host_config_input_dto(
+    HostConfigInputDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_list_host_environment_entry_dto(self.claudeEnv, serializer);
+    sse_encode_String(self.source, serializer);
+    sse_encode_opt_String(self.protocol, serializer);
+    sse_encode_opt_String(self.baseUrl, serializer);
+    sse_encode_opt_String(self.model, serializer);
+  }
+
+  @protected
+  void sse_encode_host_config_support_dto(
+    HostConfigSupportDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_claude_variable_dto(self.claudeVariables, serializer);
+    sse_encode_list_String(self.sources, serializer);
+    sse_encode_list_String(self.protocols, serializer);
+    sse_encode_bool(self.modelRequired, serializer);
+    sse_encode_bool(self.keyRequired, serializer);
+  }
+
+  @protected
+  void sse_encode_host_environment_entry_dto(
+    HostEnvironmentEntryDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.name, serializer);
+    sse_encode_opt_String(self.value, serializer);
+  }
+
+  @protected
+  void sse_encode_host_runtime_dto(
+    HostRuntimeDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.kind, serializer);
+    sse_encode_opt_String(self.binary, serializer);
+    sse_encode_u_16(self.port, serializer);
+    sse_encode_opt_String(self.proxy, serializer);
+    sse_encode_opt_box_autoadd_acp_agent_spec_dto(self.agent, serializer);
+  }
+
+  @protected
+  void sse_encode_host_started_dto(
+    HostStartedDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.provider, serializer);
+    sse_encode_String(self.serviceKey, serializer);
+    sse_encode_bool(self.reused, serializer);
+  }
+
+  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putPlatformInt64(self);
@@ -6046,6 +9264,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_acp_catalog_provider_dto(
+    List<AcpCatalogProviderDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_acp_catalog_provider_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_acp_preset_dto(
+    List<AcpPresetDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_acp_preset_dto(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_app_serve_status_dto(
     List<AppServeStatusDto> self,
     SseSerializer serializer,
@@ -6054,6 +9296,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_app_serve_status_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_claude_variable_dto(
+    List<ClaudeVariableDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_claude_variable_dto(item, serializer);
     }
   }
 
@@ -6090,6 +9344,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_holder_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_host_environment_entry_dto(
+    List<HostEnvironmentEntryDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_host_environment_entry_dto(item, serializer);
     }
   }
 
@@ -6148,6 +9414,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_service_id_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_session_config_option_dto(
+    List<SessionConfigOptionDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_session_config_option_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_session_config_value_dto(
+    List<SessionConfigValueDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_session_config_value_dto(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_session_mode_dto(
+    List<SessionModeDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_session_mode_dto(item, serializer);
     }
   }
 
@@ -6254,6 +9556,44 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_native_session_list_dto(
+    NativeSessionListDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.sourceId, serializer);
+    sse_encode_String(self.location, serializer);
+    sse_encode_list_local_session_dto(self.sessions, serializer);
+    sse_encode_opt_String(self.nextCursor, serializer);
+  }
+
+  @protected
+  void sse_encode_native_session_page_dto(
+    NativeSessionPageDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.sourceId, serializer);
+    sse_encode_String(self.generation, serializer);
+    sse_encode_String(self.revision, serializer);
+    sse_encode_list_thread_item_dto(self.items, serializer);
+    sse_encode_opt_String(self.nextBefore, serializer);
+    sse_encode_bool(self.truncated, serializer);
+  }
+
+  @protected
+  void sse_encode_native_session_revision_dto(
+    NativeSessionRevisionDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.sourceId, serializer);
+    sse_encode_String(self.generation, serializer);
+    sse_encode_String(self.revision, serializer);
+    sse_encode_session_liveness_dto(self.liveness, serializer);
+  }
+
+  @protected
   void sse_encode_older_page_dto(OlderPageDto self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_thread_item_dto(self.items, serializer);
@@ -6284,12 +9624,64 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_acp_agent_spec_dto(
+    AcpAgentSpecDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_acp_agent_spec_dto(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_acp_catalog_status_dto(
+    AcpCatalogStatusDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_acp_catalog_status_dto(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_bool(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_host_active_dto(
+    HostActiveDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_host_active_dto(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_host_runtime_dto(
+    HostRuntimeDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_host_runtime_dto(self, serializer);
     }
   }
 
@@ -6303,6 +9695,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_i_64(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_session_settings_dto(
+    SessionSettingsDto? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_session_settings_dto(self, serializer);
     }
   }
 
@@ -6343,6 +9748,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_64(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_list_String(
     List<String>? self,
     SseSerializer serializer,
@@ -6352,6 +9767,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_list_String(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_list_host_environment_entry_dto(
+    List<HostEnvironmentEntryDto>? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_list_host_environment_entry_dto(self, serializer);
     }
   }
 
@@ -6385,6 +9813,49 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_session_config_option_dto(
+    SessionConfigOptionDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_opt_String(self.category, serializer);
+    sse_encode_opt_String(self.description, serializer);
+    sse_encode_String(self.currentValue, serializer);
+    sse_encode_list_session_config_value_dto(self.values, serializer);
+  }
+
+  @protected
+  void sse_encode_session_config_value_dto(
+    SessionConfigValueDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.value, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_opt_String(self.group, serializer);
+    sse_encode_opt_String(self.description, serializer);
+  }
+
+  @protected
+  void sse_encode_session_control_dto(
+    SessionControlDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.sessionId, serializer);
+    sse_encode_String(self.hostId, serializer);
+    sse_encode_u_64(self.generation, serializer);
+    sse_encode_opt_String(self.sourceGeneration, serializer);
+    sse_encode_String(self.provider, serializer);
+    sse_encode_String(self.status, serializer);
+    sse_encode_bool(self.canContinue, serializer);
+    sse_encode_bool(self.canRelease, serializer);
+    sse_encode_bool(self.canAcquire, serializer);
+  }
+
+  @protected
   void sse_encode_session_follow_update_dto(
     SessionFollowUpdateDto self,
     SseSerializer serializer,
@@ -6408,6 +9879,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self.allowsResume, serializer);
     sse_encode_bool(self.requiresTakeover, serializer);
     sse_encode_list_holder_dto(self.holders, serializer);
+  }
+
+  @protected
+  void sse_encode_session_mode_dto(
+    SessionModeDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_opt_String(self.description, serializer);
+  }
+
+  @protected
+  void sse_encode_session_settings_dto(
+    SessionSettingsDto self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_session_config_option_dto(self.configOptions, serializer);
+    sse_encode_opt_String(self.currentMode, serializer);
+    sse_encode_list_session_mode_dto(self.modes, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.usageUsed, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.usageSize, serializer);
+    sse_encode_bool(self.running, serializer);
+    sse_encode_bool(self.cancelRequested, serializer);
   }
 
   @protected
