@@ -57,6 +57,10 @@ extension _SessionRecovery on _AppSessionState {
     // arrive after switching to a new, unsaved conversation — don't `_threadId!`
     // through a null here.
     if (_threadId == null || _externalWriterMode) return;
+    if (_isDeleted(_threadId!)) {
+      _showDeleted(_threadId!);
+      return;
+    }
     _updateState(() {
       _loading = _items.isEmpty;
       _historySyncing = true;
@@ -138,11 +142,18 @@ extension _SessionRecovery on _AppSessionState {
         _enterExternalWriterMode(startTid);
         return;
       }
-      await api.appThreadResume(widget.serviceKey, startTid);
+      if (_caps.hostAccess) {
+        // The host decides: the original session opens for writing here, or
+        // this view follows it and says who holds it.
+        if (!await _openHostSession(startTid, current)) return;
+      } else {
+        await api.appThreadResume(widget.serviceKey, startTid);
+      }
       // An obsolete resume must not fan out into more history/config requests.
       if (!current()) return;
-      // Reopening an ACP session (re)negotiates its per-session options.
-      if (_caps.isAcp) {
+      // Reopening a host-access session (re)negotiates its per-session
+      // options.
+      if (_caps.hostAccess) {
         _invalidateCaps();
         _refreshAgentSettings();
       }

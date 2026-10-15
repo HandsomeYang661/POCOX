@@ -23,21 +23,29 @@ extension _SessionSend on _AppSessionState {
     String? overrideText,
     _Queued? queued,
     _Resend? resend,
+    _Resend? failedTurn,
   }) async {
     // A retry re-sends exactly what its failed send put on the wire (its own
-    // captured copy; the last-sent fields move with every later send).
+    // captured copy; the last-sent fields move with every later send). A
+    // [failedTurn] is the input of a turn the host recorded and the model
+    // failed: sent again as a new turn, exactly as recorded.
     final typed = retry
         ? (resend?.text ?? _lastUserText ?? '')
-        : (queued?.text.trim() ?? overrideText ?? _input.text.trim());
+        : (failedTurn?.text ??
+              queued?.text.trim() ??
+              overrideText ??
+              _input.text.trim());
     // Attachments ride an ordinary composer send only: a programmatic send
     // (e.g. "implement the plan") must not consume them, and a retry re-sends
     // the snapshot taken at the original send.
-    final ordinary = !retry && overrideText == null;
+    final ordinary = !retry && overrideText == null && failedTurn == null;
     final sendAttachments = List<_Attachment>.of(
       queued?.attachments ?? _attachments,
     );
     final images = retry
         ? (resend?.images ?? _lastUserImages)
+        : failedTurn != null
+        ? failedTurn.images
         : !ordinary
         ? const <String>[]
         : [
@@ -65,7 +73,8 @@ extension _SessionSend on _AppSessionState {
         _reconnecting ||
         _historySyncing ||
         _restoringSettings ||
-        _showingCachedHistory) {
+        _showingCachedHistory ||
+        _savingAgentConfig) {
       return;
     }
     // If this host is THIS machine's codex and it can't make model calls yet
@@ -79,6 +88,21 @@ extension _SessionSend on _AppSessionState {
     // message would silently ship without it. (The send button is disabled
     // too; this also guards the Enter-to-send path.)
     if (ordinary && sendAttachments.any((a) => !a.ready)) {
+      return;
+    }
+    // No session can be created without its project folder: nothing is
+    // sent and nothing is shown as sent. The composer's own send asks for
+    // the folder and continues there; anything else says what is missing.
+    if (_needsProjectToSend) {
+      if (ordinary && queued == null) {
+        unawaited(_chooseProjectThenSend());
+      } else {
+        final l10n = AppLocalizations.of(context);
+        _updateState(() {
+          _error = l10n.agentWelcomeNeedsProject(_caps.providerName);
+          _retry = null;
+        });
+      }
       return;
     }
     // Take the send lock up front, before the retry probe's await below, so the
@@ -102,6 +126,7 @@ extension _SessionSend on _AppSessionState {
     bool current() => shown() && sameLink();
     var targetThread = _threadId;
     final targetCwd = _cwd;
+    final catalogProject = _catalogProject;
     final isNewThread = targetThread == null;
     final l10n = AppLocalizations.of(context);
     final preview = typed.isNotEmpty
@@ -178,12 +203,12 @@ extension _SessionSend on _AppSessionState {
         // can restore it to the composer. Only for an ordinary send — a
         // programmatic prompt (e.g. "implement the plan") has no user draft to
         // hand back.
-        _undoableDraft = overrideText == null
+        _undoableDraft = ordinary
             ? (text: typed, attachments: List<_Attachment>.of(sendAttachments))
             : null;
         // Don't clear the composer for a programmatic send (e.g. "implement
         // the plan") — the user may have text in progress there.
-        if (overrideText == null && queued == null) {
+        if (ordinary && queued == null) {
           _attachments.clear();
           _input.clear();
         }
@@ -258,17 +283,43 @@ extension _SessionSend on _AppSessionState {
       // our view of the server mode is stale), or when the desired toggle
       // differs from the known mode; otherwise leave it unchanged (null) so
       // ordinary turns don't force a model.
-      final collab = (_planToggledByUser || _plan != _planActive)
+      // None of the model menu's settings go out where the session's own
+      // options replace it (see [_usesModelMenu]).
+      final menu = _usesModelMenu;
+      final collab = menu && (_planToggledByUser || _plan != _planActive)
           ? (_plan ? 'plan' : 'default')
           : null;
       // The effort this turn runs with: a pending pick, else the thread's
       // current effort (re-asserted so a plan/permission turn can't drop it).
-      final effort = _effectiveEffort;
+      final effort = menu ? _effectiveEffort : null;
+      // A model picked from a list the current connection has not confirmed
+      // yet (read before a reconnect) is checked against this host's own
+      // list first: a host replaced with another configuration may no longer
+      // offer it. Then nothing is sent and the message returns to its draft;
+      // an unreadable list decides nothing (the host validates as before).
+      // Only the list of this message's project decides: one read after the
+      // view moved to another project decides nothing for it.
+      var modelId = menu ? _model?.id : null;
+      if (modelId != null &&
+          !_modelsCurrent &&
+          _catalogProject == catalogProject) {
+        final changes = _catalogChanges;
+        final modelsKey = _modelsLinkKey;
+        await _ensureModels();
+        if (!sameLink()) throw const _LinkMoved();
+        if (_modelsKey == modelsKey &&
+            _catalogChanges != changes &&
+            !_models.any((m) => m.id == modelId)) {
+          throw _ModelWithdrawn(l10n.modelWithdrawn);
+        }
+      }
       // Both plan and default collaboration settings require a concrete model
       // id; resolve one (and reflect it in the chip) if left on "default".
-      var modelId = _model?.id;
       if (collab != null && modelId == null) {
-        final models = await api.appModelList(service);
+        final models = await api.appModelListForProject(
+          service,
+          catalogProject,
+        );
         // An answer of a connection that moved names nothing for this one,
         // and nothing more is asked of whichever host answers now.
         if (!sameLink()) throw const _LinkMoved();
@@ -336,6 +387,8 @@ extension _SessionSend on _AppSessionState {
               .setLastThread(service, targetThread);
           // A new ACP session reports its own options (if any).
           if (_caps.sessionConfig) _refreshAgentSettings();
+          // Its access was never read here (see [_refreshWriteAccess]).
+          unawaited(_refreshWriteAccess(targetThread));
         }
         // Surface the new session in the left pane immediately. `thread/list`
         // can lag `thread/start`, so optimistically insert it now (newest
@@ -360,6 +413,15 @@ extension _SessionSend on _AppSessionState {
         // Persist this new thread's config now that it has a server-side id, so
         // it's stored even if the first turn/start below fails.
         if (current()) _persistThreadConfig();
+      }
+      // A draft's own option choices belong to the session its first send
+      // created: they apply before that message is sent (again on a retry
+      // after they could not be applied).
+      if (_caps.draftOptions && sendingDraft.options.isNotEmpty) {
+        await _applyDraftOptions(sendingDraft, service, targetThread, sameLink);
+        if (mounted && identical(_draft, sendingDraft)) {
+          _refreshAgentSettings();
+        }
       }
       // Record what this turn puts on the wire BEFORE sending: turn/started
       // (and the stamp it takes) can arrive while the await below is still in
@@ -436,7 +498,9 @@ extension _SessionSend on _AppSessionState {
       }
     } catch (e) {
       final moved = e is _LinkMoved;
-      final msg = !moved
+      final msg = e is _DraftOptionsRefused
+          ? e.message
+          : !moved
           ? friendlyError(e)
           : dispatched
           ? l10n.sendAnswerStale
@@ -449,6 +513,33 @@ extension _SessionSend on _AppSessionState {
         holdQueued(msg, uncertain: !refused);
       } else if (moved && ordinary) {
         returnToDraft(msg);
+      } else if (ordinary &&
+          (e is _DraftOptionsRefused ||
+              (isNewThread && !dispatched && !_looksDisconnected(msg)))) {
+        // Nothing of the message was sent (its session could not be
+        // created or prepared, so no turn was dispatched): it goes back to
+        // its draft (before anything typed since), its optimistic copy is
+        // withdrawn, and the session shows the options it really has.
+        // Sending again is the user's ordinary send, from the composer.
+        final sendAgain = e is _DraftOptionsRefused ? null : _submit;
+        _restoreDraft(typed, sendAttachments, into: sendingDraft);
+        if (mounted && identical(_draft, sendingDraft)) {
+          _updateState(() {
+            final index = bubble == null ? -1 : _itemIndex[bubble] ?? -1;
+            if (index >= 0 &&
+                index < _items.length &&
+                _items[index].id == bubble) {
+              _items.removeAt(index);
+              _rebuildItemIndex();
+              _cachedRows = null;
+            }
+            _undoableDraft = null;
+            if (shown()) {
+              _error = msg;
+              _retry = sendAgain;
+            }
+          });
+        }
       } else {
         if (shown()) {
           _updateState(() {
@@ -544,6 +635,113 @@ extension _SessionSend on _AppSessionState {
     } catch (_) {
       return null;
     }
+  }
+
+  /// What a `modelError` card offers: only the conversation's current
+  /// failure (its last row) in a view that may write and is idle. Older
+  /// failures in the history are shown, never acted on. Retry needs the
+  /// failed prompt's own message complete here and waits for a model change
+  /// still being saved; changing the model stays offered either way.
+  ModelErrorActions? _modelErrorActions(TranscriptItem error) {
+    if (!_isCurrentFailure(error)) return null;
+    final prompt = _failedPrompt(error);
+    final change = _failureModelOption != null
+        ? _changeModelAfterFailure
+        : null;
+    if (prompt == null || !_resendable(prompt)) {
+      return ModelErrorActions(onChangeModel: change, incomplete: true);
+    }
+    return ModelErrorActions(
+      onRetry: () => _retryFailedTurn(error),
+      onChangeModel: change,
+      saving: _savingAgentConfig,
+    );
+  }
+
+  bool _isCurrentFailure(TranscriptItem error) {
+    final thread = _threadId;
+    if (error.type != 'modelError' ||
+        thread == null ||
+        _isDeleted(thread) ||
+        _externalWriterMode ||
+        _guardianReadOnly ||
+        _historySyncing ||
+        _showingCachedHistory ||
+        _restoringSettings ||
+        _reconnecting ||
+        _connectionLost ||
+        _streaming ||
+        _sending ||
+        _awaitingTurnStart) {
+      return false;
+    }
+    final last = _items.where((i) => i.type != 'turnDuration').lastOrNull;
+    return identical(last, error);
+  }
+
+  /// The message of the exact prompt [error] answered: the host's message
+  /// with that ID, else the optimistic copy sent here that opened that turn
+  /// (a supplement sent here has no such copy, so it is not guessed).
+  TranscriptItem? _failedPrompt(TranscriptItem error) {
+    final failure = ModelFailure.parse(error.text);
+    final prompt = failure.turnId.isNotEmpty ? failure.turnId : error.turnId;
+    if (prompt.isEmpty) return null;
+    return _items.where((i) => i.isUser && i.id == prompt).firstOrNull ??
+        _items
+            .where(
+              (i) =>
+                  i.isUser &&
+                  i.id.startsWith('local-user-') &&
+                  i.turnId == prompt,
+            )
+            .firstOrNull;
+  }
+
+  /// Whether [prompt] is here exactly as it was sent: the host marked
+  /// nothing of it omitted (`#input:<id>` truncated text,
+  /// `#attachments:<id>` dropped files) and every image is inline data.
+  bool _resendable(TranscriptItem prompt) =>
+      !_items.any(
+        (i) =>
+            i.type == 'contentOmitted' &&
+            (i.id == '#input:${prompt.id}' ||
+                i.id == '#attachments:${prompt.id}'),
+      ) &&
+      prompt.imageUrls.every((url) => url.startsWith('data:image/'));
+
+  /// Send a failed turn's message again as a new turn, with whatever model
+  /// is selected now. The composer's draft and attachments are untouched,
+  /// and the user's Retry is the go-ahead for a queue the failure paused.
+  void _retryFailedTurn(TranscriptItem error) {
+    if (_savingAgentConfig || !_isCurrentFailure(error)) return;
+    final prompt = _failedPrompt(error);
+    if (prompt == null || !_resendable(prompt)) return;
+    _updateState(() => _draft.queuePaused = false);
+    unawaited(
+      _send(
+        failedTurn: _Resend(text: prompt.text, images: prompt.imageUrls),
+      ),
+    );
+  }
+
+  /// The session's model option, where the agent's options replace the
+  /// model menu and may be changed now.
+  SessionConfigOption? get _failureModelOption => _agentControlsEnabled
+      ? _agentSettings?.configOptions
+            .where((o) => o.category == 'model' && o.values.isNotEmpty)
+            .firstOrNull
+      : null;
+
+  /// Open the session's own model selection; choosing sends nothing.
+  Future<void> _changeModelAfterFailure() async {
+    final option = _failureModelOption;
+    // Bound now, like the composer's chip: a choice answers to the
+    // conversation it was opened for.
+    final target = _agentTarget();
+    if (option == null) return;
+    final value = await showOptionPicker(context, option);
+    if (value == null || value == option.currentValue || !mounted) return;
+    await _setAgentConfig(target, option.id, value);
   }
 
   /// Whether a dispatched turn/start failed with one of the agent host's own

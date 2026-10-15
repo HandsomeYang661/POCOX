@@ -196,10 +196,6 @@ cargo fmt --check \
   -p pocket-codex-auth -p pocket-codex-backend
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace --locked
-# Node 18+ must be on PATH for the Rust tests: pocket-codex-host-svc's
-# tests/opencode_catalog.rs runs the OpenCode catalog plugin's `node --test`
-# suite. The plugin itself runs inside OpenCode, so the app needs no Node.
-# CI installs Node 20 in the rust test job (.github/workflows/ci.yml).
 
 # Flutter front-end (requires `fvm install 3.44.0 --setup` once)
 cd apps/flutter
@@ -525,9 +521,10 @@ this file's roadmap so the source of truth stays in sync.
 
 23. **Generic ACP agents (2026-10-10, PR #99).** Hosting can launch any ACP v1
     stdio agent configured as program + argv, passed verbatim (no shell);
-    OpenCode `opencode acp` is the first preset. The service kind is
-    `acp:<name>`. Codex uses native app-server; OpenCode and other agents use
-    the generic ACP engine and host lifecycle. The host (`host-svc/src/acp/`)
+    the Claude adapter is the built-in preset (OpenCode is a native engine,
+    item 29). The service kind is `acp:<name>`. Codex and OpenCode use their
+    native engines; other agents use the generic ACP engine and host
+    lifecycle. The host (`host-svc/src/acp/`)
     is the agent's only ACP client and owns its process group. Lifecycle rules: one lifecycle
     lock; exits (stdout close or leader exit seen unreaped via `waitid`
     `WNOWAIT`) go to a single supervisor task; restarts are bounded; group
@@ -598,18 +595,16 @@ this file's roadmap so the source of truth stays in sync.
     - History is only what the host retained.
     - The mock agent stays a Cargo example (built by `cargo test`, never
       shipped).
-    - Real OpenCode 1.18.35 was exercised on macOS through a public relay
-      with independent host/controller processes and an isolated Anthropic
-      gateway configuration: live streaming, session inventory/configuration,
-      permission rejection/approval, cancellation, meta file previews,
-      reconnect and process-restart history recovery. The opt-in
+    - The ACP engine was exercised on macOS through a public relay with
+      independent host/controller processes, using the since-removed
+      OpenCode 1.18.35 ACP preset: live streaming, session
+      inventory/configuration, permission rejection/approval, cancellation,
+      meta file previews, reconnect and process-restart history recovery.
+      That is evidence for the ACP engine only. The opt-in
       `acp_live_remote_control` test is ignored in ordinary CI; it requires
       explicit disposable fixtures and credentials. Two processes on one
       Mac do not establish acceptance on a second physical device or OS.
-    - A later plugin-enabled OpenCode run (one declared model) listed 83
-      chat models; ACP advertised exactly those 83, and each was set and
-      read back. It got two real replies. Its catalog had no `thought_level`,
-      so effort was not exercised. The opt-in, ignored
+    - The opt-in, ignored
       `engine::hosting_live_tests::hosting_live_coexistence` hosts two native
       Codex and two ACP hosts in one process, with native handshakes only (no
       native model prompt). Each stop, restart or recreation must leave every
@@ -619,10 +614,10 @@ this file's roadmap so the source of truth stays in sync.
 
 24. **Hosting and agent controls (2026-10-11, PR #99).** New hosts are picked
     from an agent icon grid in two sections: built-in presets (Codex,
-    OpenCode, Claude adapter; launch templates, not bundled runtimes) and
+    native OpenCode, Claude adapter; launch templates, not bundled runtimes) and
     saved configurations (saved, then custom, which creates one);
-    marks are bundled glyphs chosen by the explicit profile id
-    (`Capabilities.profile_id`), never by a host's instance name. Hosting is
+    marks are bundled glyphs chosen by the engine or the explicit ACP profile
+    id (`Capabilities.profile_id`), never by a host's instance name. Hosting is
     platform-gated only (desktop), in self-host and account mode; the
     manage page, home hero and host switcher always offer it, for zero, one
     or many hosts. Several Codex and ACP hosts coexist with unique default
@@ -643,28 +638,7 @@ this file's roadmap so the source of truth stays in sync.
     project without sending; the first send waits for that same attempt.
     Only a completion for the same service, project, draft and conversation
     is adopted. Native Codex keeps
-    its own model/effort path and lazy thread creation. The OpenCode preset
-    launches with a config layer naming the model catalog plugin
-    (`host-svc/src/acp/catalog.rs`, `opencode_catalog.mjs`):
-    `OPENCODE_CONFIG_CONTENT`, or a generated `OPENCODE_CONFIG` file when the
-    environment already sets the first. Its `config` hook lists every chat
-    model a `baseURL` provider serves at `/models` and adds the undeclared
-    ids. Keys stay inside OpenCode (config and env only; an `opencode auth
-    login` key is not visible and a refused listing says so), declared
-    models, aliases and filters win, ids OpenCode cannot hold (any key an
-    ordinary object inherits, e.g. `__proto__`, `constructor`) and explicit
-    non-chat entries are left out and counted, nothing is cached and no
-    effort or limit is inferred. A bounded listing, or one with such ids, is
-    reported `partial`, a failed one adds nothing and is reported `failed`;
-    the host details show the per-provider report (listed and added counts
-    and reason codes; the report's credential-source class only decides the
-    no-key hint). The hook runs when a
-    running agent first loads a project's configuration; a changed URL or
-    key needs a host restart.
-    `OPENCODE_PURE` or a `--pure` argument (read as OpenCode parses it,
-    never rewritten), or both config variables already set, is reported
-    `unavailable` with the plugin's file URL for adding it by hand. Its
-    boundary tests need Node 18+ (CI installs Node 20 for them).
+    its own model/effort path and lazy thread creation.
 
 25. **Composer recovery, usable Claude preset, ACP supplements (2026-10-12,
     PR #99).** A turn's end releases every control it gated in the same
@@ -755,21 +729,16 @@ this file's roadmap so the source of truth stays in sync.
     configuration (a missing record, so older hosts are unchanged), official
     account (Codex only, `model_provider="openai"`, `openai_base_url` cleared,
     `chatgpt_base_url` reset) or a custom provider. Only real mappings: Codex →
-    Responses (`pcx_host_<hex>_<authority>`, `env_key`); OpenCode → Responses /
-    Anthropic Messages / Chat Completions (`pocket-codex-<hex>-<authority>`,
-    `env` key, model required); Claude preset → Anthropic Messages
-    (`ANTHROPIC_*` env and session settings, custom headers reset, key
-    required); other ACP agents → existing configuration only. An unsupported
+    Responses (`pcx_host_<hex>_<authority>`, `env_key`); Claude preset →
+    Anthropic Messages (`ANTHROPIC_*` env and session settings, custom
+    headers reset, key required); native OpenCode → Responses, Anthropic
+    Messages or Chat Completions (item 29); other ACP agents →
+    existing configuration only (the former OpenCode ACP custom routes and
+    catalog plugin are removed). An unsupported
     saved source or API stays visible and blocks saving. Codex hosts read
     their effective configuration back (`config/read`) after start and every
     watchdog restart and refuse a managed or foreign override; the private
     sign-in server is checked the same way before any login request. The
-    OpenCode catalog plugin's `config` hook (run before providers are built)
-    resets the route per project (models, provider lists, exact provider
-    definition), pins the supplied key in memory as `options.apiKey` (ahead
-    of a login stored for the same id), refuses a route whose key is missing,
-    and reports what it reset; other plugins' loaders and later hooks stay
-    outside it. The
     model is the provider default, never per-session persistence. Keys are one
     printable token, commit atomically under a cross-process lock (0600) and
     never appear in argv, status or records; staged saves pin the keys they
@@ -819,11 +788,10 @@ this file's roadmap so the source of truth stays in sync.
     page, and a host-list read answered after that page was covered or
     closed opens nothing. Rust passed (743, 14 ignored); Flutter passed l10n,
     format, analyze and 1326 tests (5 existing skips), and the macOS profile
-    build passed. Real models answered through native Responses, OpenCode
-    Responses and Anthropic Messages, and the official proxy (HTTP/SSE and
-    WebSocket, public relay); Chat Completions only against a local fixture.
-    Observed: OpenCode did not keep a conversation's chosen model across a
-    host restart. Interactive OAuth completion, other platforms,
+    build passed. Real models answered through native Responses, the
+    since-removed OpenCode ACP routes (Responses, Anthropic Messages), and the
+    official proxy (HTTP/SSE and WebSocket, public relay); Chat Completions
+    only against a local fixture. Interactive OAuth completion, other platforms,
     hosted-account mode and effort options are not exercised. Native UI
     checks covered Settings and Codex setup entries to running and new
     hosts, repeated selection, keyboard cancellation, return navigation
@@ -845,18 +813,141 @@ this file's roadmap so the source of truth stays in sync.
     Native history navigation never calls session/load, resumes a writer or
     downloads a runtime. Claude owners require matching native session ID,
     PID, start time, executable and cwd; unavailable evidence stays unknown.
-    Independent local views stay read-only. Connected hosts expose explicit
-    Claude idle release and original-session acquisition with fresh ownership,
-    source and native-child checks, plus a Pocket cross-process claim retained
-    through uncertain cleanup. Native clients do not honor that claim; never
-    describe it as a provider-wide lease. OpenCode may reuse its admitted Pocket
-    engine; stock ACP cannot attach an unrelated native server. Release by any
-    controller withdraws write admission while keeping drafts and queues.
+    Independent local views stay read-only and continue a session only by
+    opening it on a running host of its provider. Connected hosts decide
+    session access with fresh ownership, source and native-child checks, plus
+    a Pocket cross-process claim retained through uncertain cleanup (item 29
+    replaces the explicit Session control dialog with automatic access).
+    Native clients do not honor that claim; never describe it as a
+    provider-wide lease. Release by any controller withdraws write admission
+    while keeping drafts and queues.
     Keep remote host roots separate from the controller's filesystem.
     ACP new conversations prepare automatically, with one attempt per draft
     and no extra setup click. The directory picker supports a typed host path
     even with no saved projects; native selection is limited to the host
     computer. See [provider-native history](docs/native-agent-history.md).
+
+29. **Native OpenCode and automatic session access (2026-10-15).** OpenCode
+    is a third engine: the host owns the installed `opencode serve` and speaks
+    its v1 HTTP + SSE API; the service kind is `opencode:<name>`, protocol
+    `opencode-http`, provider `opencode`. One OpenCode host per real database
+    source across Pocket processes; its model service is OpenCode's own
+    configuration and sign-ins, or a per-host custom provider (Responses,
+    Anthropic Messages, Chat Completions; no official account, plugin or ACP
+    route), and its desired runtime is the executable only
+    (`HostRuntime.opencode`); restore starts with both as saved. The
+    `opencode acp` preset, catalog plugin and custom routes are removed; their
+    saved records are dropped on load, never relaunched as generic agents.
+    Rules to preserve:
+    - A new ACP or OpenCode conversation needs a project folder: a send
+      without one opens the folder picker and sends nothing (no optimistic
+      copy); a session that could not be created returns its message to
+      the composer. Codex may still work outside a project.
+    - Draft sessions are created on first send; draft model/agent/variant
+      choices stay on the draft (ACP reads its cached draft settings with an
+      empty thread id; OpenCode reads its project's asynchronously through
+      `app_draft_session_settings`), are applied to the created session
+      before the message, and never mutate host-wide defaults or send a
+      config change with an empty id.
+    - Models, agents, variants and commands are per project
+      (`app_draft_session_settings`, `app_command_list_for_project`; a real
+      session resolves its own directory). OpenCode's model is a session
+      option: with `session_config` the Codex model menu, effort and Plan
+      are off and a turn sends no model, effort or collaboration mode. FRB
+      reads of these settings are async (`app_session_settings_refresh`;
+      ACP keeps the cached sync path): coalesce, drop answers for a moved
+      project/thread/link, never let an older answer replace a newer choice.
+    - The Codex setup gate applies only to a Codex app-server, never to
+      OpenCode or ACP hosts.
+    - `/` commands only write `/name ` text; the host interprets exact known
+      names. Permissions keep the option-id card; questions add `multiple`
+      and `isOther`, and cancel means reject. A message ID is not an
+      idempotency key: uncertain sends stay queued for explicit Retry.
+    - Session access (`app_session_open` / `_access` / `_release`) is
+      automatic for Claude ACP and OpenCode hosts. Write only from a fresh
+      no-owner admission; otherwise follow with the reason code. Recent
+      writes or quiet time never mean running or free. Another OpenCode
+      process on the source is `external_source_open` (turn unknown). An
+      idle native Claude client still holds its session. `released_here`
+      suppresses reacquisition until Continue here. No override.
+    - The host retains at most 256 sessions and evicts only idle ones
+      OpenCode confirms idle with no pending request (released first, then
+      least recently used); an unverifiable directory is skipped and fails
+      the open only when no directory is safe. A session without a
+      retained admission (never admitted, evicted, or after a host restart)
+      is `not_opened`: background checks never open it; an explicit Check
+      now opens it afresh when its own answer says no writer and idle, and
+      Continue here opens it; `released_here` still waits for Continue here.
+    - Only a 404 `session_not_found` from the session metadata route of the
+      same host identity evicts that controller thread (ancillary
+      `native_request_failed` 404s keep the cache). OpenCode events are
+      process-local, so an access check or follow read answered that way
+      also counts as deletion (another process deleted it): access becomes
+      blocked `not_found` without recheck and the follow ends.
+      `thread/deleted` drops it from the list, and the view treats the ID as
+      terminal for its events, follow checks and settings reads; a replaced
+      host identity and other errors stay failures.
+    - An abort answered `false` ends the turn only on a fresh idle status.
+    - Follow history replaces the optimistic copies of messages sent here
+      only by host user messages it newly shows in the same turn (never by
+      text); re-reading the same history changes nothing.
+    - Session UI gates on capabilities (`hostAccess`, `draft_options`,
+      `commands`, `question_multiple`, `permission_feedback`), not names.
+    - A custom provider's model is its default, not the only model: start
+      and Apply read the gateway's `/models` with the saved key (Anthropic
+      paging, OpenAI list; bounded, no redirects) and register every ID and
+      name plus the default. A failed read keeps only the default model with
+      a host warning; applying again retries. Never import provider options.
+    - Apply prepares before it stops and relaunches the previous prepared
+      launch on failure. Stopping a host ends its controller SSE streams
+      explicitly (they outlive the listener), so views reconnect to the new
+      incarnation instead of holding a stale stream.
+    - Quit (`serve_stop_all`) closes OpenCode admission and stops each host
+      under its lease; a failed stop or pending startup cleanup fails the
+      quit. macOS native quits go through `NativeQuitGate` to the same path.
+    - Model failures are classified by the host from bounded fields into a
+      fixed reason; the provider's message is never published. One inline
+      card per failure, keyed by the host's item and exact prompt turn;
+      Change model sends nothing; Retry resends the exact original prompt
+      only on explicit action and is withheld for a truncated, attachment-
+      missing or non-inline-image copy. Option saves hold every send path
+      and never auto-send when they end.
+    - `reasoningOutput` only for a completed message with reasoning and no
+      separate text: shown in full with its source note, never split or
+      relabelled. Mixed text/reasoning is unchanged.
+    - A session created by a first send re-reads its access read-only after
+      that send and at each turn's end until releasable (busy or failed reads
+      do not stand); latest writable answer for the same view only, no
+      polling, never reacquires a handed-back session.
+    - Verified on one Mac (OpenCode 1.19.0): Rust 831 passed/24 ignored,
+      Flutter 1557 passed/5 skipped, real-server and bridge lifecycle tests.
+      The final macOS build (`127debfc…`): a new conversation's first reply
+      arrived, Hand back appeared without reopening, Release/Continue here
+      kept the session ID and draft with no duplicate history or automatic
+      send. An earlier build of this round: a region-refused model's card,
+      Change model without sending (newer draft kept), explicit Retry of the
+      original prompt answered, and a full reasoning-only reply in existing
+      history inspected without sending (read-only viewer by tests only).
+      Build `4011bbdb…`: a source held by another process
+      stayed read-only and, once free, opened only on Check now and
+      answered; Release showed the sent message once with only Continue
+      here, which kept the draft unsent; an official-CLI deletion in another
+      process became terminal and left the list, another session answered.
+      An earlier build of this round showed per-project model names for one
+      model ID, agents and commands across Alpha/Beta switches without
+      sending, and a first send and an existing session's agent change
+      answered; extra variants, retention and `false` abort by tests only.
+      Earlier builds: no-project picker, native catalog reply, custom Chat
+      Completions and Anthropic Messages replies, a 110-model gateway list
+      with a non-default model answering, Apply reconnect and back to
+      existing configuration (draft kept unsent), clean Cmd+Q, relaunch
+      restore, close to tray. Not verified: a successful Responses reply
+      (provider refused the model; further testing waived), live attachment
+      Retry and cancellation identity (tests only), draft
+      attachments across Apply in the app (tests only), relay/multi-controller
+      use, other platforms. Former ACP-preset evidence is not native evidence.
+    See [Native OpenCode](docs/opencode-native.md) and
+    [session access](docs/native-agent-history.md#session-access).
 
 ### UI and history maintenance (2026-09-13)
 

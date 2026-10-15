@@ -127,9 +127,11 @@ extension _SessionTranscript on _AppSessionState {
         hostImageLoader: _loadHostImage,
       );
     }
+    final item = row as TranscriptItem;
     return MessageView(
       key: _rowKey(row),
-      item: row as TranscriptItem,
+      item: item,
+      errorActions: item.type == 'modelError' ? _modelErrorActions(item) : null,
       hostImageLoader: _loadHostImage,
       imageCacheScope: '${widget.serviceKey}:$_threadId',
       onEdit: _externalWriterMode || _historySyncing || _showingCachedHistory
@@ -213,7 +215,7 @@ extension _SessionTranscript on _AppSessionState {
                                   // guidance view with tappable starter prompts; an empty
                                   // resumed thread keeps the plain hint.
                                   ? (_threadId == null
-                                        ? (_caps.isAcp
+                                        ? (_caps.hostAccess
                                               ? _agentWelcome(l10n)
                                               : _newSessionGuidance(l10n))
                                         : Center(

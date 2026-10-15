@@ -177,7 +177,7 @@ extension _SessionComposer on _AppSessionState {
               ? null
               : (selected) => _updateState(() => _supplement = selected),
         ),
-      if (_streaming && !_caps.steer && _caps.isAcp)
+      if (_streaming && !_caps.steer && _caps.hostAccess)
         Tooltip(
           message: l10n.steerUnavailableHint,
           child: ActionChip(
@@ -396,9 +396,10 @@ extension _SessionComposer on _AppSessionState {
               Expanded(
                 child: Align(
                   alignment: Alignment.centerRight,
-                  // A model catalog exists only where the protocol has one;
-                  // an ACP agent's own per-session options replace it.
-                  child: _caps.modelCatalog
+                  // The model menu exists only where the protocol has a
+                  // catalog and no per-session options; an agent's own
+                  // options (ACP, native OpenCode) replace it.
+                  child: _usesModelMenu
                       ? _modelChip(l10n)
                       : AgentSessionOptions(
                           settings: _agentSettings,
@@ -597,6 +598,7 @@ extension _SessionComposer on _AppSessionState {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _commandPalette(),
             // The card IS the input, so all of it takes a text cursor and
             // focuses the field on click — the padding beside a short line
             // shouldn't behave like dead chrome. The buttons inside sit deeper
@@ -741,7 +743,7 @@ extension _SessionComposer on _AppSessionState {
     final project = _cwd?.trim() ?? '';
     return Row(
       children: [
-        if (caps.isAcp && caps.providerName.isNotEmpty) ...[
+        if (caps.hostAccess && caps.providerName.isNotEmpty) ...[
           Flexible(
             child: Tooltip(
               message: caps.providerName,
@@ -752,7 +754,7 @@ extension _SessionComposer on _AppSessionState {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     AgentIcon.of(
-                      provider: 'acp',
+                      provider: caps.isOpenCode ? 'opencode' : 'acp',
                       profileId: caps.profileId,
                       name: caps.providerName,
                       size: 13,
@@ -775,7 +777,7 @@ extension _SessionComposer on _AppSessionState {
           const SizedBox(width: 10),
         ],
         Flexible(child: chip(Icons.computer, _hostLabel(l10n))),
-        if (caps.isAcp && project.isNotEmpty) ...[
+        if (caps.hostAccess && project.isNotEmpty) ...[
           const SizedBox(width: 10),
           Flexible(
             child: chip(Icons.folder_outlined, _projectName(), tip: project),
@@ -884,6 +886,7 @@ extension _SessionComposer on _AppSessionState {
           !_historySyncing &&
           !_restoringSettings &&
           !_showingCachedHistory &&
+          !_savingAgentConfig &&
           !_attachments.any((a) => !a.ready) &&
           hasDraft;
       final scheme = Theme.of(context).colorScheme;

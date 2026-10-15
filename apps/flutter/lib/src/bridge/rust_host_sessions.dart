@@ -2,47 +2,43 @@ part of '../bridge_api_rust.dart';
 
 mixin _RustHostSessions implements BridgeApi {
   @override
-  Future<SessionControl> appAcpSessionControl(
+  Future<SessionAccess> appSessionOpen(
     String serviceKey,
     String threadId,
-  ) async {
-    final v = await frb.appAcpSessionControl(
-      serviceKey: serviceKey,
-      threadId: threadId,
-    );
-    return SessionControl(
-      sessionId: v.sessionId,
-      hostId: v.hostId,
-      generation: v.generation.toInt(),
-      sourceGeneration: v.sourceGeneration,
-      provider: v.provider,
-      status: v.status,
-      canContinue: v.canContinue,
-      canRelease: v.canRelease,
-      canAcquire: v.canAcquire,
-    );
-  }
+  ) async => _access(
+    await frb.appSessionOpen(serviceKey: serviceKey, threadId: threadId),
+  );
 
   @override
-  Future<void> appAcpControlSession(
+  Future<SessionAccess> appSessionAccess(
     String serviceKey,
-    SessionControl snapshot,
-    String action,
-  ) => frb.appAcpControlSession(
-    serviceKey: serviceKey,
-    action: action,
-    snapshot: frb.SessionControlDto(
-      sessionId: snapshot.sessionId,
-      hostId: snapshot.hostId,
-      generation: BigInt.from(snapshot.generation),
-      sourceGeneration: snapshot.sourceGeneration,
-      provider: snapshot.provider,
-      status: snapshot.status,
-      canContinue: snapshot.canContinue,
-      canRelease: snapshot.canRelease,
-      canAcquire: snapshot.canAcquire,
+    String threadId,
+  ) async => _access(
+    await frb.appSessionAccess(serviceKey: serviceKey, threadId: threadId),
+  );
+
+  @override
+  Future<SessionAccess> appSessionRelease(
+    String serviceKey,
+    SessionAccess snapshot,
+  ) async => _access(
+    await frb.appSessionRelease(
+      serviceKey: serviceKey,
+      snapshot: _accessDto(snapshot),
     ),
   );
+
+  @override
+  Future<List<AgentCommand>> appCommandListForProject(
+    String serviceKey,
+    String? directory,
+  ) async => [
+    for (final c in await frb.appCommandListForProject(
+      serviceKey: serviceKey,
+      directory: directory,
+    ))
+      _command(c),
+  ];
 
   @override
   Future<NativeSessionList> appNativeSessions(
@@ -382,6 +378,13 @@ mixin _RustHostSessions implements BridgeApi {
   );
 }
 
+AgentCommand _command(frb.AgentCommandDto c) => AgentCommand(
+  name: c.name,
+  description: c.description,
+  source: c.source,
+  hints: c.hints,
+);
+
 ThreadConfig _threadConfig(frb.ThreadConfigDto c) => ThreadConfig(
   model: c.model,
   reasoningEffort: c.reasoningEffort,
@@ -430,3 +433,55 @@ ForceResumeReport _resumeReport(frb.ForceResumeReportDto r) =>
       resumed: r.resumed,
       resumeError: r.resumeError,
     );
+
+SessionAccess _access(frb.SessionAccessDto v) => SessionAccess(
+  sessionId: v.sessionId,
+  hostId: v.hostId,
+  generation: v.generation.toInt(),
+  sourceGeneration: v.sourceGeneration,
+  provider: v.provider,
+  mode: v.mode,
+  writer: v.writer,
+  turn: v.turn,
+  exclusion: v.exclusion,
+  reason: v.reason,
+  detail: v.detail,
+  holder: v.holder == null
+      ? null
+      : AccessHolder(
+          client: v.holder!.client,
+          pid: v.holder!.pid,
+          startedAt: v.holder!.startedAt?.toInt(),
+          hostName: v.holder!.hostName,
+          serviceKey: v.holder!.serviceKey,
+        ),
+  canRelease: v.canRelease,
+  recheck: v.recheck,
+);
+
+frb.SessionAccessDto _accessDto(SessionAccess v) => frb.SessionAccessDto(
+  sessionId: v.sessionId,
+  hostId: v.hostId,
+  generation: BigInt.from(v.generation),
+  sourceGeneration: v.sourceGeneration,
+  provider: v.provider,
+  mode: v.mode,
+  writer: v.writer,
+  turn: v.turn,
+  exclusion: v.exclusion,
+  reason: v.reason,
+  detail: v.detail,
+  holder: v.holder == null
+      ? null
+      : frb.AccessHolderDto(
+          client: v.holder!.client,
+          pid: v.holder!.pid,
+          startedAt: v.holder!.startedAt == null
+              ? null
+              : PlatformInt64Util.from(v.holder!.startedAt!),
+          hostName: v.holder!.hostName,
+          serviceKey: v.holder!.serviceKey,
+        ),
+  canRelease: v.canRelease,
+  recheck: v.recheck,
+);
