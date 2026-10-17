@@ -4,17 +4,22 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:pocket_codex/l10n/gen/app_localizations.dart';
 import 'package:pocket_codex/src/bridge_api.dart';
-import 'package:pocket_codex/src/hosting/agent_choice_grid.dart';
 import 'package:pocket_codex/src/hosting/editor_block.dart';
+import 'package:pocket_codex/src/hosting/host_names.dart';
 import 'package:pocket_codex/src/theme.dart';
+import 'package:pocket_codex/src/widgets/field_help.dart';
 import 'package:pocket_codex/src/widgets/group_card.dart';
+import 'package:pocket_codex/src/app_icons.dart';
 
-/// What a native OpenCode host is started with: the instance name and the
-/// `opencode` executable (detected on `PATH`, or chosen).
+/// What a native OpenCode host is started with: the instance name, where it
+/// keeps its sessions ([separateHistory]) and the `opencode` executable
+/// (detected on `PATH`, or chosen).
 ///
 /// The host owns one `opencode serve` on loopback; its port and password
-/// are the host's own and never shown. A running host's form is
-/// [prefill]ed from its saved (else active) runtime under its fixed name.
+/// are the host's own and never shown. One host at a time serves OpenCode's
+/// default database, so a new host beside it keeps a history of its own
+/// unless the user chooses otherwise. A running host's form is [prefill]ed
+/// from its saved (else active) runtime under its fixed name.
 class OpenCodeRuntimeForm extends ChangeNotifier {
   /// Creates the form; [api] detects OpenCode.
   OpenCodeRuntimeForm(this._api);
@@ -38,17 +43,22 @@ class OpenCodeRuntimeForm extends ChangeNotifier {
   /// The user chose the executable themselves.
   bool overridePath = false;
 
+  /// The host keeps its sessions in a database of its own instead of
+  /// OpenCode's default one.
+  bool separateHistory = false;
+
+  // The user picked the history; suggestions no longer replace it.
+  bool _historyChosen = false;
+
   /// The last detection, or null before it finished.
   OpenCodeEnvironment? found;
-
-  /// Whether detection finished.
-  bool get checked => found != null;
 
   /// The user changed a field.
   bool touched = false;
 
   // What a running host's form was filled with.
   String? _baselineBinary;
+  bool _baselineSeparate = false;
   bool _prefilled = false;
 
   /// Mark the name as typed; suggestions no longer replace it.
@@ -57,10 +67,25 @@ class OpenCodeRuntimeForm extends ChangeNotifier {
     edited();
   }
 
+  /// Choose where the host keeps its sessions.
+  void chooseHistory(bool separate) {
+    _historyChosen = true;
+    separateHistory = separate;
+    edited();
+  }
+
   /// A field changed by the user.
   void edited() {
     touched = true;
     _notify();
+  }
+
+  /// The user takes the executable path into their own hands (typing it,
+  /// or "change"): a late detection or pick no longer replaces it.
+  void customizePath() {
+    overridePath = true;
+    pathIntent++;
+    edited();
   }
 
   void _notify() {
@@ -74,6 +99,9 @@ class OpenCodeRuntimeForm extends ChangeNotifier {
     _nameEdited = true;
     pathIntent++;
     _baselineBinary = runtime.binary;
+    _baselineSeparate = runtime.separateHistory;
+    separateHistory = runtime.separateHistory;
+    _historyChosen = true;
     path.text = runtime.binary ?? '';
     overridePath = runtime.binary != null;
     touched = false;
@@ -81,10 +109,16 @@ class OpenCodeRuntimeForm extends ChangeNotifier {
     unawaited(detect());
   }
 
-  /// Fill an untouched name with one free on this device.
+  /// Fill an untouched name with one free on this device, and an unpicked
+  /// history with the one a new host can use: its own while another host
+  /// serves OpenCode's default database.
   void suggest(List<AppServeStatus> hosts) {
-    if (_nameEdited) return;
-    name.text = uniqueHostName('opencode', {for (final h in hosts) h.name});
+    if (!_nameEdited) {
+      name.text = uniqueHostName('opencode', {for (final h in hosts) h.name});
+    }
+    if (!_historyChosen) {
+      separateHistory = hosts.any((h) => h.servesOpenCodeHistory);
+    }
     _notify();
   }
 
@@ -105,12 +139,17 @@ class OpenCodeRuntimeForm extends ChangeNotifier {
     if (found case final env? when env.problem != null || env.path == null) {
       return (null, openCodeProblemText(l10n, env.problem));
     }
-    return (HostRuntime.opencode(binary: binary), null);
+    return (
+      HostRuntime.opencode(binary: binary, separateHistory: separateHistory),
+      null,
+    );
   }
 
-  /// Whether a running host's executable differs from what it was filled
-  /// with.
-  bool get differs => _prefilled && touched && binary != _baselineBinary;
+  /// Whether a running host's runtime differs from what it was filled with.
+  bool get differs =>
+      _prefilled &&
+      touched &&
+      (binary != _baselineBinary || separateHistory != _baselineSeparate);
 
   /// (Re-)detect OpenCode for the current path; only the latest counts.
   Future<void> detect() async {
@@ -151,8 +190,8 @@ class OpenCodeRuntimeForm extends ChangeNotifier {
   }
 }
 
-/// The "Runtime" section of an OpenCode host: instance name and executable,
-/// with the detected version or why it cannot be hosted.
+/// The "Runtime" section of an OpenCode host: instance name, history and
+/// executable, with the detected version or why it cannot be hosted.
 class OpenCodeRuntimeSection extends StatelessWidget {
   /// Creates the section for [form].
   const OpenCodeRuntimeSection({
@@ -161,7 +200,9 @@ class OpenCodeRuntimeSection extends StatelessWidget {
     required this.enabled,
     required this.onBrowse,
     this.fixedName = false,
-    this.hint,
+    this.info,
+    this.takenNames = const {},
+    this.sharedHistoryHost,
   });
 
   /// The fields.
@@ -176,8 +217,15 @@ class OpenCodeRuntimeSection extends StatelessWidget {
   /// A running host: its name is shown, not editable.
   final bool fixedName;
 
-  /// Replaces the new-host hint under the title.
-  final String? hint;
+  /// Replaces the new host's explanation behind the title's info mark.
+  final String? info;
+
+  /// Names this device's other hosts use; a new host's name must differ.
+  final Set<String> takenNames;
+
+  /// Another host serving OpenCode's default database, by name: this host
+  /// cannot share that history while it runs.
+  final String? sharedHistoryHost;
 
   @override
   Widget build(BuildContext context) {
@@ -187,24 +235,24 @@ class OpenCodeRuntimeSection extends StatelessWidget {
       builder: (context, _) => GroupCard(
         key: const Key('opencode-runtime-section'),
         title: l10n.hostRuntimeInfo,
-        hint: hint ?? l10n.openCodeRuntimeHint,
+        info: info ?? l10n.openCodeRuntimeHint,
         children: [
           EditorBlock(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  key: const Key('opencode-name-field'),
+                HostNameField(
+                  fieldKey: const Key('opencode-name-field'),
                   controller: form.name,
-                  enabled: enabled && !fixedName,
-                  decoration: InputDecoration(
-                    labelText: l10n.localHostName,
-                    helperText: l10n.hostNameHelper,
-                  ),
+                  enabled: enabled,
+                  fixed: fixedName,
+                  taken: takenNames,
                   onChanged: (_) => form.nameEdited(),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
+                _history(context, l10n),
+                const SizedBox(height: 16),
                 _executable(context, l10n),
               ],
             ),
@@ -214,10 +262,67 @@ class OpenCodeRuntimeSection extends StatelessWidget {
     );
   }
 
+  /// Where the host keeps its sessions: OpenCode's default database, which
+  /// one host serves at a time, or one of its own.
+  Widget _history(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final holder = sharedHistoryHost;
+    final labels = [l10n.openCodeHistoryShared, l10n.openCodeHistoryOwn];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InfoTitle(
+          title: Text(
+            l10n.openCodeHistoryTitle,
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          info: l10n.openCodeHistoryInfo,
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) => SegmentedButton<bool>(
+            key: const Key('opencode-history'),
+            // Side by side only while each label fits on one line.
+            direction: segmentsFitAcross(context, constraints.maxWidth, labels)
+                ? Axis.horizontal
+                : Axis.vertical,
+            segments: [
+              ButtonSegment(
+                value: false,
+                label: Text(
+                  labels[0],
+                  key: const Key('opencode-history-shared'),
+                ),
+              ),
+              ButtonSegment(
+                value: true,
+                label: Text(labels[1], key: const Key('opencode-history-own')),
+              ),
+            ],
+            selected: {form.separateHistory},
+            onSelectionChanged: enabled
+                ? (picked) => form.chooseHistory(picked.first)
+                : null,
+          ),
+        ),
+        if (holder != null && !form.separateHistory) ...[
+          const SizedBox(height: 8),
+          EditorNote(
+            l10n.openCodeHistoryTaken(holder),
+            key: const Key('opencode-history-taken'),
+            color: cautionColor(theme.colorScheme),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _executable(BuildContext context, AppLocalizations l10n) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final small = theme.textTheme.bodySmall;
     final env = form.found;
     if (env == null) {
       return Semantics(
@@ -230,7 +335,7 @@ class OpenCodeRuntimeSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(
-          ok ? Icons.check_circle : Icons.error_outline,
+          ok ? AppIcons.check_circle : AppIcons.error_outline,
           size: 18,
           color: ok ? successColor(scheme) : scheme.error,
         ),
@@ -242,7 +347,9 @@ class OpenCodeRuntimeSection extends StatelessWidget {
                 ? l10n.openCodeFoundAt(env.version ?? '?', env.path!)
                 : openCodeProblemText(l10n, env.problem),
             key: const Key('opencode-detected'),
-            style: small?.copyWith(color: ok ? null : scheme.error),
+            style: helpTextStyle(
+              theme,
+            ).copyWith(color: ok ? scheme.onSurface : scheme.error),
           ),
         ),
       ],
@@ -251,7 +358,8 @@ class OpenCodeRuntimeSection extends StatelessWidget {
     if (form.overridePath || !ok) {
       children.add(
         Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          // The button is centred on the field it fills.
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
               child: TextField(
@@ -259,11 +367,7 @@ class OpenCodeRuntimeSection extends StatelessWidget {
                 controller: form.path,
                 enabled: enabled,
                 decoration: InputDecoration(labelText: l10n.openCodePath),
-                onChanged: (_) {
-                  form.overridePath = true;
-                  form.pathIntent++;
-                  form.edited();
-                },
+                onChanged: (_) => form.customizePath(),
                 onSubmitted: (_) => form.detect(),
               ),
             ),
@@ -284,19 +388,13 @@ class OpenCodeRuntimeSection extends StatelessWidget {
           if (!form.overridePath && ok)
             TextButton(
               key: const Key('customize-opencode-btn'),
-              onPressed: enabled
-                  ? () {
-                      form.overridePath = true;
-                      form.pathIntent++;
-                      form.edited();
-                    }
-                  : null,
+              onPressed: enabled ? form.customizePath : null,
               child: Text(l10n.customizeCodexPath),
             ),
           TextButton.icon(
             key: const Key('redetect-opencode-btn'),
             onPressed: enabled ? form.detect : null,
-            icon: const Icon(Icons.refresh, size: 16),
+            icon: const Icon(AppIcons.refresh, size: 16),
             label: Text(l10n.codexRedetect),
           ),
         ],

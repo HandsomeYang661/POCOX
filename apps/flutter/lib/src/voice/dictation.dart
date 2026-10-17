@@ -107,7 +107,7 @@ class WebRtcDictationTransport implements DictationTransport {
     required void Function() onConnected,
     required void Function(String) onFailure,
   }) async {
-    final peer = await createPeerConnection({'iceServers': <Object>[]});
+    final peer = await openPeerConnection();
     if (_closed) {
       await peer.dispose();
       _checkOpen();
@@ -146,31 +146,15 @@ class WebRtcDictationTransport implements DictationTransport {
     );
     _checkOpen();
     _sender = transceiver.sender;
-    final channel = await peer.createDataChannel(
-      'oai-events',
-      RTCDataChannelInit(),
+    return completeOffer(
+      peer,
+      makeOffer: peer.createOffer,
+      adopt: (channel, gathered) {
+        _channel = channel;
+        _gathered = gathered;
+      },
+      checkOpen: _checkOpen,
     );
-    if (_closed) {
-      await channel.close();
-      _checkOpen();
-    }
-    _channel = channel;
-    final gathered = Completer<void>();
-    _gathered = gathered;
-    peer.onIceGatheringState = (state) {
-      if (state == RTCIceGatheringState.RTCIceGatheringStateComplete &&
-          !gathered.isCompleted) {
-        gathered.complete();
-      }
-    };
-    await peer.setLocalDescription(await peer.createOffer());
-    _checkOpen();
-    // No trickle-ICE RPC: send one complete offer.
-    await gathered.future.timeout(const Duration(seconds: 10));
-    _checkOpen();
-    final sdp = (await peer.getLocalDescription())?.sdp;
-    if (sdp == null || sdp.isEmpty) throw StateError('Missing audio offer');
-    return sdp;
   }
 
   @override
@@ -194,14 +178,7 @@ class WebRtcDictationTransport implements DictationTransport {
     if (sender == null) throw StateError('Dictation is not ready');
     var media = _microphone;
     if (media == null) {
-      media = await navigator.mediaDevices.getUserMedia({
-        'audio': {
-          'echoCancellation': true,
-          'noiseSuppression': true,
-          'autoGainControl': true,
-        },
-        'video': false,
-      });
+      media = await navigator.mediaDevices.getUserMedia(microphoneConstraints);
       if (_closed) {
         await _stopMedia(media);
         _checkOpen();
@@ -262,31 +239,24 @@ class WebRtcDictationTransport implements DictationTransport {
     _channel = null;
     _peer = null;
     _sender = null;
-    Object? failure;
-    Future<void> release(Future<void> Function() action) async {
-      try {
-        await action();
-      } catch (e) {
-        failure ??= e;
-      }
-    }
-
-    if (media != null) await release(() => _stopMedia(media));
-    if (channel != null) await release(channel.close);
-    if (peer != null) await release(peer.dispose);
-    if (failure != null) throw StateError('Dictation cleanup failed: $failure');
+    await releaseAll('Dictation', [
+      if (media != null) () => _stopMedia(media),
+      if (channel != null) channel.close,
+      if (peer != null) peer.dispose,
+    ]);
   }
 }
 
-/// The composer's speech-to-text line: one realtime session, kept open in
-/// the background on an ephemeral thread of its own, that hears nothing
-/// until a take attaches the microphone.
+/// The composer's speech-to-text line: one realtime session on an ephemeral
+/// thread of its own, that hears nothing until a take attaches the
+/// microphone.
 ///
 /// The session is told to stay silent and never act; it is used only for
 /// the transcript of what the user says, which streams in as they speak
-/// ([onDelta]). Keeping it open is what makes a take start at once: the
-/// thread, the media link and the host session are already up, so pressing
-/// the microphone only attaches the device.
+/// ([onDelta]). Where [keepOpen] allows, the line is opened ahead of use and
+/// kept open in the background, which is what makes a take start at once:
+/// the thread, the media link and the host session are already up, so
+/// pressing the microphone only attaches the device.
 ///
 /// It is separate from a live voice call ([VoiceController]): its own
 /// thread, its own media link, never routed into a conversation. Both can be
@@ -297,6 +267,7 @@ class DictationLine extends ChangeNotifier {
     required this.api,
     required this.serviceKey,
     required this.createTransport,
+    this.keepOpen = true,
     Stopwatch Function()? stopwatch,
     this.idleTimeout = const Duration(minutes: 15),
   }) : _clock = (stopwatch ?? Stopwatch.new)(),
@@ -307,6 +278,15 @@ class DictationLine extends ChangeNotifier {
 
   /// The host the line runs on.
   final String serviceKey;
+
+  /// Whether the line is opened ahead of use and stays open between takes.
+  ///
+  /// Off on phones and tablets: an open media link holds the device's audio
+  /// there (iOS activates the app's audio session, Android takes audio
+  /// focus), which stops whatever else is playing. The line then opens with
+  /// a take and closes when the take is over, so other audio plays on until
+  /// the user dictates and can come back after.
+  final bool keepOpen;
 
   /// A connected line nobody has dictated into for this long is closed; the
   /// next warm-up or take opens it again.
@@ -410,16 +390,20 @@ class DictationLine extends ChangeNotifier {
   }
 
   /// Open the line in the background, so a take starts at once. Does nothing
-  /// when it is already up or opening, or (unless [force]) shortly after a
-  /// failure.
-  Future<void> warm({bool force = false}) {
+  /// where the line is not kept open ([keepOpen]), when it is already up or
+  /// opening, or shortly after a failure.
+  Future<void> warm() => keepOpen ? _open(retry: false) : Future.value();
+
+  /// Open the line unless it is up, joining an opening under way. [retry]
+  /// ignores the backoff after a failure, as an explicit take does.
+  Future<void> _open({required bool retry}) {
     if (_disposed) return Future.value();
     if (link == DictationLink.ready) {
       _armIdle();
       return Future.value();
     }
     if (_warming case final pending?) return pending;
-    if (!force &&
+    if (!retry &&
         _sinceFailure.isRunning &&
         _sinceFailure.elapsed < retryBackoff) {
       return Future.value();
@@ -576,7 +560,7 @@ class DictationLine extends ChangeNotifier {
     _idle?.cancel();
     _changed();
     if (link != DictationLink.ready) {
-      await warm(force: true);
+      await _open(retry: true);
       if (id != takeId || take != DictationTake.opening) return;
       if (link != DictationLink.ready) {
         take = DictationTake.idle;
@@ -595,9 +579,9 @@ class DictationLine extends ChangeNotifier {
       take = DictationTake.idle;
       failure = DictationFailure.permission;
       error = '$e';
-      _armIdle();
       _changed();
       onTakeEnded?.call(id, cancelled: true);
+      _settle();
       return;
     }
     if (id != takeId || take != DictationTake.opening) {
@@ -686,9 +670,9 @@ class DictationLine extends ChangeNotifier {
     _clock
       ..stop()
       ..reset();
-    _armIdle();
     _changed();
     onTakeEnded?.call(id, cancelled: false);
+    _settle();
   }
 
   /// Drop the take; whatever it inserted is the caller's to remove.
@@ -704,15 +688,26 @@ class DictationLine extends ChangeNotifier {
     _clock
       ..stop()
       ..reset();
-    _armIdle();
     _changed();
     onTakeEnded?.call(id, cancelled: true);
+    if (!keepOpen) return close();
+    _armIdle();
     if (wasAttached) {
       try {
         await _transport?.closeMicrophone();
       } catch (_) {
         /* The microphone is released with the line either way. */
       }
+    }
+  }
+
+  /// After a take, a line that is kept open waits for the next one; any other
+  /// line closes, which lets the device's audio go.
+  void _settle() {
+    if (keepOpen) {
+      _armIdle();
+    } else {
+      unawaited(close());
     }
   }
 

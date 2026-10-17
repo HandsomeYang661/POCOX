@@ -11,9 +11,8 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     host_apply, host_lifecycle,
-    host_profiles::{self, Change, Engine, KeyChange, ProfileInput, Runtime, RuntimeChange},
-    host_start::{self, NewHost},
-    runtime, serve,
+    host_profiles::{self, Change, KeyChange, ProfileInput, Runtime, RuntimeChange},
+    host_start, runtime, serve,
 };
 
 #[path = "management_http.rs"]
@@ -176,6 +175,11 @@ fn resolve_runtime(name: &str, choice: RuntimeChoice) -> Result<Runtime> {
         },
         RuntimeChoice::Opencode {} => Ok(Runtime::OpenCode {
             binary: None,
+            separate_history: separate_history(
+                host_profiles::get(name)?.runtime.as_ref(),
+                super::serve_opencode::shared_history_host().as_deref(),
+                name,
+            ),
         }),
         RuntimeChoice::Claude {} => {
             if !super::claude_setup::status()?.ready {
@@ -191,6 +195,18 @@ fn resolve_runtime(name: &str, choice: RuntimeChoice) -> Result<Runtime> {
         RuntimeChoice::Saved {} => host_profiles::get(name)?
             .runtime
             .ok_or_else(|| anyhow!("no saved runtime for this host")),
+    }
+}
+
+/// Where a remotely chosen OpenCode host keeps its sessions: as this name
+/// saved, else in a database of its own while `shared_holder` (another host)
+/// serves OpenCode's default one, which one host serves at a time.
+fn separate_history(saved: Option<&Runtime>, shared_holder: Option<&str>, name: &str) -> bool {
+    match saved {
+        Some(Runtime::OpenCode {
+            separate_history, ..
+        }) => *separate_history,
+        _ => shared_holder.is_some_and(|holder| !super::host_names::same(holder, name)),
     }
 }
 
@@ -317,7 +333,7 @@ fn mask_runtime(runtime: &mut Runtime) {
             spec.args.clear();
         },
         Runtime::OpenCode {
-            binary,
+            binary, ..
         } => *binary = None,
     }
 }
@@ -354,21 +370,12 @@ fn save(name: &str, mut request: SaveRequest, token: AdmissionToken) -> Result<H
             .ok_or_else(|| anyhow!("choose a runtime"))?,
     };
     change.runtime = RuntimeChange::Set(desired.clone());
-    let engine = match &desired {
-        Runtime::Codex {
-            ..
-        } => Engine::Codex,
-        Runtime::OpenCode {
-            ..
-        } => Engine::OpenCode,
-        Runtime::Acp(spec) => Engine::Acp(spec),
-    };
     let (_, staged) = host_profiles::stage_checked_in(
         &host_profiles::root()?,
         name,
         &change,
         Some(request.expected_revision),
-        engine,
+        desired.engine(),
         &|| token.check(),
     )?;
     staged.finish();
@@ -430,11 +437,10 @@ fn start_revision(
             .block_on(pocket_codex_api_proxy::check_auth())
             .map_err(|_| Fault::AuthenticationRequired)?;
     }
-    let choice = resolve_runtime(&request.name, request.runtime)?;
-    let new_host = NewHost::from(choice);
+    let runtime = resolve_runtime(&request.name, request.runtime)?;
     host_start::start_configured_checked(
         Some(&request.name),
-        new_host,
+        runtime,
         change(request.input, request.key),
         Some(expected),
         &|| {
@@ -543,6 +549,7 @@ mod tests {
             },
             Runtime::OpenCode {
                 binary: Some("/private/secret/opencode".into()),
+                separate_history: false,
             },
         ] {
             mask_runtime(&mut runtime);
@@ -550,6 +557,26 @@ mod tests {
                 .expect("JSON")
                 .contains("secret"));
         }
+    }
+
+    #[test]
+    fn a_remote_opencode_host_keeps_its_history_or_avoids_a_shared_one() {
+        let shared = Runtime::OpenCode {
+            binary: None,
+            separate_history: false,
+        };
+        let own = Runtime::OpenCode {
+            binary: None,
+            separate_history: true,
+        };
+        // A new name beside a host on OpenCode's default database gets its own.
+        assert!(separate_history(None, Some("opencode"), "work"));
+        assert!(!separate_history(None, None, "work"));
+        // The holder itself, under any spelling, is not "another" host.
+        assert!(!separate_history(None, Some("my-host"), "My Host"));
+        // An edit keeps what the name saved.
+        assert!(!separate_history(Some(&shared), Some("other"), "work"));
+        assert!(separate_history(Some(&own), None, "work"));
     }
 
     #[test]

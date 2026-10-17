@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
@@ -25,10 +27,19 @@ abstract final class Motion {
   /// Things moving or resizing in place.
   static const Curve move = Curves.easeInOutCubic;
 
+  /// Arrivals that should feel physical rather than tweened: a quick start
+  /// that settles slowly (Material's emphasized decelerate).
+  static const Curve emphasized = Cubic(0.05, 0.7, 0.1, 1);
+
+  /// A damped spring with a whisper of overshoot, for things that are
+  /// released — a pressed control springing back, a selection gliding to a
+  /// new row.
+  static const Curve spring = _SpringCurve();
+
   /// [d], or zero when the platform asks for reduced motion — the state still
   /// changes, it just doesn't travel.
   static Duration of(BuildContext context, Duration d) =>
-      MediaQuery.maybeDisableAnimationsOf(context) ?? false ? Duration.zero : d;
+      _reduced(context) ? Duration.zero : d;
 
   /// Animate a child's size, or lay it out directly with reduced motion.
   /// A zero-duration AnimatedSize can notify layout from its own layout pass.
@@ -50,13 +61,58 @@ abstract final class Motion {
   }
 
   /// Whether looping, purely decorative motion (pulses, typing dots) may run.
-  static bool ambientAllowed(BuildContext context) =>
-      !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+  static bool ambientAllowed(BuildContext context) => !_reduced(context);
+
+  static bool _reduced(BuildContext context) =>
+      MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 }
 
-/// Desktop pages fade and rise a few pixels instead of Material's mobile zoom,
-/// which reads as a phone animation inside a desktop window. Mobile keeps each
-/// platform's native transition (Cupertino swipe-back on iOS).
+/// Ambient loops (sheens, pulses, typing dots, shimmer).
+extension AmbientLoop on AnimationController {
+  /// Loop while [context] allows ambient motion ([Motion.ambientAllowed]);
+  /// otherwise rest at [rest], a frame that still says what the motion says.
+  /// Call from `didChangeDependencies`, so a changed preference applies.
+  void loopUnlessReduced(
+    BuildContext context, {
+    double rest = 0,
+    bool reverse = false,
+  }) {
+    if (Motion.ambientAllowed(context)) {
+      if (!isAnimating) repeat(reverse: reverse);
+    } else {
+      stop();
+      value = rest;
+    }
+  }
+}
+
+/// The step response of an under-damped spring (damping ratio 0.72), scaled
+/// so it settles at 1 by the end of the animation: it overshoots by about 3%
+/// and comes back, which reads as a physical release rather than a tween.
+class _SpringCurve extends Curve {
+  const _SpringCurve();
+
+  static const double _zeta = 0.72;
+  static const double _omega = 9.5;
+
+  @override
+  double transformInternal(double t) {
+    final wd = _omega * math.sqrt(1 - _zeta * _zeta);
+    final decay = math.exp(-_zeta * _omega * t);
+    final x =
+        1 -
+        decay * (math.cos(wd * t) + (_zeta * _omega / wd) * math.sin(wd * t));
+    // Pin the end exactly: the residual at t = 1 is under 0.1%.
+    return t >= 1 ? 1 : x;
+  }
+}
+
+/// Desktop pages cross-fade instead of Material's mobile zoom, which reads as a
+/// phone animation inside a desktop window. Every desktop page shares one
+/// frame (the backdrop, the sidebar, the sheet), so a fade leaves that frame
+/// still and only the content changes; the content then settles in with its
+/// own entrance (see `EntranceMotion`). Mobile keeps each platform's native
+/// transition (Cupertino swipe-back on iOS).
 const appPageTransitions = PageTransitionsTheme(
   builders: {
     TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
@@ -81,17 +137,14 @@ class _DesktopPageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return child;
-    final enter = CurvedAnimation(parent: animation, curve: Motion.enter);
+    if (Motion._reduced(context)) return child;
     return FadeTransition(
-      opacity: enter,
-      child: SlideTransition(
-        position: Tween(
-          begin: const Offset(0, 0.012),
-          end: Offset.zero,
-        ).animate(enter),
-        child: child,
+      opacity: CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOut,
+        reverseCurve: Curves.easeIn,
       ),
+      child: child,
     );
   }
 }

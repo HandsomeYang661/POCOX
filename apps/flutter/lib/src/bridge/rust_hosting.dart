@@ -37,9 +37,6 @@ mixin _RustHosting implements BridgeApi {
   }
 
   @override
-  Future<String> embeddedCodexVersion() => frb.embeddedCodexVersion();
-
-  @override
   Future<void> appServeDeregister({
     required String name,
     required String kind,
@@ -117,10 +114,6 @@ mixin _RustHosting implements BridgeApi {
   @override
   AcpClaudeSetup acpClaudePrepareState() =>
       _claudeSetup(frb.acpClaudePrepareState());
-
-  @override
-  AcpClaudeSetup acpClaudePrepareCancel() =>
-      _claudeSetup(frb.acpClaudePrepareCancel());
 
   @override
   AcpClaudeSetup acpClaudePrepareCancelRun(int run) =>
@@ -324,7 +317,10 @@ AcpAgentSpec _spec(frb.AcpAgentSpecDto s) => AcpAgentSpec(
 );
 
 HostRuntime _runtime(frb.HostRuntimeDto r) => switch (r.kind) {
-  'opencode' => HostRuntime.opencode(binary: r.binary),
+  'opencode' => HostRuntime.opencode(
+    binary: r.binary,
+    separateHistory: r.separateHistory,
+  ),
   _ when r.agent != null => HostRuntime.acp(_spec(r.agent!)),
   _ => HostRuntime.codex(binary: r.binary, port: r.port, proxy: r.proxy),
 };
@@ -335,6 +331,7 @@ frb.HostRuntimeDto _runtimeDto(HostRuntime r) => frb.HostRuntimeDto(
   port: r.port,
   proxy: r.proxy,
   agent: _specDto(r.agent),
+  separateHistory: r.separateHistory,
 );
 
 frb.HostConfigInputDto _inputDto(HostConfigInput input) =>
@@ -402,6 +399,7 @@ AppServeStatus _serveStatus(frb.AppServeStatusDto s) => AppServeStatus(
           defaultModel: s.opencode!.defaultModel,
           agents: s.opencode!.agents,
           problem: s.opencode!.problem,
+          separateHistory: s.opencode!.separateHistory,
         ),
   configSource: s.configSource,
   configRevision: s.configRevision?.toInt(),

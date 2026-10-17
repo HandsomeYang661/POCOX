@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pocket_codex/l10n/gen/app_localizations.dart';
 import 'package:pocket_codex/src/bridge_api.dart';
+import 'package:pocket_codex/src/desktop_theme.dart';
 import 'package:pocket_codex/src/fonts.dart';
 import 'package:pocket_codex/src/hosting/claude_environment_section.dart';
 import 'package:pocket_codex/src/hosting/editor_block.dart';
@@ -8,6 +9,8 @@ import 'package:pocket_codex/src/hosting/model_service_section.dart'
     show ServiceChoice;
 import 'package:pocket_codex/src/motion.dart';
 import 'package:pocket_codex/src/theme.dart';
+import 'package:pocket_codex/src/widgets/field_help.dart';
+import 'package:pocket_codex/src/app_icons.dart';
 
 /// The credentials Claude accepts, in the order they are offered. One is
 /// used at a time: [ClaudeEnvironmentDraft.setOverride] clears the others.
@@ -158,7 +161,7 @@ class ClaudeValueControl extends StatelessWidget {
           hintText: stored ? l.claudeEnvStored : l.claudeEnvValue,
           hintMaxLines: 2,
           prefixIcon: variable.secret
-              ? const Icon(Icons.lock_outline, size: 18)
+              ? const Icon(AppIcons.lock_outline, size: 18)
               : null,
           helperText: missing ? l.claudeEnvNeedsValue : null,
           helperMaxLines: 3,
@@ -227,6 +230,36 @@ class ClaudeEnvironmentRow extends StatelessWidget {
   /// It is enabled with no value yet.
   final bool missing;
 
+  /// The variable's label and name, marked when it is set here.
+  Widget _heading(
+    AppLocalizations l,
+    ThemeData theme, {
+    required bool custom,
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        claudeVariableLabel(l, variable.name),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w500,
+          height: 1.3,
+        ),
+      ),
+      const SizedBox(height: 2),
+      ClaudeVariableName(variable.name),
+      if (custom) ...[
+        const SizedBox(height: 2),
+        Text(
+          l.claudeEnvCustom,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -242,38 +275,14 @@ class ClaudeEnvironmentRow extends StatelessWidget {
         children: [
           MergeSemantics(
             child: InkWell(
+              mouseCursor: clickable,
               onTap: toggle == null ? null : () => toggle(!custom),
               borderRadius: BorderRadius.circular(6),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            claudeVariableLabel(l, name),
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                              height: 1.3,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          ClaudeVariableName(name),
-                          if (custom) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              l.claudeEnvCustom,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
+                    Expanded(child: _heading(l, theme, custom: custom)),
                     const SizedBox(width: 12),
                     Switch.adaptive(
                       key: Key('claude-env-override-$name'),
@@ -347,14 +356,19 @@ class ClaudeCredentialChoice extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            l.claudeEnvCredential,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
+          // That only one credential is used is behind the info mark.
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: InfoTitle(
+              title: Text(
+                l.claudeEnvCredential,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              info: l.claudeEnvCredentialNote,
             ),
           ),
-          const SizedBox(height: 2),
-          EditorNote(l.claudeEnvCredentialNote),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,

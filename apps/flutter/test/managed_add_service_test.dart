@@ -128,6 +128,10 @@ Future<void> _openSheet(
   expect(find.byKey(const Key('managed-add-panel')), findsOneWidget);
 }
 
+/// The availability line of the runtime row [kind].
+String? _status(WidgetTester t, String kind) =>
+    t.widget<Text>(find.byKey(Key('managed-runtime-status-$kind'))).data;
+
 Future<void> _tap(WidgetTester t, Finder finder) async {
   await t.ensureVisible(finder);
   await t.pumpAndSettle();
@@ -145,33 +149,34 @@ void main() {
     expect(find.text(_codexPath), findsNothing);
     expect(find.text(_openCodePath), findsNothing);
     expect(find.text(_claudePath), findsNothing);
-    expect(find.text(_en.managedRuntimeSignInThere), findsOneWidget);
-    expect(find.text(_en.managedOpenCodeRunning), findsOneWidget);
-    expect(find.text(_en.managedRuntimeReady), findsOneWidget);
+    expect(_status(t, 'codex'), _en.managedRuntimeSignInThere);
+    // OpenCode is offered beside the one already running there.
+    expect(_status(t, 'opencode'), '${_en.managedRuntimeReady} · 1.19.0');
+    expect(_status(t, 'claude'), _en.managedRuntimeReady);
     await _tap(t, find.byKey(const Key('managed-runtime-details-codex')));
     expect(find.text(_codexPath), findsOneWidget);
     expect(find.text('0.130.0'), findsOneWidget);
     expect(find.text(_en.managedNeedsHostLogin), findsOneWidget);
-    await _tap(t, find.text(_en.done));
+    await _tap(t, find.byKey(const Key('managed-runtime-details-codex')));
+    expect(find.text(_codexPath), findsNothing);
     // Details never chose the runtime.
     expect(find.byKey(const Key('managed-add-panel')), findsOneWidget);
   });
 
-  testWidgets('blocked OpenCode cannot be chosen and explains why under '
-      'Details', (t) async {
-    await _openSheet(t, _fake());
+  testWidgets('a second OpenCode gets a free name; a taken one is refused '
+      'before anything starts', (t) async {
+    final api = _fake();
+    await _openSheet(t, api);
     await _tap(t, find.byKey(const Key('managed-runtime-opencode')));
-    expect(find.byKey(const Key('managed-add-panel')), findsOneWidget);
-    await _tap(t, find.byKey(const Key('managed-runtime-details-opencode')));
-    expect(find.text(_en.managedOpenCodeTaken), findsOneWidget);
-    expect(find.text(_openCodePath), findsOneWidget);
-  });
-
-  testWidgets('a ready runtime opens its editor', (t) async {
-    await _openSheet(t, _fake());
-    await _tap(t, find.byKey(const Key('managed-runtime-claude')));
     expect(find.byKey(const Key('managed-add-panel')), findsNothing);
-    expect(find.byKey(const Key('managed-create')), findsOneWidget);
+    final name = find.byKey(const Key('managed-name'));
+    expect(t.widget<TextField>(name).controller!.text, 'opencode-2');
+    // Another spelling of the running host's name is the same instance.
+    await t.enterText(name, 'OpenCode');
+    await t.pumpAndSettle();
+    expect(find.text(_en.managedNameInUse('opencode')), findsOneWidget);
+    final create = find.byKey(const Key('managed-create'));
+    expect(t.widget<FilledButton>(create).onPressed, isNull);
   });
 
   testWidgets('an unavailable runtime and Claude needing setup say so '
@@ -200,12 +205,11 @@ void main() {
             ),
           );
     await _openSheet(t, api);
-    expect(find.text(_en.managedRuntimeUnavailable), findsOneWidget);
-    expect(find.text(_en.managedRuntimeNeedsSetup), findsOneWidget);
+    expect(_status(t, 'codex'), _en.managedRuntimeUnavailable);
+    expect(_status(t, 'claude'), _en.managedRuntimeNeedsSetup);
     expect(find.textContaining('older than'), findsNothing);
     await _tap(t, find.byKey(const Key('managed-runtime-details-codex')));
     expect(find.textContaining('older than'), findsOneWidget);
-    await _tap(t, find.text(_en.done));
     await t.tap(find.byKey(const Key('managed-claude-prepare')));
     await t.pump();
     expect(api.claudePrepareStarts, 1);

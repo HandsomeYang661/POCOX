@@ -6,6 +6,7 @@ import 'package:pocket_codex/src/bridge_api.dart';
 import 'package:pocket_codex/src/hosting/editor_block.dart';
 import 'package:pocket_codex/src/managed/default_project_tile.dart';
 import 'package:pocket_codex/src/managed/managed_add_service.dart';
+import 'package:pocket_codex/src/hosting/model_service_section.dart';
 import 'package:pocket_codex/src/managed/managed_host_editor.dart';
 import 'package:pocket_codex/src/managed/managed_providers.dart';
 import 'package:pocket_codex/src/managed/management_failure.dart';
@@ -14,6 +15,7 @@ import 'package:pocket_codex/src/theme.dart';
 import 'package:pocket_codex/src/widgets/agent_icon.dart';
 import 'package:pocket_codex/src/widgets/app_toast.dart';
 import 'package:pocket_codex/src/widgets/group_card.dart';
+import 'package:pocket_codex/src/app_icons.dart';
 
 /// Management of another computer through its `host:` service: its services
 /// (running and stopped), adding one from what it has installed, start /
@@ -234,7 +236,7 @@ class _ManagedDevicePanelState extends ConsumerState<ManagedDevicePanel> {
             child: FilledButton.tonalIcon(
               key: const Key('managed-add-service'),
               onPressed: () => _add(hosts),
-              icon: const Icon(Icons.add, size: 18),
+              icon: const Icon(AppIcons.add, size: 18),
               label: Text(l10n.managedAddService),
             ),
           ),
@@ -266,7 +268,7 @@ class _ManagedDevicePanelState extends ConsumerState<ManagedDevicePanel> {
                 height: 18,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : const Icon(Icons.refresh, size: 20),
+            : const Icon(AppIcons.refresh, size: 20),
         onPressed: _refresh,
       ),
       children: children,
@@ -331,7 +333,7 @@ class DiagnosticLine extends StatelessWidget {
           ),
           IconButton(
             tooltip: l10n.copy,
-            icon: const Icon(Icons.copy, size: 16),
+            icon: const Icon(AppIcons.copy, size: 16),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: value));
               showToast(context, l10n.copied);
@@ -501,13 +503,10 @@ String managedModelSummary(AppLocalizations l10n, ManagedHost host) {
     managedHostKind(host),
     agentName: managedAgent(host)?.displayName,
   );
-  final source = switch (c.source) {
-    'official' => l10n.hostSourceOfficial,
-    'custom' => [
-      l10n.hostSourceCustom,
+  return [
+    kind,
+    modelSourceLabel(l10n, c.source),
+    if (c.source == 'custom')
       if (c.model case final model? when model.isNotEmpty) model,
-    ].join(' · '),
-    _ => l10n.hostSourceInherited,
-  };
-  return '$kind · $source';
+  ].join(' · ');
 }

@@ -12,7 +12,7 @@ extension _SessionStatus on _AppSessionState {
       return (
         color: infoColor(scheme),
         label: l10n.guardianReadOnly,
-        icon: Icons.policy_outlined,
+        icon: AppIcons.policy_outlined,
         nominal: false,
       );
     }
@@ -39,7 +39,9 @@ extension _SessionStatus on _AppSessionState {
         label: resumable
             ? l10n.sessionInUseElsewhere
             : l10n.sessionRunningElsewhere,
-        icon: resumable ? Icons.lock_open_outlined : Icons.lock_clock_outlined,
+        icon: resumable
+            ? AppIcons.lock_open_outlined
+            : AppIcons.lock_clock_outlined,
         nominal: false,
       );
     }
@@ -47,7 +49,7 @@ extension _SessionStatus on _AppSessionState {
       return (
         color: cautionColor(scheme),
         label: l10n.stateReconnecting,
-        icon: Icons.autorenew,
+        icon: AppIcons.autorenew,
         nominal: false,
       );
     }
@@ -55,7 +57,7 @@ extension _SessionStatus on _AppSessionState {
       return (
         color: scheme.error,
         label: l10n.stateDisconnected,
-        icon: Icons.cloud_off,
+        icon: AppIcons.cloud_off,
         nominal: false,
       );
     }
@@ -63,7 +65,7 @@ extension _SessionStatus on _AppSessionState {
       return (
         color: signalColor(scheme),
         label: _planActive ? l10n.statePlanning : l10n.stateWorking,
-        icon: Icons.autorenew,
+        icon: AppIcons.autorenew,
         nominal: false,
       );
     }
@@ -71,7 +73,7 @@ extension _SessionStatus on _AppSessionState {
       return (
         color: cautionColor(scheme),
         label: l10n.statePlanMode,
-        icon: Icons.checklist_rtl,
+        icon: AppIcons.checklist_rtl,
         nominal: false,
       );
     }
@@ -82,7 +84,7 @@ extension _SessionStatus on _AppSessionState {
     return (
       color: scheme.onSurfaceVariant,
       label: l10n.stateReady,
-      icon: Icons.check_circle_outline,
+      icon: AppIcons.check_circle_outline,
       nominal: true,
     );
   }
@@ -120,16 +122,15 @@ extension _SessionStatus on _AppSessionState {
   Widget _statusBar(AppLocalizations l10n) {
     final scheme = Theme.of(context).colorScheme;
     final st = _sessionState(l10n);
-    final d = _diff;
     final activeModel = _activeModelStatus();
     final running = _streaming || _externalWriterRunning;
     return AnimatedContainer(
       duration: Motion.of(context, Motion.medium),
       curve: Motion.move,
       width: double.infinity,
-      // At rest the bar is part of the page — the header's ground under one
-      // hairline. A state that needs attention tints the whole strip, so
-      // colour arriving here means something actually changed.
+      // At rest the bar is part of the page — the header's own ground, with
+      // no rule under it. A state that needs attention tints the whole strip,
+      // so colour arriving here means something actually changed.
       decoration: BoxDecoration(
         color: st.nominal
             ? surfaceBackground(scheme)
@@ -137,7 +138,6 @@ extension _SessionStatus on _AppSessionState {
                 st.color.withValues(alpha: 0.08),
                 surfaceBackground(scheme),
               ),
-        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
       padding: EdgeInsets.fromLTRB(isDesktop ? 18 : 14, 3, 14, 5),
       child: Row(
@@ -167,70 +167,27 @@ extension _SessionStatus on _AppSessionState {
           ),
           const Spacer(),
           // The model actively handling this thread's requests — server truth
-          // when confirmed (✓), else the best-known effective value. Tap for
-          // the full runtime configuration, so a model switch is verifiable.
+          // when confirmed, else the best-known effective value. Tap for the
+          // full runtime configuration, so a model switch is verifiable.
           if (activeModel != null) ...[
-            Tooltip(
-              message: l10n.activeModelTooltip,
-              child: InkWell(
-                mouseCursor: clickable,
-                key: const Key('active-model-chip'),
-                onTap: _showRuntimeSheet,
-                borderRadius: BorderRadius.circular(kControlRadius),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.auto_awesome,
-                        size: 12,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 180),
-                        child: Text(
-                          _modelDisplayLabel(activeModel.id)!,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 3),
-                      Icon(
-                        activeModel.confirmed
-                            ? Icons.check_circle_outline
-                            : Icons.hourglass_empty,
-                        size: 11,
-                        color: activeModel.confirmed
-                            ? additionColor(scheme)
-                            : scheme.onSurfaceVariant,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            _activeModelChip(l10n, scheme, activeModel),
             const SizedBox(width: 10),
           ],
           // Live elapsed clock for the running turn. A local turn freezes this
           // into its transcript footnote; an external turn counts from when
           // this read-only observer attached and disappears when it finishes.
           if (running) ...[
-            Icon(Icons.schedule, size: 12, color: st.color),
+            Icon(AppIcons.schedule, size: 12, color: st.color),
             const SizedBox(width: 4),
-            Text(
-              _fmtElapsed(_elapsedSecs),
-              style: TextStyle(
-                fontSize: 12,
-                color: st.color,
-                fontFeatures: const [FontFeature.tabularFigures()],
+            ValueListenableBuilder<int>(
+              valueListenable: _elapsed,
+              builder: (context, secs, _) => Text(
+                _fmtElapsed(secs),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: st.color,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -238,82 +195,116 @@ extension _SessionStatus on _AppSessionState {
           // Branch + working-tree change counts, tappable to open the diff.
           // This is the single, unified place the git state lives (no separate
           // app-bar chip), so the status bar is the one source of truth.
-          if (_branch != null)
-            Tooltip(
-              message: _diffLoading
-                  ? l10n.cancelDiffLoad
-                  : (d != null && !d.isEmpty)
-                  ? l10n.viewDiff
-                  : _branch!,
-              child: InkWell(
-                mouseCursor: clickable,
-                key: const Key('status-branch-chip'),
-                onTap: _showDiff,
-                borderRadius: BorderRadius.circular(kControlRadius),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
+          if (_branch case final branch?) _branchChip(l10n, scheme, branch),
+        ],
+      ),
+    );
+  }
+
+  /// The model handling this thread's requests, marked solid once the
+  /// server confirmed it; tap for the full runtime configuration.
+  Widget _activeModelChip(
+    AppLocalizations l10n,
+    ColorScheme scheme,
+    ({String id, bool confirmed}) model,
+  ) => Tooltip(
+    message: l10n.activeModelTooltip,
+    child: InkWell(
+      mouseCursor: clickable,
+      key: const Key('active-model-chip'),
+      onTap: _showRuntimeSheet,
+      borderRadius: BorderRadius.circular(kControlRadius),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 180),
+              child: Text(
+                _modelDisplayLabel(model.id)!,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+              ),
+            ),
+            const SizedBox(width: 6),
+            // Confirmed by the server: a solid dot; still pending: a hollow
+            // one.
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: model.confirmed ? additionColor(scheme) : null,
+                border: model.confirmed
+                    ? null
+                    : Border.all(color: scheme.onSurfaceVariant, width: 1.2),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  /// The [branch] with its working-tree change counts, tappable to open the
+  /// diff.
+  Widget _branchChip(AppLocalizations l10n, ColorScheme scheme, String branch) {
+    final d = _diff;
+    final changed = d != null && !d.isEmpty;
+    return Tooltip(
+      message: _diffLoading
+          ? l10n.cancelDiffLoad
+          : changed
+          ? l10n.viewDiff
+          : branch,
+      child: InkWell(
+        mouseCursor: clickable,
+        key: const Key('status-branch-chip'),
+        onTap: _showDiff,
+        borderRadius: BorderRadius.circular(kControlRadius),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // While the diff is loading the badge IS the cancel control: a
+              // spinner in place of the branch glyph, so the press that
+              // started it can also stop it.
+              if (_diffLoading)
+                SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.6,
+                    color: signalColor(scheme),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // While the diff is loading the badge IS the cancel
-                      // control: a spinner in place of the branch glyph, so the
-                      // press that started it can also stop it.
-                      if (_diffLoading)
-                        SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.6,
-                            color: signalColor(scheme),
-                          ),
-                        )
-                      else
-                        Icon(
-                          Icons.account_tree_outlined,
-                          size: 12,
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      const SizedBox(width: 4),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 160),
-                        child: Text(
-                          _branch!,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      if (d != null && !d.isEmpty) ...[
-                        const SizedBox(width: 6),
-                        Text(
-                          '+${d.added}',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            color: additionColor(scheme),
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          '−${d.removed}',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            color: scheme.error,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                      ],
-                    ],
+                )
+              else
+                Icon(
+                  AppIcons.account_tree_outlined,
+                  size: 12,
+                  color: scheme.onSurfaceVariant,
+                ),
+              const SizedBox(width: 4),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 160),
+                child: Text(
+                  branch,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ),
-            ),
-        ],
+              if (changed) ...[
+                const SizedBox(width: 6),
+                ChangeCounts(added: d.added, removed: d.removed, gap: 3),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -358,7 +349,7 @@ extension _SessionStatus on _AppSessionState {
     return HostSwitchBanner(
       pending: pending,
       targetLabel: match.isEmpty
-          ? _AppSessionState._serviceLabelFromKey(pending.target)
+          ? serviceKeyLabel(pending.target)
           : hostLabel(match.first),
       onRetry: () => widget.onSwitchService?.call(pending.target),
       onDismiss: () => widget.onDismissHostSwitch?.call(),

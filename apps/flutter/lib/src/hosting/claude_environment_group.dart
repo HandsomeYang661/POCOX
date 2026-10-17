@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pocket_codex/src/desktop_theme.dart';
 import 'package:pocket_codex/src/motion.dart';
 import 'package:pocket_codex/src/theme.dart';
+import 'package:pocket_codex/src/app_icons.dart';
 
 /// An inset panel in the hosting editor: the ground shared by the Claude
 /// environment groups and the adapter preparation card.
@@ -107,6 +108,7 @@ class ClaudeEnvironmentGroup extends StatelessWidget {
       expanded: expanded,
       child: InkWell(
         key: Key('claude-env-group-$id'),
+        mouseCursor: clickable,
         onTap: onToggle,
         borderRadius: BorderRadius.circular(kControlRadius),
         child: Padding(
@@ -160,7 +162,7 @@ class ClaudeEnvironmentGroup extends StatelessWidget {
                 duration: Motion.of(context, Motion.fast),
                 curve: Motion.move,
                 child: Icon(
-                  Icons.expand_more,
+                  AppIcons.expand_more,
                   size: 20,
                   color: scheme.onSurfaceVariant,
                 ),

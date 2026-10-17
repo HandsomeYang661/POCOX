@@ -14,6 +14,10 @@ mixin _FakeHosting on _FakeBridgeState {
       serveStartGate = null;
       await gate.future;
     }
+    if (serveStartError case final error?) {
+      serveStartError = null;
+      throw error;
+    }
     lastServePort = port;
     lastServeBinary = binaryOverride;
     lastServeName = name;
@@ -75,9 +79,6 @@ mixin _FakeHosting on _FakeBridgeState {
     serveStatusCalls++;
     return List.unmodifiable(serveHosts);
   }
-
-  @override
-  Future<String> embeddedCodexVersion() async => embeddedCodexCommit;
 
   @override
   Future<void> appServeDeregister({
@@ -288,10 +289,6 @@ mixin _FakeHosting on _FakeBridgeState {
 
   @override
   AcpClaudeSetup acpClaudePrepareState() => claudeSetup;
-
-  @override
-  AcpClaudeSetup acpClaudePrepareCancel() =>
-      acpClaudePrepareCancelRun(claudeSetup.run);
 
   @override
   AcpClaudeSetup acpClaudePrepareCancelRun(int run) {
@@ -523,13 +520,21 @@ mixin _FakeHosting on _FakeBridgeState {
     final n = (name == null || name.trim().isEmpty)
         ? (agent?.profileId ?? 'default')
         : name.trim();
-    if (serveHosts.any((h) => h.name == n)) {
+    // As the bridge: one instance per canonical name, and one host at a
+    // time on OpenCode's default database.
+    if (serveHosts.any(
+      (h) => canonicalHostName(h.name) == canonicalHostName(n),
+    )) {
       throw StateError(
         '`$n` is already hosting; edit it instead, or choose another name',
       );
     }
-    if (runtime.isOpenCode && serveHosts.any((h) => h.isOpenCode)) {
-      throw StateError('opencode_already_hosted');
+    if (runtime.isOpenCode &&
+        !runtime.separateHistory &&
+        serveHosts.any((h) => h.servesOpenCodeHistory)) {
+      throw StateError(
+        'opencode_already_hosted: this native source already has a Pocket host',
+      );
     }
     final previous = hostConfigs[n];
     hostConfigs.remove(n);
@@ -541,7 +546,11 @@ mixin _FakeHosting on _FakeBridgeState {
           openCodeServeError = null;
           throw err;
         }
-        final host = FakeBridgeApi.openCodeHost(n, binary: runtime.binary);
+        final host = FakeBridgeApi.openCodeHost(
+          n,
+          binary: runtime.binary,
+          separateHistory: runtime.separateHistory,
+        );
         serveHosts.add(relaunched(host, runtime: runtime, config: saved));
         if (!_services.any((s) => s.key == host.appServiceKey)) {
           _services.add(
@@ -633,7 +642,11 @@ mixin _FakeHosting on _FakeBridgeState {
   @override
   Future<CodexLoginStart> codexLocalLoginStart(String sessionId) async {
     _requireLocal(sessionId);
-    return codexLoginChatgptStart(sessionId);
+    return const CodexLoginStart(
+      mode: 'browser',
+      loginId: 'fake-login',
+      authUrl: 'https://auth.openai.com/fake',
+    );
   }
 
   @override
@@ -668,6 +681,22 @@ mixin _FakeHosting on _FakeBridgeState {
     }
     localLogouts++;
     localLogoutSessions.add(sessionId);
-    codexAuth = const CodexAuthStatus(authenticated: false);
   }
 }
+
+/// [status] as a relaunch with [runtime] reports it: an OpenCode runtime
+/// brings its history choice.
+OpenCodeHostStatus? _withHistory(
+  OpenCodeHostStatus? status,
+  HostRuntime? runtime,
+) => status == null || runtime == null || !runtime.isOpenCode
+    ? status
+    : OpenCodeHostStatus(
+        version: status.version,
+        providersConnected: status.providersConnected,
+        models: status.models,
+        defaultModel: status.defaultModel,
+        agents: status.agents,
+        problem: status.problem,
+        separateHistory: runtime.separateHistory,
+      );

@@ -100,7 +100,8 @@ void _registerRestore() {
     );
     expect(plan.codex.map((h) => h.name), ['legacy']);
     expect(plan.overrides.map((o) => o.name), ['remote-added', 'oc-new']);
-    // One OpenCode per device: the override's wins over the legacy record.
+    // One host at a time on OpenCode's default database: the override's
+    // wins over the legacy record.
     expect(plan.opencode, isNull);
     expect(plan.names.codex, {'legacy', 'remote-added'});
     expect(plan.names.acp, {'oc-new'});
@@ -298,20 +299,46 @@ void _registerRestore() {
     expect(api.startConfiguredCalls, isEmpty);
   });
 
-  test('a skipped OpenCode restore keeps its restore record', () {
-    // The plan is made from the record; nothing in a refused restore
-    // touches preferences, so the next launch plans it again.
-    const prefs = UiPrefs(
-      autoHostOpenCode: AutoHostOpenCodePrefs(name: 'studio', binary: '/oc'),
-    );
-    final plan = planHostRestore(
-      prefs,
-      const [],
+  test('OpenCode hosts with their own history all restore; one host on '
+      'the default database', () {
+    HostRestorePlan plan(List<AppServeStatus> local) => planHostRestore(
+      const UiPrefs(),
+      local,
       codexAttempted: const {},
       acpAttempted: const {},
       acpSupported: true,
+      overrides: const [
+        HostRestoreOverride(
+          name: 'oc-a',
+          revision: 1,
+          runtime: HostRuntime.opencode(),
+        ),
+        HostRestoreOverride(
+          name: 'oc-b',
+          revision: 2,
+          runtime: HostRuntime.opencode(separateHistory: true),
+        ),
+        HostRestoreOverride(
+          name: 'oc-c',
+          revision: 3,
+          runtime: HostRuntime.opencode(separateHistory: true),
+        ),
+        HostRestoreOverride(
+          name: 'oc-d',
+          revision: 4,
+          runtime: HostRuntime.opencode(),
+        ),
+      ],
     );
-    expect(plan.opencode?.name, 'studio');
+    expect(plan(const []).overrides.map((o) => o.name), [
+      'oc-a',
+      'oc-b',
+      'oc-c',
+    ]);
+    expect(
+      plan([FakeBridgeApi.openCodeHost('busy')]).overrides.map((o) => o.name),
+      ['oc-b', 'oc-c'],
+    );
   });
 
   group('restore records decided on the loaded file', () {
@@ -332,9 +359,6 @@ void _registerRestore() {
       expect(find.byType(LocalHostDialog), findsNothing);
       gate.complete();
       await t.pumpAndSettle();
-      // The bridge records the start for restore, so a full preference file
-      // no longer means it will not come back.
-      expect(find.text(en.hostRestoreFull(UiPrefs.maxAutoHosts)), findsNothing);
       final settled = await c.read(uiPrefsProvider.notifier).ready;
       expect(settled.autoHostCodex.map((h) => h.name), [
         for (final h in full) h.name,
@@ -354,7 +378,6 @@ void _registerRestore() {
       await _start(t);
       gate.complete();
       await t.pumpAndSettle();
-      expect(find.text(en.hostRestoreFull(UiPrefs.maxAutoHosts)), findsNothing);
       final settled = await c.read(uiPrefsProvider.notifier).ready;
       expect(settled.autoHostCodex.map((h) => h.name), [
         for (final h in full.sublist(1)) h.name,
@@ -407,10 +430,6 @@ void _registerRestore() {
       gate.complete();
       await t.pumpAndSettle();
       expect(
-        find.textContaining(en.hostRestoreFull(UiPrefs.maxAutoHosts)),
-        findsNothing,
-      );
-      expect(
         find.textContaining(en.acpSavedAgentsFull(UiPrefs.maxSavedAgents)),
         findsOneWidget,
       );
@@ -444,8 +463,12 @@ void _registerRestore() {
       await _start(t);
       expect(api.lastServeName, 'default', reason: 'hosting started');
       expect(find.byType(LocalHostDialog), findsNothing);
+      // One toast: the start, and the warning beside it.
       expect(
-        find.text(en.managedRestoreProblem('storage is read-only')),
+        find.text(
+          '${en.managedStarted('default')}\n'
+          '${en.managedRestoreProblem('storage is read-only')}',
+        ),
         findsOneWidget,
       );
     });

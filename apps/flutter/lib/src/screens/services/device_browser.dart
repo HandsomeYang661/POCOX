@@ -17,6 +17,7 @@ class _DeviceFirstServices extends ConsumerWidget {
     required this.selectedDevice,
     required this.onSelectDevice,
     required this.onClearDevice,
+    this.relayDown = false,
   });
 
   final List<ServiceEntry> services;
@@ -31,6 +32,10 @@ class _DeviceFirstServices extends ConsumerWidget {
 
   /// Return to the device list (narrow only).
   final VoidCallback onClearDevice;
+
+  /// The relay could not list services: only this computer's own are known,
+  /// and none of them is published until it answers.
+  final bool relayDown;
 
   /// Below this the device column and the detail can't sit side by side. Matches
   /// the conversation's own document-layout breakpoint so the whole app changes
@@ -109,11 +114,7 @@ class _DeviceFirstServices extends ConsumerWidget {
         for (final service in services)
           if (dismissed.contains(service.key) &&
               service.kind != 'host' &&
-              (isSessionKind(service.kind)
-                          ? ref.watch(appReachableProvider(service.key))
-                          : ref.watch(apiReachableProvider(service.key)))
-                      .valueOrNull ==
-                  true)
+              ref.watch(_reachability(service)).valueOrNull == true)
             service.key,
       ];
       if (recovered.isNotEmpty) {
@@ -204,9 +205,6 @@ class _DeviceFirstServices extends ConsumerWidget {
     final apis = deviceEntries
         .where((service) => service.kind == 'api')
         .toList();
-    final capabilityCount =
-        apps.length + apis.length + (account ? codexApps.length : 0);
-
     // Loopback probing speaks the Codex handshake; ACP gateways
     // are probed through appProbe, which dispatches by key kind.
     final localAppAddr = <String, String>{
@@ -247,6 +245,31 @@ class _DeviceFirstServices extends ConsumerWidget {
       reason: unreachable ? reasonText : null,
     );
 
+    // What a probe answered, unreachable with [reasonText].
+    ({Widget chip, String? reason}) probed(
+      AsyncValue<bool> reach,
+      String reasonText,
+    ) => reach.when(
+      data: (ok) => status(
+        unreachable: !ok,
+        label: ok ? l10n.statusOnline : l10n.statusUnreachable,
+        color: ok ? online : scheme.error,
+        reasonText: reasonText,
+      ),
+      loading: () => status(
+        unreachable: false,
+        label: l10n.statusChecking,
+        color: scheme.outline,
+        reasonText: reasonText,
+      ),
+      error: (_, _) => status(
+        unreachable: true,
+        label: l10n.statusUnreachable,
+        color: scheme.error,
+        reasonText: reasonText,
+      ),
+    );
+
     ({Widget chip, String? reason}) appStatus(ServiceEntry service) {
       if (!observedDown.contains(service.key) &&
           bridge.appIsConnected(service.key)) {
@@ -266,28 +289,11 @@ class _DeviceFirstServices extends ConsumerWidget {
         );
       }
       final localAddr = localAppAddr[service.key];
-      final reach = localAddr == null
-          ? ref.watch(appReachableProvider(service.key))
-          : ref.watch(appReachableLocalProvider(localAddr));
-      return reach.when(
-        data: (ok) => status(
-          unreachable: !ok,
-          label: ok ? l10n.statusOnline : l10n.statusUnreachable,
-          color: ok ? online : scheme.error,
-          reasonText: l10n.unreachableReason,
-        ),
-        loading: () => status(
-          unreachable: false,
-          label: l10n.statusChecking,
-          color: scheme.outline,
-          reasonText: l10n.unreachableReason,
-        ),
-        error: (_, _) => status(
-          unreachable: true,
-          label: l10n.statusUnreachable,
-          color: scheme.error,
-          reasonText: l10n.unreachableReason,
-        ),
+      return probed(
+        localAddr == null
+            ? ref.watch(appReachableProvider(service.key))
+            : ref.watch(appReachableLocalProvider(localAddr)),
+        l10n.unreachableReason,
       );
     }
 
@@ -302,28 +308,11 @@ class _DeviceFirstServices extends ConsumerWidget {
         );
       }
       final localAddr = localApiAddr[service.key];
-      final reach = localAddr == null
-          ? ref.watch(apiReachableProvider(service.key))
-          : ref.watch(apiReachableLocalProvider(localAddr));
-      return reach.when(
-        data: (ok) => status(
-          unreachable: !ok,
-          label: ok ? l10n.statusOnline : l10n.statusUnreachable,
-          color: ok ? online : scheme.error,
-          reasonText: l10n.apiUnreachableReason,
-        ),
-        loading: () => status(
-          unreachable: false,
-          label: l10n.statusChecking,
-          color: scheme.outline,
-          reasonText: l10n.apiUnreachableReason,
-        ),
-        error: (_, _) => status(
-          unreachable: true,
-          label: l10n.statusUnreachable,
-          color: scheme.error,
-          reasonText: l10n.apiUnreachableReason,
-        ),
+      return probed(
+        localAddr == null
+            ? ref.watch(apiReachableProvider(service.key))
+            : ref.watch(apiReachableLocalProvider(localAddr)),
+        l10n.apiUnreachableReason,
       );
     }
 
@@ -333,9 +322,7 @@ class _DeviceFirstServices extends ConsumerWidget {
       if (isSessionKind(service.kind) && observedDown.contains(service.key)) {
         return true;
       }
-      final probe = isSessionKind(service.kind)
-          ? ref.watch(appReachableProvider(service.key))
-          : ref.watch(apiReachableProvider(service.key));
+      final probe = ref.watch(_reachability(service));
       return probe.hasError || probe.valueOrNull == false;
     }
 
@@ -392,67 +379,83 @@ class _DeviceFirstServices extends ConsumerWidget {
         reregisterOf(localTunnels, offlineTunnels, key);
 
     // A tunnel we took off the relay reads as offline, not unreachable: nothing
-    // is broken, it simply is not published.
-    Widget? offlineChip(String key) => offlineTunnels.contains(key)
+    // is broken, it simply is not published. With the relay down it is not
+    // published because nothing can be, which is not the same thing.
+    Widget? offlineChip(String key, [Set<String>? offline]) =>
+        (offline ?? offlineTunnels).contains(key)
         ? StatusChip(
             color: scheme.outline,
-            label: l10n.tunnelOffline,
+            label: relayDown ? l10n.tunnelNotConnected : l10n.tunnelOffline,
             filled: true,
           )
         : null;
+    // Hosting on this computer lists its own hosts once: a host's chat
+    // service is its card, not a second row repeating it under capabilities.
+    final hostingShown =
+        _hostingSupported &&
+        (localUnknown || localDevices.contains(activeDevice));
+    final hostOfService = <String, AppServeStatus>{
+      if (hostingShown)
+        for (final host in localHosts) host.appServiceKey: host,
+    };
+    String wireOf(ServiceEntry service) => switch (service.kind) {
+      'acp' => 'ACP',
+      'opencode' => 'OpenCode HTTP',
+      _ => 'App-server',
+    };
+    final unreachableKeys = {for (final entry in unreachableEntries) entry.key};
+    Widget chatRow(ServiceEntry service, {AppServeStatus? host}) {
+      final hosted = localHosts
+          .where((h) => h.appServiceKey == service.key)
+          .firstOrNull;
+      return _CapabilityRow(
+        host: host,
+        key: Key('device-capability-${service.key}'),
+        icon: AppIcons.chat_bubble_outline,
+        title: l10n.servicesChatCapability,
+        provider: switch (service.kind) {
+          'acp' => 'acp',
+          'opencode' => 'opencode',
+          _ => 'codex',
+        },
+        providerName: hosted?.providerName,
+        profileId: hosted?.profileId,
+        // A host card is headed by the host's name already.
+        protocol: host != null
+            ? wireOf(service)
+            : protocolOf(wireOf(service), service),
+        localAddr: localAppAddr[service.key],
+        menuKey: Key('capability-menu-${service.key}'),
+        status: offlineChip(service.key) ?? appStates[service.key]!.chip,
+        reason: appStates[service.key]!.reason,
+        onReregister: reregisterFor(service.key),
+        isDefault: service.key == preferredKey,
+        onSetDefault: () => ref
+            .read(uiPrefsProvider.notifier)
+            .setPreferredAppService(service.key),
+        actionLabel: l10n.servicesOpen,
+        // Straight back to the chat, pointed at this service. The project /
+        // conversation picker this used to push lives in the chat's own
+        // sidebar, so drilling into a third page only put the same tree
+        // behind an extra tap.
+        onAction: () => _openInChat(context, ref, service.key),
+        onDeregister: () => _confirmDeregister(
+          context,
+          ref,
+          service,
+          localTunnel: localTunnels[service.key],
+          unreachable: unreachableKeys.contains(service.key),
+        ),
+      );
+    }
+
     final capabilityRows = <Widget>[
       for (final service in apps)
-        _CapabilityRow(
-          key: Key('device-capability-${service.key}'),
-          icon: Icons.chat_bubble_outline,
-          title: l10n.servicesChatCapability,
-          provider: switch (service.kind) {
-            'acp' => 'acp',
-            'opencode' => 'opencode',
-            _ => 'codex',
-          },
-          providerName: localHosts
-              .where((h) => h.appServiceKey == service.key)
-              .firstOrNull
-              ?.providerName,
-          profileId: localHosts
-              .where((h) => h.appServiceKey == service.key)
-              .firstOrNull
-              ?.profileId,
-          protocol: protocolOf(switch (service.kind) {
-            'acp' => 'ACP',
-            'opencode' => 'OpenCode HTTP',
-            _ => 'App-server',
-          }, service),
-          localAddr: localAppAddr[service.key],
-          menuKey: Key('capability-menu-${service.key}'),
-          status: offlineChip(service.key) ?? appStates[service.key]!.chip,
-          reason: appStates[service.key]!.reason,
-          onReregister: reregisterFor(service.key),
-          isDefault: service.key == preferredKey,
-          onSetDefault: () => ref
-              .read(uiPrefsProvider.notifier)
-              .setPreferredAppService(service.key),
-          actionLabel: l10n.servicesOpen,
-          // Straight back to the chat, pointed at this service. The project /
-          // conversation picker this used to push lives in the chat's own
-          // sidebar, so drilling into a third page only put the same tree
-          // behind an extra tap.
-          onAction: () => _openInChat(context, ref, service.key),
-          onDeregister: () => _confirmDeregister(
-            context,
-            ref,
-            service,
-            localTunnel: localTunnels[service.key],
-            unreachable: unreachableEntries.any(
-              (entry) => entry.key == service.key,
-            ),
-          ),
-        ),
+        if (!hostOfService.containsKey(service.key)) chatRow(service),
       for (final service in apis)
         _CapabilityRow(
           key: Key('device-capability-${service.key}'),
-          icon: Icons.bolt_outlined,
+          icon: AppIcons.bolt_outlined,
           title: l10n.servicesApiCapability,
           protocol: protocolOf('API', service),
           localAddr: localApiAddr[service.key],
@@ -469,29 +472,21 @@ class _DeviceFirstServices extends ConsumerWidget {
             ref,
             service,
             localTunnel: localTunnels[service.key],
-            unreachable: unreachableEntries.any(
-              (entry) => entry.key == service.key,
-            ),
+            unreachable: unreachableKeys.contains(service.key),
           ),
         ),
       if (account)
         for (final service in codexApps)
           _CapabilityRow(
             key: Key('device-capability-meta-${service.key}'),
-            icon: Icons.forum_outlined,
+            icon: AppIcons.forum_outlined,
             title: l10n.servicesSessionsCapability,
             protocol: protocolOf('Meta', service),
             localAddr: localMetaAddr[service.key],
             menuKey: Key('capability-menu-meta-${service.key}'),
             // The meta tunnel is unpublishable like the other two, so this row
             // carries the same controls the tunnel list used to.
-            status: offlineMeta.contains(service.key)
-                ? StatusChip(
-                    color: scheme.outline,
-                    label: l10n.tunnelOffline,
-                    filled: true,
-                  )
-                : null,
+            status: offlineChip(service.key, offlineMeta),
             onReregister: reregisterOf(metaHostOf, offlineMeta, service.key),
             onDeregister: metaHostOf.containsKey(service.key)
                 ? () => _confirmDeregister(
@@ -542,6 +537,7 @@ class _DeviceFirstServices extends ConsumerWidget {
       localDevices: localDevices,
       capabilityCount: countFor,
       onSelect: onSelectDevice,
+      relayDown: relayDown,
       // Beside a detail pane the column owns the full height and scrolls its
       // own list; stacked it is the page's only content and scrolls with it.
       filled: split,
@@ -570,33 +566,37 @@ class _DeviceFirstServices extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
       ],
-      GroupCard(
-        title: l10n.servicesCapabilities,
-        trailing: _CountPill(
-          label: l10n.servicesDeviceCapabilityCount(capabilityCount),
-        ),
-        children: [
-          if (capabilityRows.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Text(
-                l10n.servicesNoCapabilities,
-                style: TextStyle(color: scheme.onSurfaceVariant),
+      // Every capability may be one of this computer's hosts, listed under
+      // hosting below; then there is nothing left to say here.
+      if (capabilityRows.isNotEmpty || hostOfService.isEmpty)
+        GroupCard(
+          title: l10n.servicesCapabilities,
+          children: [
+            if (capabilityRows.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text(
+                  l10n.servicesNoCapabilities,
+                  style: TextStyle(color: scheme.onSurfaceVariant),
+                ),
+              )
+            else
+              // One child, not one per row: the rows draw their own separators, so
+              // letting the card divide them too would double every hairline.
+              // A row that comes or goes resizes the card rather than jumping.
+              Motion.resize(
+                context,
+                alignment: Alignment.topCenter,
+                child: Column(children: capabilityRows),
               ),
-            )
-          else
-            // One child, not one per row: the rows draw their own separators, so
-            // letting the card divide them too would double every hairline.
-            Column(children: capabilityRows),
-        ],
-      ),
+          ],
+        ),
       // Hosting is about THIS machine, so it belongs under this machine's
       // device — showing it while a remote peer is selected implied the hosts
       // listed were that peer's. The no-devices case still needs it, since that
       // is the only route to starting a first host, and so does a computer
       // whose own device is not known (see `localUnknown`).
-      if (_hostingSupported &&
-          (localUnknown || localDevices.contains(activeDevice))) ...[
+      if (hostingShown) ...[
         const SizedBox(height: 12),
         // No status on the header: each host card carries its own, and the same
         // pill in both places said one thing twice.
@@ -605,17 +605,29 @@ class _DeviceFirstServices extends ConsumerWidget {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-              child: Column(
-                children: [
-                  for (final host in localHosts)
-                    _LocalHostCard(
-                      key: Key('local-host-${host.name}'),
-                      host: host,
-                    ),
-                  const _AddLocalHostCard(),
-                  const SizedBox(height: 8),
-                  const DeviceManagementSwitch(),
-                ],
+              // A host started or stopped resizes the card rather than
+              // jumping.
+              child: Motion.resize(
+                context,
+                alignment: Alignment.topCenter,
+                child: Column(
+                  children: [
+                    for (final host in localHosts)
+                      _LocalHostCard(
+                        key: Key('local-host-${host.name}'),
+                        host: host,
+                        row: switch (apps
+                            .where((s) => s.key == host.appServiceKey)
+                            .firstOrNull) {
+                          final service? => chatRow(service, host: host),
+                          null => null,
+                        },
+                      ),
+                    const _AddLocalHostCard(),
+                    const SizedBox(height: 8),
+                    const DeviceManagementSwitch(),
+                  ],
+                ),
               ),
             ),
           ],
@@ -707,7 +719,7 @@ class _NarrowServices extends StatelessWidget {
                     child: TextButton.icon(
                       key: const Key('device-back'),
                       onPressed: onBack,
-                      icon: const Icon(Icons.chevron_left, size: 18),
+                      icon: const Icon(AppIcons.chevron_left, size: 18),
                       label: Text(l10n.servicesDevices),
                     ),
                   ),

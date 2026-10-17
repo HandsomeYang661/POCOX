@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:pocket_codex/src/automation_prompt.dart';
+import 'package:pocket_codex/src/screens/app_session/automation_prompt_card.dart';
 import 'package:go_router/go_router.dart';
 import 'app_session/activity_cards.dart';
 import 'app_session/approval_review.dart';
@@ -38,6 +40,8 @@ import 'package:pocket_codex/src/widgets/utility_page.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 
 import 'local_session_view/native_window.dart';
+import 'package:pocket_codex/src/app_icons.dart';
+import 'package:pocket_codex/src/widgets/field_help.dart';
 
 part 'local_session_view/transcript_row.dart';
 part 'local_session_view/native_follow.dart';
@@ -186,7 +190,26 @@ class _LocalSessionViewState extends ConsumerState<LocalSessionViewScreen>
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     _setImageLoader();
     _load(initial: true);
-    _poll = Timer.periodic(_pollInterval, (_) => _load());
+    _startPoll();
+  }
+
+  void _startPoll() => _poll = Timer.periodic(_pollInterval, (_) => _load());
+
+  /// Whether this viewer is the visible route.
+  bool get _onTop => ModalRoute.of(context)?.isCurrent ?? true;
+
+  /// Whether the reader is at (or near) the transcript's end.
+  bool get _atBottom =>
+      !_scroll.hasClients ||
+      _scroll.position.pixels >= _scroll.position.maxScrollExtent - 40;
+
+  /// Keep the end in view once the next frame laid it out, while [current].
+  void _followTail(bool Function() current) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (current() && _scroll.hasClients) {
+        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      }
+    });
   }
 
   @override
@@ -205,10 +228,7 @@ class _LocalSessionViewState extends ConsumerState<LocalSessionViewScreen>
 
   Future<void> _load({bool initial = false}) async {
     if (_source.isNative) {
-      if (!initial &&
-          (!_foreground || !(ModalRoute.of(context)?.isCurrent ?? true))) {
-        return;
-      }
+      if (!initial && (!_foreground || !_onTop)) return;
       return _loadNative(initial: initial);
     }
     if (_reading && !initial) return;
@@ -243,22 +263,14 @@ class _LocalSessionViewState extends ConsumerState<LocalSessionViewScreen>
       if (!current()) return;
       // Auto-follow the tail if the reader is already near the bottom, so a
       // session being driven elsewhere streams in like a live conversation.
-      final atBottom =
-          !_scroll.hasClients ||
-          _scroll.position.pixels >= _scroll.position.maxScrollExtent - 40;
+      final atBottom = _atBottom;
       setState(() {
         _items = items;
         _live = live;
         _loading = false;
         _error = null;
       });
-      if (fetchTranscript && atBottom) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (current() && _scroll.hasClients) {
-            _scroll.jumpTo(_scroll.position.maxScrollExtent);
-          }
-        });
-      }
+      if (fetchTranscript && atBottom) _followTail(current);
     } catch (e) {
       if (!current()) return;
       // A transient poll failure shouldn't blow away a transcript already shown.
@@ -302,9 +314,7 @@ class _LocalSessionViewState extends ConsumerState<LocalSessionViewScreen>
     // Only re-arm the poll when this viewer is still the visible route. On a
     // successful resume it pushed the live conversation on top of us, and
     // polling a backgrounded screen every 3s is wasted work.
-    if (mounted && (ModalRoute.of(context)?.isCurrent ?? true)) {
-      _poll = Timer.periodic(_pollInterval, (_) => _load());
-    }
+    if (mounted && _onTop) _startPoll();
   }
 
   @override
@@ -341,7 +351,7 @@ class _LocalSessionViewState extends ConsumerState<LocalSessionViewScreen>
           if (widget.parentThreadId case final parent?)
             IconButton(
               tooltip: l10n.parentSession,
-              icon: const Icon(Icons.subdirectory_arrow_left),
+              icon: const Icon(AppIcons.subdirectory_arrow_left),
               onPressed: () => context.push(
                 Uri(
                   path: '/sessions/view',
@@ -356,7 +366,7 @@ class _LocalSessionViewState extends ConsumerState<LocalSessionViewScreen>
             ),
           IconButton(
             key: const Key('local-view-refresh'),
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(AppIcons.refresh),
             tooltip: l10n.refreshStatus,
             onPressed: _loading ? null : () => _load(initial: true),
           ),
@@ -391,7 +401,7 @@ class _LocalSessionViewState extends ConsumerState<LocalSessionViewScreen>
       child: Row(
         children: [
           Icon(
-            running ? Icons.lock_clock : Icons.lock_outline,
+            running ? AppIcons.lock_clock : AppIcons.lock_outline,
             size: 16,
             color: color,
           ),
@@ -488,8 +498,8 @@ class _LocalSessionViewState extends ConsumerState<LocalSessionViewScreen>
                 onPressed: _resume,
                 icon: Icon(
                   live.requiresTakeover
-                      ? Icons.bolt
-                      : Icons.play_circle_outline,
+                      ? AppIcons.bolt
+                      : AppIcons.play_circle_outline,
                 ),
                 label: Text(
                   live.requiresTakeover
@@ -501,7 +511,7 @@ class _LocalSessionViewState extends ConsumerState<LocalSessionViewScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.lock_clock,
+                    AppIcons.lock_clock,
                     size: 16,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -545,7 +555,7 @@ class _LocalSessionViewState extends ConsumerState<LocalSessionViewScreen>
             cwd: widget.cwd,
           ),
         ),
-        icon: const Icon(Icons.play_circle_outline),
+        icon: const Icon(AppIcons.play_circle_outline),
         label: Text(l10n.nativeContinueOn(host.name)),
       );
     } else if (canHost) {
@@ -555,7 +565,7 @@ class _LocalSessionViewState extends ConsumerState<LocalSessionViewScreen>
           context,
           initialChoice: provider == 'claude' ? 'preset:claude' : 'opencode',
         ),
-        icon: const Icon(Icons.dns_outlined),
+        icon: const Icon(AppIcons.dns_outlined),
         label: Text(l10n.nativeHostToContinue(name)),
       );
     } else {

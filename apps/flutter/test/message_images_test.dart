@@ -7,7 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:pocket_codex/l10n/gen/app_localizations.dart';
+import 'package:pocket_codex/src/ide_context.dart';
 import 'package:pocket_codex/src/widgets/message_images.dart';
+import 'package:pocket_codex/src/app_icons.dart';
 
 Uint8List _png({int w = 8, int h = 8}) =>
     img.encodePng(img.Image(width: w, height: h, numChannels: 3));
@@ -167,9 +169,24 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
+    expect(find.byIcon(AppIcons.broken_image_outlined), findsOneWidget);
     expect(images.single.hostPath, isNull);
     expect(reads, isEmpty);
+  });
+
+  test('a pathless inline copy stands for a flagged mention only', () {
+    final inline = resolveImageUrls([_dataUrl()]);
+    const shot = IdeMentionedFile(name: 'shot.png', path: '/w/shot.png');
+    const sent = IdeMentionedFile(
+      name: 'sent.png',
+      path: '/w/sent.png',
+      attachedImage: true,
+    );
+    // The unflagged mention is a file on the host, not the inline copy.
+    expect(unattachedImageMentions([shot, sent], inline), ['/w/shot.png']);
+    // Text from before the flag existed pairs image mentions in order.
+    const old = IdeMentionedFile(name: 'old.png', path: '/w/old.png');
+    expect(unattachedImageMentions([old, shot], inline), ['/w/shot.png']);
   });
 
   test(
@@ -195,7 +212,7 @@ void main() {
     (tester) async {
       final images = resolveImageUrls(['data:image/png;base64,!!!']);
       await tester.pumpWidget(_wrap(MessageImagesView(images: images)));
-      expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
+      expect(find.byIcon(AppIcons.broken_image_outlined), findsOneWidget);
     },
   );
 
@@ -280,7 +297,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // No save affordance until the pointer hovers the thumbnail.
-      expect(find.byIcon(Icons.download_outlined), findsNothing);
+      expect(find.byIcon(AppIcons.download_outlined), findsNothing);
 
       final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
       await gesture.addPointer(location: Offset.zero);
@@ -288,7 +305,7 @@ void main() {
       await gesture.moveTo(tester.getCenter(find.byType(Image)));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.download_outlined), findsOneWidget);
+      expect(find.byIcon(AppIcons.download_outlined), findsOneWidget);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
@@ -303,7 +320,7 @@ void main() {
     try {
       await _openViewer(tester, _png());
       // Asserted by tooltip, not by icon: the zoom bar's own −/+ controls reuse
-      // Icons.remove, so an icon finder can't tell them from a caption button.
+      // AppIcons.remove, so an icon finder can't tell them from a caption button.
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
       expect(find.byTooltip(l10n.windowMinimize), findsOneWidget);
       expect(find.byTooltip(l10n.windowMaximize), findsOneWidget);

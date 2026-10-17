@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:pocket_codex/l10n/gen/app_localizations.dart';
 import 'package:pocket_codex/src/bridge_api.dart';
@@ -9,8 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pocket_codex/src/dismissed_services.dart';
 import 'package:pocket_codex/src/error_format.dart';
+import 'package:pocket_codex/src/fonts.dart';
 import 'package:pocket_codex/src/hosting/host_restore.dart';
 import 'package:pocket_codex/src/managed/managed_providers.dart';
+import 'package:pocket_codex/src/motion.dart';
 import 'package:pocket_codex/src/providers.dart';
 import 'package:pocket_codex/src/screens/app_session_screen.dart';
 import 'package:pocket_codex/src/service_key.dart';
@@ -19,8 +19,11 @@ import 'package:pocket_codex/src/widgets/app_toast.dart';
 import 'package:pocket_codex/src/widgets/brand_logo.dart';
 import 'package:pocket_codex/src/widgets/host_switcher.dart';
 import 'package:pocket_codex/src/widgets/local_host_dialog.dart';
+import 'package:pocket_codex/src/widgets/relay_problem.dart';
 import 'package:pocket_codex/src/widgets/utility_page.dart';
 import 'package:pocket_codex/src/widgets/window_title_bar.dart';
+import 'package:pocket_codex/src/app_icons.dart';
+import 'package:pocket_codex/src/widgets/field_help.dart';
 
 /// Chat-first home: resolves the right app service (explicit default → last
 /// used → locally hosted → first reachable), connects, picks the latest
@@ -101,12 +104,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   // A host switch in flight, or one that failed and is still on screen.
   HostSwitch? _hostSwitch;
 
-  bool get _isDesktop =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.windows ||
-          defaultTargetPlatform == TargetPlatform.macOS ||
-          defaultTargetPlatform == TargetPlatform.linux);
-
   @override
   void initState() {
     super.initState();
@@ -164,6 +161,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         startedAt != null &&
         DateTime.now().difference(startedAt) > _stuckAfter;
     if (_resolving && !stuck) return;
+    _recheck();
+  }
+
+  /// Rediscover and re-resolve without flipping the fallback UI.
+  void _recheck() {
     ref.invalidate(servicesProvider);
     _resolve(background: true);
   }
@@ -183,8 +185,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         mounted &&
         _phase != _Phase.ready &&
         !_resolving) {
-      ref.invalidate(servicesProvider);
-      _resolve(background: true);
+      _recheck();
     }
   }
 
@@ -207,6 +208,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
       // 1. Discover.
       List<ServiceEntry> services;
+      // Set when the relay could not list services. A desktop goes on with
+      // its own hosts: the relay lists other devices, and this computer's
+      // hosts are served here over loopback without it.
+      String? relayProblem;
       try {
         services = await ref.read(servicesProvider.future);
       } catch (e) {
@@ -221,43 +226,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           context.go('/onboarding?reason=session-expired');
           return;
         }
-        setState(() {
-          _phase = _serviceKey == null ? _Phase.discoverFailed : _Phase.ready;
-          _error = message;
-        });
-        return;
+        if (!isDesktop) {
+          setState(() {
+            _phase = _serviceKey == null ? _Phase.discoverFailed : _Phase.ready;
+            _error = message;
+          });
+          return;
+        }
+        relayProblem = message;
+        services = const [];
       }
       if (!mounted || gen != _generation) return;
       final dismissed = await _dismissed();
       if (!mounted || gen != _generation) return;
-      List<ServiceEntry> candidates() => services
-          .where((s) => isSessionKind(s.kind) && !dismissed.contains(s.key))
-          .toList(growable: false);
+      Future<List<ServiceEntry>> candidates() async => relayProblem == null
+          ? _chatCandidates(services, dismissed)
+          : _localApps(api, dismissed);
 
       // 2. Desktop: restore the hosting the user left running last time, so a
       // freshly booted desktop is immediately chattable (and phone-reachable)
       // even when OTHER hosts are discoverable. Gated per provider on THIS
       // machine not hosting it yet; best-effort — failures fall through to the
       // hero/remote.
-      var apps = candidates();
-      if (_isDesktop &&
+      var apps = await candidates();
+      if (!mounted || gen != _generation) return;
+      if (isDesktop &&
           await _restoreHosting(api, gen: gen, background: background)) {
         if (!mounted || gen != _generation) return;
-        try {
-          ref.invalidate(localServeListProvider);
-          ref.invalidate(servicesProvider);
-          services = await ref.read(servicesProvider.future);
-          apps = candidates();
-        } catch (_) {
-          // The hero (with its start-hosting action) is the fallback.
+        ref.invalidate(localServeListProvider);
+        if (relayProblem == null) {
+          try {
+            ref.invalidate(servicesProvider);
+            services = await ref.read(servicesProvider.future);
+          } catch (_) {
+            // The hero (with its start-hosting action) is the fallback.
+          }
         }
+        apps = await candidates();
       }
       if (!mounted || gen != _generation) return;
       if (apps.isEmpty) {
         setState(() {
-          _phase = _serviceKey == null ? _Phase.noService : _Phase.ready;
+          if (relayProblem != null) {
+            _phase = _serviceKey == null ? _Phase.discoverFailed : _Phase.ready;
+            _error = relayProblem;
+          } else {
+            _phase = _serviceKey == null ? _Phase.noService : _Phase.ready;
+            if (background) _error = null;
+          }
           _candidates = const [];
-          if (background) _error = null;
         });
         return;
       }
@@ -301,12 +318,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             break;
           }
           if (!mounted) return;
-          final l10n = AppLocalizations.of(context);
-          lastError = isRelayAuthRejection(reason)
-              ? l10n.unreachableAuthRejected
-              : isProbeTimeout(reason)
-              ? l10n.unreachableSilent
-              : friendlyError(reason);
+          lastError = _probeFailure(AppLocalizations.of(context), reason);
         } catch (e) {
           lastError = friendlyError(e);
         }
@@ -322,24 +334,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         return;
       }
 
-      // 5. Connect (reuse a live session; one clean reconnect for a stale
-      // half-open tunnel — same recovery the project screen uses).
+      // 5. Connect (reuse a live session).
       if (!api.appIsConnected(target.key)) {
         try {
-          await api.appConnect(target.key, appLocalPort);
-        } catch (_) {
-          try {
-            await api.appDisconnect(target.key);
-            await api.appConnect(target.key, appLocalPort);
-          } catch (e) {
-            if (!mounted || gen != _generation) return;
-            setState(() {
-              _phase = _serviceKey == null ? _Phase.noService : _Phase.ready;
-              _candidates = ranked;
-              _error = friendlyError(e);
-            });
-            return;
-          }
+          await _connect(api, target.key);
+        } catch (e) {
+          if (!mounted || gen != _generation) return;
+          setState(() {
+            _phase = _serviceKey == null ? _Phase.noService : _Phase.ready;
+            _candidates = ranked;
+            _error = friendlyError(e);
+          });
+          return;
         }
       }
       if (!mounted || gen != _generation) return;
@@ -350,6 +356,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (!mounted || gen != _generation) return;
 
       ref.read(uiPrefsProvider.notifier).setLastService(target.key);
+      final opening = _phase != _Phase.ready;
       setState(() {
         _phase = _Phase.ready;
         _serviceKey = target!.key;
@@ -357,13 +364,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _cwd = pick?.cwd;
         _candidates = ranked;
       });
-    } finally {
-      if (gen == _generation) {
-        _resolving = false;
-        _resolveStartedAt = null;
+      // Opened past a relay that could not be reached: say so once, since
+      // other devices cannot reach this one until it answers again.
+      if (relayProblem != null && opening) {
+        showToast(context, AppLocalizations.of(context).homeRelayLocalOnly);
       }
+    } finally {
+      _endResolve(gen);
     }
   }
+
+  /// Resolve or switch [gen] ended: clear the in-flight markers unless a
+  /// newer one owns them (or the self-heal tick would think a resolve is
+  /// still running).
+  void _endResolve(int gen) {
+    if (gen != _generation) return;
+    _resolving = false;
+    _resolveStartedAt = null;
+  }
+
+  /// Connect to [key], with one clean reconnect for a stale half-open
+  /// tunnel (the same recovery the project screen uses).
+  static Future<void> _connect(BridgeApi api, String key) async {
+    try {
+      await api.appConnect(key, appLocalPort);
+    } catch (_) {
+      await api.appDisconnect(key);
+      await api.appConnect(key, appLocalPort);
+    }
+  }
+
+  /// Why a probe of a service failed, in the user's words.
+  static String _probeFailure(AppLocalizations l10n, String reason) =>
+      isRelayAuthRejection(reason)
+      ? l10n.unreachableAuthRejected
+      : isProbeTimeout(reason)
+      ? l10n.unreachableSilent
+      : friendlyError(reason);
 
   /// Restore the Codex, ACP and OpenCode hosting the user left running, each
   /// at most once per run and only what this machine does not host already
@@ -422,6 +459,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (mounted && gen == _generation && _rehosting) {
         setState(() => _rehosting = false);
       }
+    }
+  }
+
+  /// This computer's own chat services, from its hosts rather than the relay
+  /// (each is reached over loopback); empty when they cannot be read.
+  Future<List<ServiceEntry>> _localApps(
+    BridgeApi api,
+    Set<String> dismissed,
+  ) async {
+    try {
+      return [
+        for (final host in await api.appServeStatus())
+          if (host.appServiceKey.isNotEmpty &&
+              isSessionKind(host.sessionKind) &&
+              !dismissed.contains(host.appServiceKey))
+            ServiceEntry(
+              device: host.device,
+              kind: host.sessionKind,
+              name: host.name,
+              key: host.appServiceKey,
+            ),
+      ];
+    } catch (_) {
+      return const [];
     }
   }
 
@@ -513,14 +574,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (reason == null && !api.appIsConnected(key)) {
         step(HostSwitchPhase.connecting);
         try {
-          await api.appConnect(key, appLocalPort);
-        } catch (_) {
-          try {
-            await api.appDisconnect(key);
-            await api.appConnect(key, appLocalPort);
-          } catch (e) {
-            reason = '$e';
-          }
+          await _connect(api, key);
+        } catch (e) {
+          reason = '$e';
         }
       }
       if (!mounted || gen != _generation) return;
@@ -543,12 +599,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       });
       messenger.ok(l10n.hostSwitched(_hostLabelOf(key)));
     } finally {
-      // The switch superseded any resolve, so clear its in-flight markers too
-      // (or the self-heal tick would think a resolve is still running).
-      if (gen == _generation) {
-        _resolving = false;
-        _resolveStartedAt = null;
-      }
+      // The switch superseded any resolve, so clear its markers too.
+      _endResolve(gen);
     }
   }
 
@@ -561,11 +613,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// A failed probe or connect, worded for the user, ending with the host
   /// they are still on.
   String _switchFailure(AppLocalizations l10n, String reason) {
-    final why = isRelayAuthRejection(reason)
-        ? l10n.unreachableAuthRejected
-        : isProbeTimeout(reason)
-        ? l10n.unreachableSilent
-        : friendlyError(reason);
+    final why = _probeFailure(l10n, reason);
     final current = _serviceKey;
     return current == null
         ? why
@@ -619,6 +667,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         if (mounted) _takeRequestedService();
       });
     });
+    final Widget page;
     switch (_phase) {
       case _Phase.ready:
         // The switcher list tracks live discovery (a host added/removed on the
@@ -630,33 +679,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             const <String>{};
         final candidates = live == null
             ? _candidates
-            : live
-                  .where(
-                    (s) => isSessionKind(s.kind) && !dismissed.contains(s.key),
-                  )
-                  .toList(growable: false);
+            : _chatCandidates(live, dismissed);
         // The chat IS the home. Keyed by service so a switch rebuilds the
         // session state from scratch (connections stay alive underneath).
-        return AppPageShortcuts(
-          currentRoute: '/',
-          child: AppSessionScreen(
-            key: ValueKey('home-$_serviceKey'),
-            serviceKey: _serviceKey!,
-            threadId: _threadId,
-            cwd: _cwd,
-            home: true,
-            services: candidates,
-            onSwitchService: _switchService,
-            hostSwitch: _hostSwitch,
-            onDismissHostSwitch: () => setState(() => _hostSwitch = null),
-          ),
+        page = AppSessionScreen(
+          key: ValueKey('home-$_serviceKey'),
+          serviceKey: _serviceKey!,
+          threadId: _threadId,
+          cwd: _cwd,
+          home: true,
+          services: candidates,
+          onSwitchService: _switchService,
+          hostSwitch: _hostSwitch,
+          onDismissHostSwitch: () => setState(() => _hostSwitch = null),
         );
       case _Phase.resolving:
-        return AppPageShortcuts(currentRoute: '/', child: _splash(l10n));
+        page = _splash(l10n);
       case _Phase.noService:
       case _Phase.discoverFailed:
-        return AppPageShortcuts(currentRoute: '/', child: _hero(l10n));
+        page = _hero(l10n);
     }
+    // One phase cross-fades into the next (the splash into the chat), keyed
+    // by phase alone: switching hosts within the chat remounts it in place.
+    return AnimatedSwitcher(
+      duration: Motion.of(context, Motion.slow),
+      switchInCurve: Motion.enter,
+      switchOutCurve: Curves.easeIn,
+      layoutBuilder: (current, previous) =>
+          Stack(fit: StackFit.expand, children: [...previous, ?current]),
+      child: KeyedSubtree(
+        key: ValueKey(_phase),
+        child: AppPageShortcuts(currentRoute: '/', child: page),
+      ),
+    );
   }
 
   /// App bar with the manage/settings escape hatches, shared by the splash
@@ -667,13 +722,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     actions: [
       IconButton(
         key: const Key('home-manage-btn'),
-        icon: const Icon(Icons.dns_outlined),
+        icon: const Icon(AppIcons.dns_outlined),
         tooltip: l10n.manageServices,
         onPressed: () => context.push('/manage'),
       ),
       IconButton(
         key: const Key('home-settings-btn'),
-        icon: const Icon(Icons.settings_outlined),
+        icon: const Icon(AppIcons.settings_outlined),
         tooltip: l10n.settingsTitle,
         onPressed: () => context.push('/settings'),
       ),
@@ -713,10 +768,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final discoverFailed = _phase == _Phase.discoverFailed;
     // Hosting from the hero mirrors the manage page's gate: desktop only.
     // Self-host and account mode publish the same way.
-    final canHost = _isDesktop;
-    final hint = discoverFailed
-        ? (_error ?? '')
-        : canHost
+    final canHost = isDesktop;
+    if (discoverFailed) {
+      // What is wrong with the relay, in words, with the raw error folded
+      // away; a desktop can still host here (it publishes once the relay
+      // answers again).
+      return Scaffold(
+        appBar: _homeAppBar(l10n),
+        body: RelayProblem(
+          detail: _error ?? '',
+          relay: ref.watch(configProvider).valueOrNull?.relay,
+          onRetry: _retry,
+          actions: [
+            if (canHost)
+              OutlinedButton.icon(
+                key: const Key('home-start-hosting-btn'),
+                onPressed: _startHosting,
+                icon: const Icon(AppIcons.rocket_launch_outlined, size: 18),
+                label: Text(l10n.startHosting),
+              ),
+            TextButton(
+              key: const Key('home-open-manage-btn'),
+              onPressed: () => context.push('/manage'),
+              child: Text(l10n.manageServices),
+            ),
+          ],
+        ),
+      );
+    }
+    final hint = canHost
         ? l10n.homeNoServiceDesktopHint
         : l10n.homeNoServiceMobileHint;
     return Scaffold(
@@ -732,9 +812,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 const BrandLogo(size: 72),
                 const SizedBox(height: 20),
                 Text(
-                  discoverFailed
-                      ? l10n.discoverFailed
-                      : l10n.homeNoServiceTitle,
+                  l10n.homeNoServiceTitle,
                   key: const Key('home-hero-title'),
                   style: Theme.of(context).textTheme.titleMedium,
                   textAlign: TextAlign.center,
@@ -747,7 +825,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                   textAlign: TextAlign.center,
                 ),
-                if (!discoverFailed && _error != null) ...[
+                if (_error != null) ...[
                   const SizedBox(height: 8),
                   Text(
                     _error!,
@@ -757,25 +835,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                 ],
                 const SizedBox(height: 22),
-                if (canHost && !discoverFailed) ...[
+                if (canHost) ...[
                   FilledButton.icon(
                     key: const Key('home-start-hosting-btn'),
                     onPressed: _startHosting,
-                    icon: const Icon(Icons.rocket_launch_outlined),
+                    icon: const Icon(AppIcons.rocket_launch_outlined),
                     label: Text(l10n.startHosting),
                   ),
                   const SizedBox(height: 10),
                 ],
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 10,
+                  runSpacing: 8,
                   children: [
                     OutlinedButton.icon(
                       key: const Key('home-retry-btn'),
                       onPressed: _retry,
-                      icon: const Icon(Icons.refresh, size: 18),
+                      icon: const Icon(AppIcons.refresh, size: 18),
                       label: Text(l10n.retry),
                     ),
-                    const SizedBox(width: 10),
                     TextButton(
                       key: const Key('home-open-manage-btn'),
                       onPressed: () => context.push('/manage'),
@@ -786,10 +865,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 const SizedBox(height: 16),
                 Text(
                   l10n.homeAutoRetryNote,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: scheme.onSurfaceVariant,
-                  ),
+                  style: helpTextStyle(Theme.of(context)),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -800,3 +876,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 }
+
+/// The chat services of [services] the user has not dismissed.
+List<ServiceEntry> _chatCandidates(
+  Iterable<ServiceEntry> services,
+  Set<String> dismissed,
+) => services
+    .where((s) => isSessionKind(s.kind) && !dismissed.contains(s.key))
+    .toList(growable: false);

@@ -44,32 +44,15 @@ class HostStatusSection extends StatelessWidget {
     final small = Theme.of(context).textTheme.bodySmall;
     final muted = small?.copyWith(color: scheme.onSurfaceVariant);
     final online = host.appRegistered;
-    final color = online ? successColor(scheme) : scheme.onSurfaceVariant;
     return Column(
       key: const Key('codex-host-details'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Wrap(
-          spacing: 8,
-          runSpacing: 6,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            const ProviderBadge(provider: 'codex'),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.circle, size: 10, color: color),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    online ? l10n.managedStateRunning : l10n.tunnelOffline,
-                    style: small?.copyWith(color: color),
-                  ),
-                ),
-              ],
-            ),
-          ],
+        HostStateLine(
+          badge: const ProviderBadge(provider: 'codex'),
+          label: online ? l10n.managedStateRunning : l10n.tunnelOffline,
+          color: online ? successColor(scheme) : scheme.onSurfaceVariant,
         ),
         const SizedBox(height: 6),
         Text(

@@ -72,7 +72,12 @@ class _CapabilityRow extends StatelessWidget {
     this.onSetDefault,
     this.onDeregister,
     this.onReregister,
+    this.host,
   });
+
+  /// This computer's host behind a chat row, when the row is that host's
+  /// card: it then leads with the host's name and opens its editor on tap.
+  final AppServeStatus? host;
 
   final IconData icon;
   final String title;
@@ -113,25 +118,65 @@ class _CapabilityRow extends StatelessWidget {
   /// offered both.
   final VoidCallback? onReregister;
 
+  /// The agent's own name for a chat row (Codex, OpenCode, the ACP agent).
+  String? _providerLabel(AppLocalizations l10n) {
+    final p = provider;
+    if (p == null) return null;
+    final agent = providerName?.trim() ?? '';
+    return switch (p) {
+      'acp' => agent.isNotEmpty ? agent : l10n.providerAcpAgent,
+      'opencode' => l10n.providerOpenCode,
+      _ => l10n.providerCodex,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final agent = _providerLabel(l10n);
+    // A chat row leads with the agent itself — its mark and name — so rows
+    // differ at a glance instead of repeating one generic glyph and label.
+    final heading = host?.name ?? agent ?? title;
+    final facts = [
+      if (host != null && agent != null) agent,
+      // A host card is a chat service by being one; only a bare row says so.
+      if (host == null && agent != null) title,
+      protocol,
+    ].join('  ·  ');
+    final override = _HostStatus.maybeOf(context);
+    final shownStatus = override ?? status;
     return Container(
       constraints: const BoxConstraints(minHeight: 64),
       padding: const EdgeInsets.fromLTRB(12, 8, 7, 8),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
-      ),
       child: _rowOrStacked(
         context,
         // Default, status, the action and the overflow take ~260 px; below
         // this the title and provider would be squeezed to a fragment
         // beside them (every phone width).
         stackBelow: 440,
+        // Every row leads with the same soft disc: the agent's own mark, or
+        // the capability's glyph.
         leading: [
-          IconBadge(icon: icon, size: 36, accent: true),
-          const SizedBox(width: 11),
+          Container(
+            key: host == null ? null : Key('local-host-icon-${host!.name}'),
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: softWash(scheme),
+              shape: BoxShape.circle,
+            ),
+            child: provider != null
+                ? AgentIcon.of(
+                    provider: provider!,
+                    profileId: profileId,
+                    name: agent ?? '',
+                    size: 19,
+                  )
+                : Icon(icon, size: 18, color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(width: 12),
         ],
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,24 +184,11 @@ class _CapabilityRow extends StatelessWidget {
           children: [
             // The provider badge follows the title, or goes under it where
             // both do not fit, so neither is cut to a fragment.
-            Wrap(
-              spacing: 6,
-              runSpacing: 2,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (provider != null)
-                  ProviderBadge(
-                    provider: provider!,
-                    name: providerName,
-                    profileId: profileId,
-                  ),
-              ],
+            Text(
+              heading,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             // One rich line rather than a Row, so a long address ellipsises
             // with the protocol instead of overflowing the row.
@@ -166,7 +198,7 @@ class _CapabilityRow extends StatelessWidget {
                   context,
                 ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
                 children: [
-                  TextSpan(text: protocol),
+                  TextSpan(text: facts),
                   if (localAddr != null) ...[
                     TextSpan(
                       text: '  ·  ',
@@ -205,7 +237,7 @@ class _CapabilityRow extends StatelessWidget {
             _CountPill(label: l10n.servicesDefault, accent: true),
             const SizedBox(width: 8),
           ],
-          if (status != null) ...[status!, const SizedBox(width: 6)],
+          if (shownStatus != null) ...[shownStatus, const SizedBox(width: 6)],
           // The action and its overflow wrap together, never apart.
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -215,7 +247,7 @@ class _CapabilityRow extends StatelessWidget {
                 PopupMenuButton<VoidCallback>(
                   key: menuKey,
                   tooltip: l10n.moreActions,
-                  icon: const Icon(Icons.more_horiz),
+                  icon: const Icon(AppIcons.more_horiz),
                   onSelected: (action) => action(),
                   itemBuilder: (_) => [
                     for (final item in _overflow)
@@ -246,6 +278,20 @@ class _CapabilityRow extends StatelessWidget {
     if (onDeregister != null)
       _RowAction((l) => l.deregister, onDeregister!, danger: true),
   ];
+}
+
+/// A host's own status, shown on its row in place of the relay status while
+/// the host itself is not healthy (starting, unresponsive, failed to stop).
+class _HostStatus extends InheritedWidget {
+  const _HostStatus({required this.chip, required super.child});
+
+  final Widget? chip;
+
+  static Widget? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_HostStatus>()?.chip;
+
+  @override
+  bool updateShouldNotify(_HostStatus old) => chip != old.chip;
 }
 
 /// One entry of a capability row's overflow menu. The label is resolved late so
@@ -285,61 +331,83 @@ class _CountPill extends StatelessWidget {
   }
 }
 
-/// The Sessions tab: pick a connected host, then browse that host's CODEX_HOME
-/// sessions over its meta tunnel (loopback when this app hosts it, broker when
-/// remote). Read-only transcripts + force-resume per session, via an embedded
-/// [LocalSessionsScreen] in remote mode.
-Future<void> _batchRemove(
-  BuildContext context,
-  WidgetRef ref,
-  List<ServiceEntry> entries,
-) async {
+/// The relay probe for [s]: its app-server for a session service, else its
+/// Responses API.
+FutureProvider<bool> _reachability(ServiceEntry s) => isSessionKind(s.kind)
+    ? appReachableProvider(s.key)
+    : apiReachableProvider(s.key);
+
+/// Whether [s] answers right now. Read at confirm time (probes refresh every
+/// 15s): a key that recovered while a dialog was open must not be dismissed,
+/// which would strand a live service off the list.
+bool _reachableNow(WidgetRef ref, ServiceEntry s) =>
+    ref.read(_reachability(s)).valueOrNull == true;
+
+/// Ask the backend to drop [s]'s relay key.
+Future<void> _deregisterRemote(BridgeApi bridge, ServiceEntry s) => bridge
+    .accountDeregisterService(device: s.device, kind: s.kind, name: s.name);
+
+/// Ask before a removal; true only for an explicit [confirm].
+Future<bool> _confirmRemoval(
+  BuildContext context, {
+  required Key dialogKey,
+  required Key confirmKey,
+  required String title,
+  required String body,
+  required String confirm,
+}) async {
   final l10n = AppLocalizations.of(context);
   final scheme = Theme.of(context).colorScheme;
-  if (entries.isEmpty) return;
-  final ok = await showDialog<bool>(
+  final ok = await showAppDialog<bool>(
     context: context,
     builder: (_) => AlertDialog(
-      key: const Key('batch-remove-dialog'),
-      title: Text(l10n.batchRemoveTitle),
-      content: Text(l10n.batchRemoveWarning(entries.length)),
+      key: dialogKey,
+      title: Text(title),
+      content: Text(body),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
           child: Text(l10n.cancel),
         ),
         FilledButton(
-          key: const Key('batch-remove-confirm-btn'),
+          key: confirmKey,
           style: FilledButton.styleFrom(backgroundColor: scheme.error),
           onPressed: () => Navigator.of(context).pop(true),
-          child: Text(l10n.remove),
+          child: Text(confirm),
         ),
       ],
     ),
   );
-  if (ok != true) return;
+  return ok == true;
+}
+
+/// Confirm, then remove the unreachable [entries] from this device's list,
+/// asking the backend (best-effort) to drop their relay keys.
+Future<void> _batchRemove(
+  BuildContext context,
+  WidgetRef ref,
+  List<ServiceEntry> entries,
+) async {
+  final l10n = AppLocalizations.of(context);
+  if (entries.isEmpty) return;
+  final ok = await _confirmRemoval(
+    context,
+    dialogKey: const Key('batch-remove-dialog'),
+    confirmKey: const Key('batch-remove-confirm-btn'),
+    title: l10n.batchRemoveTitle,
+    body: l10n.batchRemoveWarning(entries.length),
+    confirm: l10n.remove,
+  );
+  if (!ok) return;
   final dismiss = ref.read(dismissedServicesProvider.notifier);
   final bridge = ref.read(bridgeApiProvider);
   var removed = 0;
   for (final s in entries) {
-    // Re-check reachability at confirm time (probes refresh every 15s): a key
-    // that recovered while the dialog was open must not be dismissed — that
-    // would strand a live service off the list.
-    final reachableNow =
-        (isSessionKind(s.kind)
-                ? ref.read(appReachableProvider(s.key))
-                : ref.read(apiReachableProvider(s.key)))
-            .valueOrNull ==
-        true;
-    if (reachableNow) continue;
+    if (_reachableNow(ref, s)) continue;
     dismiss.dismiss(s.key);
     removed++;
     try {
-      await bridge.accountDeregisterService(
-        device: s.device,
-        kind: s.kind,
-        name: s.name,
-      );
+      await _deregisterRemote(bridge, s);
     } catch (_) {
       // Best-effort — the entry is already hidden from the list.
     }
@@ -411,39 +479,24 @@ Future<void> _confirmDeregister(
   bool unreachable = false,
 }) async {
   final l10n = AppLocalizations.of(context);
-  final scheme = Theme.of(context).colorScheme;
   final isLocal = localTunnel != null;
   // A non-local entry that isn't responding is orphaned: use the honest
   // "remove from your list" wording instead of the "stop that host" wording,
   // which doesn't apply when no reachable host exists.
   final isOrphan = unreachable && !isLocal;
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (_) => AlertDialog(
-      key: const Key('deregister-dialog'),
-      title: Text(isOrphan ? l10n.deregisterOrphanTitle : l10n.deregisterTitle),
-      content: Text(
-        isLocal
-            ? l10n.deregisterLocalWarning(s.name)
-            : isOrphan
-            ? l10n.deregisterOrphanWarning(s.name)
-            : l10n.deregisterWarning(s.name),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          key: const Key('deregister-confirm-btn'),
-          style: FilledButton.styleFrom(backgroundColor: scheme.error),
-          onPressed: () => Navigator.of(context).pop(true),
-          child: Text(isOrphan ? l10n.remove : l10n.deregister),
-        ),
-      ],
-    ),
+  final ok = await _confirmRemoval(
+    context,
+    dialogKey: const Key('deregister-dialog'),
+    confirmKey: const Key('deregister-confirm-btn'),
+    title: isOrphan ? l10n.deregisterOrphanTitle : l10n.deregisterTitle,
+    body: isLocal
+        ? l10n.deregisterLocalWarning(s.name)
+        : isOrphan
+        ? l10n.deregisterOrphanWarning(s.name)
+        : l10n.deregisterWarning(s.name),
+    confirm: isOrphan ? l10n.remove : l10n.deregister,
   );
-  if (ok != true) return;
+  if (!ok) return;
   try {
     if (localTunnel != null) {
       // Reversible: stop this tunnel's register task (codex/proxy keep running);
@@ -460,26 +513,12 @@ Future<void> _confirmDeregister(
       // gone; still best-effort ask the backend to drop it (swallow errors — the
       // dismissal already achieved the user-visible removal).
       //
-      // Re-check reachability at confirm time: it may have recovered while the
-      // dialog was open. If it's live again, don't hide it — only best-effort
-      // drop — so a now-working service isn't stranded off the list.
-      final reachableNow =
-          (isSessionKind(s.kind)
-                  ? ref.read(appReachableProvider(s.key))
-                  : ref.read(apiReachableProvider(s.key)))
-              .valueOrNull ==
-          true;
-      if (!reachableNow) {
+      // If it's live again, don't hide it — only best-effort drop.
+      if (!_reachableNow(ref, s)) {
         ref.read(dismissedServicesProvider.notifier).dismiss(s.key);
       }
       try {
-        await ref
-            .read(bridgeApiProvider)
-            .accountDeregisterService(
-              device: s.device,
-              kind: s.kind,
-              name: s.name,
-            );
+        await _deregisterRemote(ref.read(bridgeApiProvider), s);
       } catch (_) {
         // Best-effort — the entry is already hidden from the list.
       }
@@ -487,13 +526,7 @@ Future<void> _confirmDeregister(
       // Someone else's LIVE service: best-effort ask the backend to drop the
       // relay key. Do NOT durably hide it — a still-running host re-registers
       // within seconds, and hiding would strand a live service off the list.
-      await ref
-          .read(bridgeApiProvider)
-          .accountDeregisterService(
-            device: s.device,
-            kind: s.kind,
-            name: s.name,
-          );
+      await _deregisterRemote(ref.read(bridgeApiProvider), s);
     }
     ref.invalidate(servicesProvider);
   } catch (e) {

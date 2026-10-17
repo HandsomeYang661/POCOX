@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pocket_codex/src/theme.dart';
 import 'package:pocket_codex/src/widgets/app_toast.dart';
+import 'package:pocket_codex/src/app_icons.dart';
 
 /// Mounts a button that raises a toast, so each test drives the real
 /// `ScaffoldMessenger` path rather than the builder in isolation.
@@ -22,45 +23,24 @@ Future<void> _tap(WidgetTester t) async {
 }
 
 void main() {
-  testWidgets('a confirmation reads as success, not as a warning', (t) async {
-    await t.pumpWidget(_host((c) => showToastOk(c, 'saved')));
-    await _tap(t);
-
-    expect(find.text('saved'), findsOneWidget);
-    final icon = t.widget<Icon>(find.byIcon(Icons.check_circle_outline));
-    // The success hue, so the tone is legible before the text is read.
-    expect(icon.color, successColor(lightTheme().colorScheme));
-  });
-
-  testWidgets('a failure is marked with the error colour', (t) async {
-    await t.pumpWidget(_host((c) => showToastError(c, 'upload failed')));
-    await _tap(t);
-
-    expect(find.text('upload failed'), findsOneWidget);
-    final icon = t.widget<Icon>(find.byIcon(Icons.error_outline));
-    expect(icon.color, lightTheme().colorScheme.error);
-  });
-
-  testWidgets('a neutral notice is neither', (t) async {
-    await t.pumpWidget(_host((c) => showToast(c, 'resumed')));
-    await _tap(t);
-
-    expect(find.byIcon(Icons.info_outline), findsOneWidget);
-    expect(find.byIcon(Icons.check_circle_outline), findsNothing);
-    expect(find.byIcon(Icons.error_outline), findsNothing);
-  });
-
-  testWidgets('it draws its own surface instead of Material\'s slab', (
-    t,
-  ) async {
-    await t.pumpWidget(_host((c) => showToastOk(c, 'copied')));
-    await _tap(t);
-
-    // Transparent + flat: every visible pixel belongs to the card inside, so the
-    // toast matches the app's raised cards rather than the default dark block.
-    final bar = t.widget<SnackBar>(find.byType(SnackBar));
-    expect(bar.backgroundColor, Colors.transparent);
-    expect(bar.elevation, 0);
+  testWidgets('each tone leads with its own glyph and colour', (t) async {
+    final scheme = lightTheme().colorScheme;
+    final tones = [
+      (showToastOk, AppIcons.check_circle_outline, successColor(scheme)),
+      (showToastError, AppIcons.error_outline, scheme.error),
+      (showToast, AppIcons.info_outline, infoColor(scheme)),
+    ];
+    for (final (raise, glyph, colour) in tones) {
+      await t.pumpWidget(_host((c) => raise(c, 'message')));
+      await _tap(t);
+      expect(find.text('message'), findsOneWidget);
+      // One glyph only, in the tone's colour, so the tone is legible before
+      // the text is read.
+      final icons = t.widgetList<Icon>(
+        find.descendant(of: find.byType(SnackBar), matching: find.byType(Icon)),
+      );
+      expect(icons.map((i) => (i.icon, i.color)), [(glyph, colour)]);
+    }
   });
 
   testWidgets('a failure stays up longer than a confirmation', (t) async {

@@ -159,7 +159,7 @@ pub fn restore(name: &str, expected: Option<u64>, legacy: Option<Runtime>) -> Re
         .context("no runtime to restore")?;
     super::host_start::start_configured_checked(
         Some(name),
-        runtime.into(),
+        runtime,
         Change {
             input: ProfileInput {
                 source: saved.source,
@@ -222,6 +222,7 @@ mod tests {
         let root = tempfile::tempdir().expect("temp");
         let runtime = Runtime::OpenCode {
             binary: None,
+            separate_history: false,
         };
         // A legacy record without an override restores; a remote stop blocks it.
         assert!(restore_choice(root.path(), "old-pref", None)
@@ -284,6 +285,7 @@ mod tests {
         assert!(record_stop_in(root.path(), "stop").is_ok());
         record_running_in(root.path(), "manual-start", Runtime::OpenCode {
             binary: None,
+            separate_history: false,
         });
         assert!(restore_choice(root.path(), "manual-start", None).is_err());
         assert_eq!(std::fs::read(path).expect("unchanged"), b"broken");
@@ -298,6 +300,7 @@ mod tests {
             "running",
             Some(Runtime::OpenCode {
                 binary: None,
+                separate_history: false,
             }),
         )
         .expect("start");
@@ -314,6 +317,7 @@ mod tests {
         fail_dir_sync_once(SyncFault::Lifecycle);
         record_running_in(root.path(), "running", Runtime::OpenCode {
             binary: None,
+            separate_history: false,
         });
         assert!(entries_in(root.path()).expect("read")["running"]
             .runtime

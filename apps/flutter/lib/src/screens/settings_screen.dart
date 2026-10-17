@@ -10,7 +10,6 @@ import 'package:pocket_codex/src/error_format.dart';
 import 'package:pocket_codex/src/fonts.dart';
 import 'package:pocket_codex/src/hosting/host_picker.dart';
 import 'package:pocket_codex/src/providers.dart';
-import 'package:pocket_codex/src/motion.dart';
 import 'package:pocket_codex/src/theme.dart';
 import 'package:pocket_codex/src/theme_transition.dart';
 import 'package:pocket_codex/src/ui_prefs.dart';
@@ -20,6 +19,11 @@ import 'package:pocket_codex/src/widgets/group_card.dart';
 import 'package:pocket_codex/src/widgets/icon_badge.dart';
 import 'package:pocket_codex/src/widgets/status_dots.dart';
 import 'package:pocket_codex/src/widgets/utility_page.dart';
+import 'package:pocket_codex/src/app_icons.dart';
+import 'package:pocket_codex/src/widgets/app_dialog.dart';
+import 'package:pocket_codex/src/widgets/adaptive_sheet.dart';
+import 'package:pocket_codex/src/widgets/glass.dart';
+import 'package:pocket_codex/src/widgets/field_help.dart';
 
 /// Settings: language, relay/key, subscription status, export.
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -43,7 +47,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     future: _cacheStatus,
     builder: (context, snapshot) => ListTile(
       key: const Key('history-cache-settings'),
-      leading: const Icon(Icons.storage_outlined),
+      leading: const Icon(AppIcons.storage_outlined),
       title: Text(l10n.historyCacheTitle),
       subtitle: Text(
         snapshot.hasData
@@ -53,7 +57,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
               )
             : l10n.historyCacheDescription,
       ),
-      trailing: const Icon(Icons.edit_outlined),
+      trailing: const Icon(AppIcons.edit_outlined),
       onTap: () => _editCache(snapshot.data?.limitMb ?? 512),
     ),
   );
@@ -62,25 +66,39 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     final l10n = AppLocalizations.of(context);
     final controller = TextEditingController(text: '$current');
     final form = GlobalKey<FormState>();
-    final limit = await showDialog<int>(
+    final limit = await showAppDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.historyCacheTitle),
+        // The question in words, then the one field: the dialog's body, not
+        // a caption under it.
         content: Form(
           key: form,
-          child: TextFormField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              helperText: l10n.historyCacheDescription,
-              helperMaxLines: 3,
-            ),
-            validator: (value) {
-              final limit = int.tryParse(value ?? '');
-              return limit == null || limit < 0 || limit > 64000
-                  ? l10n.historyCacheInvalid
-                  : null;
-            },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.historyCacheDescription,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                key: const Key('history-cache-limit'),
+                controller: controller,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(suffixText: 'MB'),
+                validator: (value) {
+                  final limit = int.tryParse(value ?? '');
+                  return limit == null || limit < 0 || limit > 64000
+                      ? l10n.historyCacheInvalid
+                      : null;
+                },
+              ),
+            ],
           ),
         ),
         actions: [
@@ -120,11 +138,10 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     final subs =
         ref.watch(subscriptionsProvider).valueOrNull ?? const <SubInfo>[];
     final themeMode = ref.watch(uiPrefsProvider).valueOrNull?.themeMode;
-    final desktop = isDesktop && MediaQuery.sizeOf(context).width >= 840;
     return UtilityPage(
       route: '/settings',
       title: l10n.settingsTitle,
-      body: desktop
+      body: _wide
           ? _desktopBody(l10n, api, config, locale, subs, themeMode)
           : _compactBody(l10n, api, config, locale, subs, themeMode),
     );
@@ -149,31 +166,31 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
               key: const Key('language-btn'),
               title: Text(l10n.language),
               subtitle: Text(_languageLabel(l10n, locale)),
-              trailing: const Icon(Icons.language),
+              trailing: const Icon(AppIcons.language),
               onTap: () => _pickLanguage(api),
             ),
             ListTile(
               key: const Key('appearance-btn'),
               title: Text(l10n.appearance),
               subtitle: Text(_appearanceLabel(l10n, themeMode)),
-              trailing: const Icon(Icons.brightness_6_outlined),
+              trailing: const Icon(AppIcons.brightness_6_outlined),
               onTap: _pickAppearance,
             ),
             // Hosting runs on desktop only, as on the manage page.
             if (isDesktop)
               ListTile(
                 key: const Key('settings-hosting-btn'),
-                leading: const Icon(Icons.dns_outlined),
+                leading: const Icon(AppIcons.dns_outlined),
                 title: Text(l10n.settingsHosting),
                 subtitle: Text(l10n.settingsHostingDesc),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: const Icon(AppIcons.chevron_right),
                 onTap: () => configureHosting(context, ref),
               ),
             ListTile(
               key: const Key('codex-setup-btn'),
-              leading: const Icon(Icons.tune),
+              leading: const Icon(AppIcons.tune),
               title: Text(l10n.codexSetup),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(AppIcons.chevron_right),
               onTap: () => context.push('/setup/codex'),
             ),
             const Divider(),
@@ -185,7 +202,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
               ListTile(
                 leading: GitHubAvatar(
                   accountId: config?.accountId,
-                  fallbackIcon: Icons.person_outline,
+                  fallbackIcon: AppIcons.person_outline,
                   size: 32,
                 ),
                 title: Text('@${config?.accountLogin ?? ''}'),
@@ -193,7 +210,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
               ListTile(
                 key: const Key('sign-out-btn'),
                 title: Text(l10n.accountSignOut),
-                trailing: const Icon(Icons.logout),
+                trailing: const Icon(AppIcons.logout),
                 onTap: () => _signOut(api),
               ),
               const Divider(),
@@ -205,7 +222,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                     : l10n.relayRow,
               ),
               subtitle: Text(_relayLabel(l10n, config)),
-              trailing: const Icon(Icons.edit),
+              trailing: const Icon(AppIcons.edit),
               onTap: () => _editRelay(api),
             ),
             ListTile(
@@ -215,7 +232,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                     : l10n.keyRow,
               ),
               subtitle: Text(_keyLabel(l10n, config)),
-              trailing: const Icon(Icons.edit),
+              trailing: const Icon(AppIcons.edit),
               onTap: () => _editKey(api),
             ),
             const Divider(),
@@ -230,7 +247,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                 (s) => ListTile(
                   dense: true,
                   leading: Icon(
-                    Icons.circle,
+                    AppIcons.circle,
                     size: 12,
                     color: s.alive
                         ? successColor(Theme.of(context).colorScheme)
@@ -247,7 +264,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
               subtitle: _canExport(config)
                   ? null
                   : Text(l10n.settingsExportUnavailable),
-              trailing: const Icon(Icons.copy),
+              trailing: const Icon(AppIcons.copy),
               onTap: _canExport(config) ? () => _export(api) : null,
             ),
             // Compact needs this as much as desktop and had no route to it. The page
@@ -258,7 +275,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
             ListTile(
               key: const Key('diagnostics-btn'),
               title: Text(l10n.settingsDiagnostics),
-              trailing: const Icon(Icons.article_outlined),
+              trailing: const Icon(AppIcons.article_outlined),
               onTap: () => context.push('/logs'),
             ),
             if (_msg != null)
@@ -297,75 +314,10 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                   GroupCard(
                     title: l10n.settingsGeneral,
                     children: [
-                      Padding(
-                        key: const Key('appearance-btn'),
-                        padding: const EdgeInsets.fromLTRB(13, 12, 13, 10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l10n.appearance,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            _SegmentTrack(
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: _ThemeChoice(
-                                      key: const Key('theme-system'),
-                                      icon: Icons.brightness_auto_outlined,
-                                      label: l10n.appearanceSystem,
-                                      selected: themeMode == null,
-                                      onTap: () => ThemeTransition.run(
-                                        context,
-                                        () => ref
-                                            .read(uiPrefsProvider.notifier)
-                                            .setThemeMode(null),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Expanded(
-                                    child: _ThemeChoice(
-                                      key: const Key('theme-light'),
-                                      icon: Icons.light_mode_outlined,
-                                      label: l10n.appearanceLight,
-                                      selected: themeMode == 'light',
-                                      onTap: () => ThemeTransition.run(
-                                        context,
-                                        () => ref
-                                            .read(uiPrefsProvider.notifier)
-                                            .setThemeMode('light'),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Expanded(
-                                    child: _ThemeChoice(
-                                      key: const Key('theme-dark'),
-                                      icon: Icons.dark_mode_outlined,
-                                      label: l10n.appearanceDark,
-                                      selected: themeMode == 'dark',
-                                      onTap: () => ThemeTransition.run(
-                                        context,
-                                        () => ref
-                                            .read(uiPrefsProvider.notifier)
-                                            .setThemeMode('dark'),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      _appearanceRow(l10n, themeMode),
                       _SettingsRow(
                         key: const Key('language-btn'),
-                        icon: Icons.language,
+                        icon: AppIcons.language,
                         title: l10n.language,
                         value: _languageLabel(l10n, locale),
                         onTap: () => _pickLanguage(api),
@@ -378,7 +330,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                     children: [
                       _SettingsRow(
                         key: const Key('settings-hosting-btn'),
-                        icon: Icons.dns_outlined,
+                        icon: AppIcons.dns_outlined,
                         title: l10n.codexSetupConfigureHost,
                         onTap: () => configureHosting(context, ref),
                       ),
@@ -390,7 +342,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                     children: [
                       _SettingsRow(
                         key: const Key('codex-setup-btn'),
-                        icon: Icons.auto_awesome_outlined,
+                        icon: AppIcons.auto_awesome_outlined,
                         title: l10n.codexSetup,
                         onTap: () => context.push('/setup/codex'),
                       ),
@@ -402,16 +354,16 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                     children: [
                       if (config?.mode == 'account')
                         _SettingsRow(
-                          icon: Icons.account_circle_outlined,
+                          icon: AppIcons.account_circle_outlined,
                           leading: GitHubAvatar(
                             accountId: config?.accountId,
-                            fallbackIcon: Icons.person_outline,
+                            fallbackIcon: AppIcons.person_outline,
                             size: 32,
                           ),
                           title: '@${config?.accountLogin ?? ''}',
                         ),
                       _SettingsRow(
-                        icon: Icons.dns_outlined,
+                        icon: AppIcons.dns_outlined,
                         title: config?.mode == 'account'
                             ? l10n.settingsSelfHostedRelay
                             : l10n.relayRow,
@@ -420,7 +372,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                         onTap: () => _editRelay(api),
                       ),
                       _SettingsRow(
-                        icon: Icons.key_outlined,
+                        icon: AppIcons.key_outlined,
                         title: config?.mode == 'account'
                             ? l10n.settingsSelfHostedKey
                             : l10n.keyRow,
@@ -443,13 +395,13 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                     children: [
                       if (subs.isEmpty)
                         _SettingsRow(
-                          icon: Icons.link_off_outlined,
+                          icon: AppIcons.link_off_outlined,
                           title: l10n.none,
                         )
                       else
                         for (final sub in subs)
                           _SettingsRow(
-                            icon: Icons.link_outlined,
+                            icon: AppIcons.link_outlined,
                             title: subscriptionServiceKey(sub.key),
                             subtitle: sub.localAddr,
                             status: StatusChip(
@@ -470,7 +422,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                     children: [
                       _SettingsRow(
                         key: const Key('export-btn'),
-                        icon: Icons.ios_share_outlined,
+                        icon: AppIcons.ios_share_outlined,
                         title: l10n.exportShareString,
                         subtitle: _canExport(config)
                             ? null
@@ -479,7 +431,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
                         onTap: _canExport(config) ? () => _export(api) : null,
                       ),
                       _SettingsRow(
-                        icon: Icons.article_outlined,
+                        icon: AppIcons.article_outlined,
                         title: l10n.settingsDiagnostics,
                         onTap: () => context.pushReplacement('/logs'),
                       ),
@@ -503,6 +455,52 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  /// The theme choice: a glass segmented control whose pane glides to the
+  /// selected mode.
+  Widget _appearanceRow(AppLocalizations l10n, String? themeMode) => Padding(
+    key: const Key('appearance-btn'),
+    padding: const EdgeInsets.fromLTRB(13, 12, 13, 10),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.appearance,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 10),
+        GlassSegmented<String>(
+          selected: themeMode ?? 'system',
+          onChanged: (value) => ThemeTransition.run(
+            context,
+            () => ref
+                .read(uiPrefsProvider.notifier)
+                .setThemeMode(value == 'system' ? null : value),
+          ),
+          segments: [
+            GlassSegment(
+              key: const Key('theme-system'),
+              value: 'system',
+              icon: AppIcons.brightness_auto_outlined,
+              label: l10n.appearanceSystem,
+            ),
+            GlassSegment(
+              key: const Key('theme-light'),
+              value: 'light',
+              icon: AppIcons.light_mode_outlined,
+              label: l10n.appearanceLight,
+            ),
+            GlassSegment(
+              key: const Key('theme-dark'),
+              value: 'dark',
+              icon: AppIcons.dark_mode_outlined,
+              label: l10n.appearanceDark,
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+
   String _relayLabel(AppLocalizations l10n, ConfigInfo? config) {
     final value = config?.relay?.trim() ?? '';
     if (value.isNotEmpty) return value;
@@ -524,21 +522,29 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
         _showMessage(AppLocalizations.of(context).copiedShareString);
       }
     } catch (error) {
-      if (mounted) {
-        final l10n = AppLocalizations.of(context);
-        _showMessage(l10n.settingsOperationFailed(friendlyError(error)));
-      }
+      _fail(error);
     }
   }
+
+  /// The desktop layout: grouped cards in a centred column.
+  bool get _wide => isDesktop && MediaQuery.sizeOf(context).width >= 840;
 
   void _showMessage(String message) {
     if (!mounted) return;
     setState(() => _msg = message);
     // The inline `_msg` line carries it on compact layouts; wide also toasts,
     // since a message under a long settings list is easy to miss.
-    if (isDesktop && MediaQuery.sizeOf(context).width >= 840) {
-      showToast(context, message);
-    }
+    if (_wide) showToast(context, message);
+  }
+
+  /// Report an operation that failed, while the page is shown.
+  void _fail(Object error) {
+    if (!mounted) return;
+    _showMessage(
+      AppLocalizations.of(
+        context,
+      ).settingsOperationFailed(friendlyError(error)),
+    );
   }
 
   String _languageLabel(AppLocalizations l10n, Locale? locale) {
@@ -567,18 +573,21 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     final l10n = AppLocalizations.of(context);
     final current =
         ref.read(uiPrefsProvider).valueOrNull?.themeMode ?? 'system';
-    final choice = await showDialog<String>(
+    final choice = await showChoicePanel<String>(
       context: context,
-      builder: (c) => SimpleDialog(
-        title: Text(l10n.appearance),
-        children: [
-          _choiceOption(c, 'system', l10n.appearanceSystem, current),
-          _choiceOption(c, 'light', l10n.appearanceLight, current),
-          _choiceOption(c, 'dark', l10n.appearanceDark, current),
-        ],
-      ),
+      title: l10n.appearance,
+      current: current,
+      choices: [
+        ('system', l10n.appearanceSystem),
+        ('light', l10n.appearanceLight),
+        ('dark', l10n.appearanceDark),
+      ],
     );
     if (choice == null || !mounted) return;
+    // Let the panel finish closing, so the frame the switch reveals over
+    // is the page itself.
+    await Future<void>.delayed(const Duration(milliseconds: 260));
+    if (!mounted) return;
     ThemeTransition.run(
       context,
       () => ref
@@ -590,16 +599,15 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
   Future<void> _pickLanguage(BridgeApi api) async {
     final l10n = AppLocalizations.of(context);
     final current = ref.read(localeProvider)?.languageCode ?? 'system';
-    final choice = await showDialog<String>(
+    final choice = await showChoicePanel<String>(
       context: context,
-      builder: (c) => SimpleDialog(
-        title: Text(l10n.language),
-        children: [
-          _choiceOption(c, 'system', l10n.languageSystem, current),
-          _choiceOption(c, 'zh', l10n.languageChinese, current),
-          _choiceOption(c, 'en', l10n.languageEnglish, current),
-        ],
-      ),
+      title: l10n.language,
+      current: current,
+      choices: [
+        ('system', l10n.languageSystem),
+        ('zh', l10n.languageChinese),
+        ('en', l10n.languageEnglish),
+      ],
     );
     if (choice == null) return;
     try {
@@ -610,40 +618,17 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
           : Locale(choice);
       setState(() => _msg = null);
     } catch (error) {
-      if (mounted) {
-        _showMessage(l10n.settingsOperationFailed(friendlyError(error)));
-      }
+      _fail(error);
     }
   }
 
-  Widget _choiceOption(
-    BuildContext c,
-    String value,
-    String label,
-    String current,
-  ) {
-    return SimpleDialogOption(
-      onPressed: () => Navigator.pop(c, value),
-      child: Row(
-        children: [
-          Icon(value == current ? Icons.check : null, size: 18),
-          const SizedBox(width: 12),
-          Text(label),
-        ],
-      ),
-    );
-  }
-
   Future<void> _signOut(BridgeApi api) async {
-    final l10n = AppLocalizations.of(context);
     try {
       await api.accountLogout();
       ref.invalidate(configProvider);
       if (mounted) context.go('/onboarding');
     } catch (error) {
-      if (mounted) {
-        _showMessage(l10n.settingsOperationFailed(friendlyError(error)));
-      }
+      _fail(error);
     }
   }
 
@@ -665,9 +650,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
         ref.invalidate(configProvider);
         ref.invalidate(servicesProvider);
       } catch (error) {
-        if (mounted) {
-          _showMessage(l10n.settingsOperationFailed(friendlyError(error)));
-        }
+        _fail(error);
       }
     }
   }
@@ -687,9 +670,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
         if (mounted) setState(() => _msg = null);
         ref.invalidate(configProvider);
       } catch (error) {
-        if (mounted) {
-          _showMessage(l10n.settingsOperationFailed(friendlyError(error)));
-        }
+        _fail(error);
       }
     }
   }
@@ -700,7 +681,7 @@ class _SettingsState extends ConsumerState<SettingsScreen> {
     bool obscure = false,
   }) {
     final l10n = AppLocalizations.of(context);
-    return showDialog<bool>(
+    return showAppDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         content: TextField(
@@ -767,14 +748,12 @@ class _SettingsRow extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                    style: helpTextStyle(Theme.of(context)),
                   ),
                 ],
               ],
@@ -792,120 +771,12 @@ class _SettingsRow extends StatelessWidget {
           if (actionLabel != null)
             OutlinedButton(onPressed: onTap, child: Text(actionLabel!))
           else if (onTap != null)
-            Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+            Icon(AppIcons.chevron_right, color: scheme.onSurfaceVariant),
         ],
       ),
     );
     if (onTap == null || actionLabel != null) return content;
     return InkWell(mouseCursor: clickable, onTap: onTap, child: content);
-  }
-}
-
-class _ThemeChoice extends StatelessWidget {
-  const _ThemeChoice({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final radius = BorderRadius.circular(kControlRadius - 2);
-    // One segment of a segmented control: the selected one is a raised chip
-    // on the track, the rest are bare labels — no borders, no check mark.
-    return Semantics(
-      selected: selected,
-      child: AnimatedContainer(
-        duration: Motion.of(context, Motion.fast),
-        curve: Motion.enter,
-        decoration: BoxDecoration(
-          color: selected
-              ? (dark ? scheme.surfaceContainerHighest : scheme.surfaceBright)
-              : Colors.transparent,
-          borderRadius: radius,
-          boxShadow: selected && !dark
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 3,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : null,
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            mouseCursor: clickable,
-            onTap: selected ? null : onTap,
-            borderRadius: radius,
-            child: SizedBox(
-              height: 32,
-              child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      icon,
-                      size: 16,
-                      color: selected
-                          ? scheme.onSurface
-                          : scheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: selected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                          color: selected
-                              ? scheme.onSurface
-                              : scheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The recessed track a row of [_ThemeChoice] segments sits in.
-class _SegmentTrack extends StatelessWidget {
-  const _SegmentTrack({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(kControlRadius),
-      ),
-      child: child,
-    );
   }
 }
 
@@ -929,7 +800,7 @@ class _DangerRow extends StatelessWidget {
             foregroundColor: scheme.error,
             side: BorderSide(color: scheme.error),
           ),
-          icon: const Icon(Icons.logout, size: 17),
+          icon: const Icon(AppIcons.logout, size: 17),
           label: Text(title),
         ),
       ),

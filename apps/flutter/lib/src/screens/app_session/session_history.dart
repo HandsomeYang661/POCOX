@@ -106,6 +106,7 @@ extension _SessionHistory on _AppSessionState {
     final keys = rows.map(_rowKey).toSet();
     _lastWork = rows.whereType<TurnWork>().lastOrNull;
     _rowAnchors.removeWhere((key, _) => !keys.contains(key));
+    _indexRows(rows);
     return _cachedRows = rows;
   }
 
@@ -133,28 +134,45 @@ extension _SessionHistory on _AppSessionState {
       }
       _itemIndex[item.id] = _items.length;
       _items.add(
-        TranscriptItem(
-          id: item.id,
-          type: item.itemType,
-          title: item.title,
-          text: item.text,
-          images: resolveImageUrls(item.images),
-          imageUrls: item.images,
-          streaming:
-              (item.itemType == 'contextCompaction' &&
-                  item.title == 'inProgress') ||
-              (item.turnId.isNotEmpty &&
-                  item.turnId == activeTurnId &&
-                  item.itemType == 'imageGeneration' &&
-                  item.turnCompletedAt == null &&
-                  imageGenerationInProgress(item.text)),
-          turnId: item.turnId,
-          turnCompletedAt: item.turnCompletedAt,
-          turnDurationMs: item.turnDurationMs,
+        _transcriptItemOf(
+          item,
+          activeTurnId,
+          compacting:
+              item.itemType == 'contextCompaction' &&
+              item.title == 'inProgress',
         ),
       );
     }
   }
+
+  /// [item] as the transcript shows it. It streams while it is a compaction
+  /// in progress ([compacting]) or an image the running turn
+  /// ([activeTurnId]) is still generating.
+  TranscriptItem _transcriptItemOf(
+    ThreadItem item,
+    String? activeTurnId, {
+    bool compacting = false,
+  }) => TranscriptItem(
+    id: item.id,
+    type: item.itemType,
+    title: item.title,
+    text: item.text,
+    images: resolveImageUrls(item.images),
+    imageUrls: item.images,
+    streaming: compacting || _generatingImage(item, activeTurnId),
+    turnId: item.turnId,
+    turnCompletedAt: item.turnCompletedAt,
+    turnDurationMs: item.turnDurationMs,
+  );
+
+  /// Whether [item] is an image the running turn [activeTurnId] is still
+  /// generating.
+  bool _generatingImage(ThreadItem item, String? activeTurnId) =>
+      item.itemType == 'imageGeneration' &&
+      item.turnId.isNotEmpty &&
+      item.turnId == activeTurnId &&
+      item.turnCompletedAt == null &&
+      imageGenerationInProgress(item.text);
 
   void _mergeHistoryLiveItems(
     Map<String, TranscriptItem> liveItems,
@@ -184,10 +202,7 @@ extension _SessionHistory on _AppSessionState {
           (item) => item.type != 'contentOmitted' || item.text.isNotEmpty,
         ),
       );
-    _itemIndex.clear();
-    for (var i = 0; i < _items.length; i++) {
-      _itemIndex[_items[i].id] = i;
-    }
+    _rebuildItemIndex();
     _dropHostedStops();
     _cachedRows = null;
   }
@@ -224,10 +239,7 @@ extension _SessionHistory on _AppSessionState {
       return true;
     });
     if (_items.length == before) return;
-    _itemIndex.clear();
-    for (var i = 0; i < _items.length; i++) {
-      _itemIndex[_items[i].id] = i;
-    }
+    _rebuildItemIndex();
     _cachedRows = null;
   }
 
@@ -251,25 +263,7 @@ extension _SessionHistory on _AppSessionState {
         fresh.add(_items[_itemIndex[item.id]!]);
         continue;
       }
-      fresh.add(
-        TranscriptItem(
-          id: item.id,
-          type: item.itemType,
-          title: item.title,
-          text: item.text,
-          images: resolveImageUrls(item.images),
-          imageUrls: item.images,
-          streaming:
-              item.turnId.isNotEmpty &&
-              item.turnId == activeTurnId &&
-              item.itemType == 'imageGeneration' &&
-              item.turnCompletedAt == null &&
-              imageGenerationInProgress(item.text),
-          turnId: item.turnId,
-          turnCompletedAt: item.turnCompletedAt,
-          turnDurationMs: item.turnDurationMs,
-        ),
-      );
+      fresh.add(_transcriptItemOf(item, activeTurnId));
     }
     if (fresh.isEmpty) return;
     final merged = mergeHistoryItems(
@@ -281,10 +275,7 @@ extension _SessionHistory on _AppSessionState {
     _items
       ..clear()
       ..addAll(merged);
-    _itemIndex.clear();
-    for (var i = 0; i < _items.length; i++) {
-      _itemIndex[_items[i].id] = i;
-    }
+    _rebuildItemIndex();
     _dropHostedStops();
   }
 
@@ -354,7 +345,6 @@ extension _SessionHistory on _AppSessionState {
   /// Fetch one turn's items, for jumping to a turn not yet scrolled back to.
   Future<void> _loadTurn(
     String turnId, {
-    bool preserveAnchor = true,
     bool fromTop = false,
     int? navigation,
     bool reveal = false,
@@ -373,38 +363,43 @@ extension _SessionHistory on _AppSessionState {
     }
     // A tail-only page may have marked the turn loaded without its user row.
     if (_items.any((item) => item.turnId == turnId && item.isUser)) return;
-    await _startHistoryLoad(
-      turnId: turnId,
-      preserveAnchor: preserveAnchor,
-      fromTop: fromTop,
-      reveal: reveal,
-    );
+    await _startHistoryLoad(turnId: turnId, fromTop: fromTop, reveal: reveal);
   }
 
   Future<void> _startHistoryLoad({
     String? turnId,
     bool loadMore = false,
-    bool preserveAnchor = true,
     bool fromTop = false,
     bool reveal = false,
   }) {
-    final tid = _threadId!;
+    _historyError = false;
+    _historyTarget = (turnId, loadMore);
+    _historyFromTop = fromTop;
+    // The fetch is in flight before anything can throw, and only it clears
+    // its own mark once it has finished: a rebuild that could not be
+    // scheduled, or a fetch that failed at once, never leaves "loading" with
+    // nothing loading or a finished load still marked.
+    late final Future<void> load;
+    load =
+        _fetchHistory(
+          _threadId!,
+          _historyGeneration,
+          turnId,
+          loadMore,
+          reveal,
+          _scrollIntent,
+          _turnNavigation,
+        ).whenComplete(() {
+          if (mounted && identical(_historyLoad, load)) {
+            _updateState(() {
+              _historyLoad = null;
+            });
+          }
+        });
     _updateState(() {
-      _loadingOlder = true;
-      _historyError = false;
-      _historyTarget = (turnId, loadMore);
-      _historyFromTop = fromTop;
+      _historyLoad = load;
     });
-    return _historyLoad = _fetchHistory(
-      tid,
-      _historyGeneration,
-      turnId,
-      loadMore,
-      preserveAnchor,
-      reveal,
-      _scrollIntent,
-      _turnNavigation,
-    );
+    return load;
   }
 
   Future<void> _fetchHistory(
@@ -412,7 +407,6 @@ extension _SessionHistory on _AppSessionState {
     int generation,
     String? turnId,
     bool loadMore,
-    bool preserveAnchor,
     bool reveal,
     int intent,
     int navigation,
@@ -446,9 +440,11 @@ extension _SessionHistory on _AppSessionState {
           hasMore: turn.hasMore,
         );
       }
-      final anchor = preserveAnchor ? _captureHistoryAnchor() : null;
+      final anchor = _captureHistoryAnchor();
       _updateState(() {
-        _spliceTranscriptItems(items, atStart: true);
+        // A continuation is the later part of a turn already showing its
+        // start; everything else reads backwards.
+        _spliceTranscriptItems(items, atStart: !(turn != null && loadMore));
         if (turnId == null) {
           _hasOlder = older!.hasOlder;
           _sequentialHistoryIds.addAll(items.map((item) => item.id));
@@ -466,16 +462,17 @@ extension _SessionHistory on _AppSessionState {
           (row) => _rowItems(row).any((item) => arrived.contains(item.id)),
         );
         if (rowIndex >= 0) {
+          final arrival = _historyArrivalRevision + 1;
           _updateState(() {
             _historyArrivalRow = _rowKey(_rows[rowIndex]);
-            _historyArrivalRevision++;
+            _historyArrivalRevision = arrival;
           });
-          await WidgetsBinding.instance.endOfFrame;
-          if (current() &&
-              intent == _scrollIntent &&
-              navigation == _turnNavigation) {
-            _scrollToRow(rowIndex);
-          }
+          // The highlight plays once: a row scrolled away and back is the
+          // same history, not a new arrival (no rebuild needed to forget it).
+          Timer(const Duration(milliseconds: 1600), () {
+            if (_historyArrivalRevision == arrival) _historyArrivalRow = null;
+          });
+          _scrollToRow(rowIndex);
         }
         if (mounted && current() && navigation == _turnNavigation) {
           final l10n = AppLocalizations.of(context);
@@ -491,84 +488,7 @@ extension _SessionHistory on _AppSessionState {
       }
     } catch (_) {
       if (current()) _updateState(() => _historyError = true);
-    } finally {
-      if (current()) {
-        _updateState(() {
-          _loadingOlder = false;
-          _historyLoad = null;
-        });
-      }
     }
-  }
-
-  /// Capture at response time so scrolling during a slow request is respected.
-  (Key, double)? _captureHistoryAnchor() {
-    if (!_listCtl.isAttached || !_scroll.hasClients) return null;
-    final visible = _listCtl.visibleRange;
-    final rows = _rows;
-    if (visible == null || rows.isEmpty) return null;
-    var index = (visible.$1 - 1).clamp(0, rows.length - 1);
-    while (index < rows.length - 1 && rows[index] is HistoryGap) {
-      index++;
-    }
-    final key = _rowKey(rows[index]);
-    final box = _rowAnchors[key]?.currentContext?.findRenderObject();
-    if (box is! RenderBox || !box.hasSize) return null;
-    return (key, box.localToGlobal(Offset.zero).dy);
-  }
-
-  void _restoreHistoryAnchor((Key, double) anchor, int generation) {
-    final navigation = _turnNavigation;
-    final intent = _scrollIntent;
-    final epoch = ++_settleEpoch;
-    _settlingToEnd = true;
-    void restore(int remaining) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted ||
-            generation != _historyGeneration ||
-            navigation != _turnNavigation ||
-            intent != _scrollIntent ||
-            epoch != _settleEpoch) {
-          if (epoch == _settleEpoch) _settlingToEnd = false;
-          return;
-        }
-        if (!_scroll.hasClients || !_listCtl.isAttached) {
-          _settlingToEnd = false;
-          return;
-        }
-        final index = _rows.indexWhere((row) => _rowKey(row) == anchor.$1);
-        if (index < 0) {
-          _settlingToEnd = false;
-          return;
-        }
-        final box = _rowAnchors[anchor.$1]?.currentContext?.findRenderObject();
-        if (box is RenderBox && box.hasSize) {
-          final delta = box.localToGlobal(Offset.zero).dy - anchor.$2;
-          if (delta.abs() > 0.5) {
-            _scroll.jumpTo(
-              (_scroll.offset + delta).clamp(
-                _scroll.position.minScrollExtent,
-                _scroll.position.maxScrollExtent,
-              ),
-            );
-          }
-        } else {
-          _listCtl.jumpToItem(
-            index: index + 1,
-            scrollController: _scroll,
-            alignment: 0,
-          );
-        }
-        if (remaining > 0) {
-          restore(remaining - 1);
-          WidgetsBinding.instance.scheduleFrame();
-        } else {
-          _settlingToEnd = false;
-        }
-      });
-    }
-
-    restore(2);
   }
 
   GlobalKey _anchorKey(Object row) =>

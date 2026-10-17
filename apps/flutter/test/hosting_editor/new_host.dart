@@ -68,22 +68,50 @@ void _newHostTests() {
     expect(key, 'sk-test');
     expect(api.serveHosts, hasLength(1));
     expect(find.byType(HostingEditor), findsNothing);
+    expect(find.text(_l10nOf(t).managedStarted('default')), findsOneWidget);
   });
 
   testWidgets('a failed start keeps the page and no new configuration', (
     t,
   ) async {
     final api = FakeBridgeApi()
-      ..hostConfigs['default'] = const HostConfig(source: 'official');
-    api.serveHosts.add(_codexHost.copyName('default'));
+      ..hostConfigs['default'] = const HostConfig(source: 'official')
+      // Another computer publishes the name on the relay.
+      ..serveStartError = StateError('the service name is already in use');
     await _pumpEditor(t, api);
-    // The suggested name avoids the running host, so force the clash.
-    await _enter(t, 'codex-name-field', 'default');
     await _tapKey(t, 'start-hosting-btn');
 
     expect(find.text(_l10n(t).hostNameConflict), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('host-editor-scroll')),
+        matching: find.byKey(const Key('host-editor-error')),
+      ),
+      findsNothing,
+      reason: 'pinned above the actions, seen wherever the form is scrolled',
+    );
     expect(find.byType(HostingEditor), findsOneWidget);
     expect(api.hostConfigs['default']!.source, 'official', reason: 'kept');
+  });
+
+  testWidgets('a name another host here uses is refused before anything '
+      'starts', (t) async {
+    final api = FakeBridgeApi();
+    api.serveHosts.add(_codexHost.copyName('default'));
+    await _pumpEditor(t, api);
+    final l10n = _l10n(t);
+    final field = find.byKey(const Key('codex-name-field'));
+    // The suggestion avoids it; a typed alias of it is the same instance.
+    expect(t.widget<TextField>(field).controller!.text, 'default-2');
+    await _enter(t, 'codex-name-field', ' Default ');
+    expect(find.text(l10n.hostNameInUse('default')), findsOneWidget);
+    await _tapKey(t, 'start-hosting-btn');
+    expect(api.startConfiguredCalls, isEmpty);
+    expect(find.byType(HostingEditor), findsOneWidget);
+    // Under the field and as the refusal; a new name clears both.
+    expect(find.text(l10n.hostNameInUse('default')), findsNWidgets(2));
+    await _enter(t, 'codex-name-field', 'mine');
+    expect(find.text(l10n.hostNameInUse('default')), findsNothing);
   });
 
   testWidgets('a new host with the existing configuration drops a stale key', (
@@ -150,27 +178,15 @@ void _newHostTests() {
     );
     expect(find.byKey(const Key('host-protocol-responses')), findsNothing);
 
-    // Native OpenCode: its own providers and sign-ins, or a custom provider
-    // of any of its three APIs; never the official account.
-    await _tapKey(t, 'agent-choice-opencode');
-    expect(find.byKey(const Key('host-inherited-opencode')), findsOneWidget);
-    expect(find.byKey(const Key('host-source-official')), findsNothing);
-    await _tapKey(t, 'host-source-custom');
-    for (final protocol in const [
-      'responses',
-      'anthropic-messages',
-      'chat-completions',
-    ]) {
-      expect(find.byKey(Key('host-protocol-$protocol')), findsOneWidget);
-    }
-
     await _choosePreset(t, 'fixture');
     expect(find.byKey(const Key('host-source-custom')), findsNothing);
 
+    // A custom ACP agent has only its own configuration: no choice, just
+    // what it uses.
     await _tapKey(t, 'agent-choice-custom');
-    expect(find.byKey(const Key('host-source-inherited')), findsOneWidget);
+    expect(find.byKey(const Key('host-source-inherited')), findsNothing);
     expect(find.byKey(const Key('host-source-custom')), findsNothing);
-    expect(find.text(_l10n(t).hostInheritedOnly), findsOneWidget);
+    expect(find.text(_l10n(t).hostInheritedAcp), findsOneWidget);
   });
 
   testWidgets('each agent choice keeps its own model-service draft', (t) async {
@@ -260,17 +276,5 @@ void _newHostTests() {
     expect(find.byKey(const Key('host-leave-dialog')), findsOneWidget);
     await _tapKey(t, 'host-leave-discard');
     expect(find.byType(HostingEditor), findsNothing);
-  });
-
-  testWidgets('the api:<name> service is explained as official-only', (
-    t,
-  ) async {
-    final api = FakeBridgeApi();
-    await _pumpEditor(t, api);
-    expect(find.text(_l10n(t).hostApiProxyNote), findsOneWidget);
-    await _choosePreset(t, 'fixture');
-    expect(find.text(_l10n(t).hostApiProxyNote), findsNothing);
-    await _tapKey(t, 'agent-choice-opencode');
-    expect(find.text(_l10n(t).hostApiProxyNote), findsNothing);
   });
 }

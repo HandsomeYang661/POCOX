@@ -11,7 +11,7 @@ use crate::engine::{
     host_profiles::{
         self, Change, Engine, KeyChange, ProfileInput, Runtime, RuntimeChange, Source,
     },
-    host_start::{self, NewHost, Started},
+    host_start::{self, Started},
 };
 
 /// A host's runtime: what runs, not its model service.
@@ -26,10 +26,16 @@ pub struct HostRuntimeDto {
     pub proxy: Option<String>,
     /// ACP: the agent's profile and exact command line.
     pub agent: Option<AcpAgentSpecDto>,
+    /// OpenCode: keep this host's sessions in a database of its own instead
+    /// of OpenCode's default one (which one host serves at a time).
+    pub separate_history: bool,
 }
 
 impl HostRuntimeDto {
     pub(super) fn into_runtime(self) -> Result<Runtime> {
+        if self.separate_history && self.kind != "opencode" {
+            bail!("only an OpenCode host keeps a separate history");
+        }
         match self.kind.as_str() {
             "codex" => Ok(Runtime::Codex {
                 binary: self.binary,
@@ -42,6 +48,7 @@ impl HostRuntimeDto {
                 }
                 Ok(Runtime::OpenCode {
                     binary: self.binary,
+                    separate_history: self.separate_history,
                 })
             },
             "acp" => Ok(Runtime::Acp(
@@ -65,15 +72,18 @@ impl HostRuntimeDto {
                 port,
                 proxy,
                 agent: None,
+                separate_history: false,
             },
             Runtime::OpenCode {
                 binary,
+                separate_history,
             } => Self {
                 kind: "opencode".into(),
                 binary,
                 port: 0,
                 proxy: None,
                 agent: None,
+                separate_history,
             },
             Runtime::Acp(spec) => Self {
                 kind: "acp".into(),
@@ -86,6 +96,7 @@ impl HostRuntimeDto {
                     program: spec.program,
                     args: spec.args,
                 }),
+                separate_history: false,
             },
         }
     }
@@ -410,16 +421,7 @@ fn save_profile(
         RuntimeChange::Keep if spec.is_none() => saved.runtime.as_ref(),
         _ => None,
     };
-    let engine = match runtime {
-        Some(Runtime::OpenCode {
-            ..
-        }) => Engine::OpenCode,
-        Some(Runtime::Acp(agent)) => Engine::Acp(agent),
-        Some(Runtime::Codex {
-            ..
-        }) => Engine::Codex,
-        None => spec.map_or(Engine::Codex, Engine::Acp),
-    };
+    let engine = runtime.map_or_else(|| spec.map_or(Engine::Codex, Engine::Acp), Runtime::engine);
     // The runtime used for validation must still be the one we read.
     host_profiles::save_in(root, name, change, expected.or(Some(saved.revision)), engine)
 }
@@ -461,24 +463,7 @@ pub fn app_serve_start_configured(
     key: Option<String>,
 ) -> Result<HostStartedDto> {
     let change = change_of(input, &key_action, key)?;
-    let host = match runtime.into_runtime()? {
-        Runtime::Codex {
-            binary,
-            port,
-            proxy,
-        } => NewHost::Codex {
-            port,
-            binary,
-            proxy,
-        },
-        Runtime::Acp(spec) => NewHost::Acp(spec),
-        Runtime::OpenCode {
-            binary,
-        } => NewHost::OpenCode {
-            binary,
-        },
-    };
-    let started = host_start::start_configured(name.as_deref(), host, change)?;
+    let started = host_start::start_configured(name.as_deref(), runtime.into_runtime()?, change)?;
     crate::engine::management::enable_after_hosting();
     Ok(match started {
         Started::Codex(r) => HostStartedDto {
@@ -612,6 +597,7 @@ mod tests {
             key: KeyChange::Replace(Secret::new("stored-key")),
             runtime: RuntimeChange::Set(Runtime::OpenCode {
                 binary: None,
+                separate_history: false,
             }),
         };
         let mut saved =
@@ -656,27 +642,40 @@ mod tests {
             port: 0,
             proxy: None,
             agent: None,
+            separate_history: false,
         };
         assert!(bad_runtime.into_runtime().is_err());
+        let codex_history = HostRuntimeDto {
+            separate_history: true,
+            ..HostRuntimeDto::of(Runtime::Codex {
+                binary: None,
+                port: 0,
+                proxy: None,
+            })
+        };
+        assert!(codex_history.into_runtime().is_err(), "an OpenCode-only choice");
         assert!(parse_protocol(Some("chat")).is_err());
         assert_eq!(parse_protocol(Some(" ")).expect("blank"), None);
     }
 
     #[test]
     fn runtimes_cross_the_bridge_unchanged() {
-        let codex = Runtime::Codex {
-            binary: Some("/opt/codex".into()),
-            port: 4500,
-            proxy: None,
-        };
-        let back = HostRuntimeDto::of(codex.clone())
-            .into_runtime()
-            .expect("codex");
-        assert_eq!(back, codex);
-        let agent = Runtime::Acp(spec("custom-x-1").into_spec());
-        let back = HostRuntimeDto::of(agent.clone())
-            .into_runtime()
-            .expect("acp");
-        assert_eq!(back, agent);
+        for runtime in [
+            Runtime::Codex {
+                binary: Some("/opt/codex".into()),
+                port: 4500,
+                proxy: None,
+            },
+            Runtime::Acp(spec("custom-x-1").into_spec()),
+            Runtime::OpenCode {
+                binary: None,
+                separate_history: true,
+            },
+        ] {
+            let back = HostRuntimeDto::of(runtime.clone())
+                .into_runtime()
+                .expect("round trip");
+            assert_eq!(back, runtime);
+        }
     }
 }

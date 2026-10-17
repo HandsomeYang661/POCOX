@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pocket_codex/l10n/gen/app_localizations.dart';
@@ -8,6 +9,8 @@ import 'package:pocket_codex/src/error_format.dart';
 import 'package:pocket_codex/src/hosting/acp_host_form.dart';
 import 'package:pocket_codex/src/hosting/agent_choice_grid.dart';
 import 'package:pocket_codex/src/hosting/codex_runtime_section.dart';
+import 'package:pocket_codex/src/hosting/editor_block.dart';
+import 'package:pocket_codex/src/hosting/host_names.dart';
 import 'package:pocket_codex/src/hosting/model_service_section.dart';
 import 'package:pocket_codex/src/hosting/opencode_runtime_section.dart';
 import 'package:pocket_codex/src/providers.dart';
@@ -86,11 +89,8 @@ mixin HostEditorDrafts<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   /// A newer read that arrived while edits were pending; shown, not applied.
   HostConfig? newerConfig;
 
-  /// The agent the running ACP host runs ([HostConfig.active]).
-  AcpAgentSpec? runningSpec;
-
   /// The agent the running ACP host's form was filled with: the saved
-  /// desired agent, else [runningSpec].
+  /// desired agent, else the one it runs ([HostConfig.active]).
   AcpAgentSpec? editedSpecBase;
 
   /// Moves whenever the running host's agent form is refilled.
@@ -190,17 +190,10 @@ mixin HostEditorDrafts<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       (!value.nameEdited || value.name.trim() == base.name.trim());
 
   /// Whether [a] and [b] launch the same agent.
-  static bool sameAgent(AcpAgentSpec a, AcpAgentSpec b) {
-    if (a.program != b.program ||
-        a.displayName != b.displayName ||
-        a.args.length != b.args.length) {
-      return false;
-    }
-    for (var i = 0; i < a.args.length; i++) {
-      if (a.args[i] != b.args[i]) return false;
-    }
-    return true;
-  }
+  static bool sameAgent(AcpAgentSpec a, AcpAgentSpec b) =>
+      a.program == b.program &&
+      a.displayName == b.displayName &&
+      listEquals(a.args, b.args);
 
   /// The running Codex or OpenCode host's runtime fields were edited.
   bool get runtimeEdited {
@@ -223,12 +216,25 @@ mixin HostEditorDrafts<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   }
 
   /// Instance names this device already hosts.
-  Set<String> get takenNames => {
-    for (final host
-        in ref.read(localServeListProvider).valueOrNull ??
-            const <AppServeStatus>[])
-      host.name,
-  };
+  Set<String> get takenNames => {for (final host in _localHosts) host.name};
+
+  /// Another host serving OpenCode's default database (one host can at a
+  /// time), by name; the host edited here never counts.
+  String? get sharedHistoryHost {
+    final own = existing?.name;
+    return _localHosts
+        .where(
+          (h) =>
+              h.servesOpenCodeHistory &&
+              (own == null ||
+                  canonicalHostName(h.name) != canonicalHostName(own)),
+        )
+        .firstOrNull
+        ?.name;
+  }
+
+  List<AppServeStatus> get _localHosts =>
+      ref.read(localServeListProvider).valueOrNull ?? const <AppServeStatus>[];
 
   /// The grid choice that edits [spec]: its preset, else a saved agent.
   AgentChoice choiceFor(AcpAgentSpec spec) =>
@@ -262,8 +268,14 @@ mixin HostEditorDrafts<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 
   /// Rebuild while mounted.
   void rebuild() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    formChanged();
+    setState(() {});
   }
+
+  /// The form changed (an edit, or a detection or suggestion landing);
+  /// true when that cleared something shown, so the page rebuilds.
+  bool formChanged() => false;
 
   /// (Re-)read the running host's configuration; only the latest read
   /// counts. With pending edits a successful read is held in [newerConfig].
@@ -307,7 +319,10 @@ mixin HostEditorDrafts<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       openCode.prefill(
         desired != null && desired.isOpenCode
             ? desired
-            : HostRuntime.opencode(binary: host.codexBinary),
+            : HostRuntime.opencode(
+                binary: host.codexBinary,
+                separateHistory: host.opencode?.separateHistory ?? false,
+              ),
       );
       draft.restrict(_openCodeSupport);
     } else if (host.isCodex) {
@@ -323,8 +338,8 @@ mixin HostEditorDrafts<T extends ConsumerStatefulWidget> on ConsumerState<T> {
       );
       draft.restrict(_codexSupport);
     } else {
-      runningSpec = loaded.active?.runtime.agent;
-      editedSpecBase = desired?.agent ?? runningSpec ?? _knownSpec(host);
+      editedSpecBase =
+          desired?.agent ?? loaded.active?.runtime.agent ?? _knownSpec(host);
       acp = null;
       agentFormSeq++;
       // The refilled form reports its agent again; apply it afresh.
@@ -395,6 +410,7 @@ mixin HostEditorDrafts<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     final pending = Map.of(_agentPending);
     _agentPending.clear();
     if (!mounted) return;
+    if (formChanged()) setState(() {});
     for (final MapEntry(key: target, value: value) in pending.entries) {
       final profile = value.spec.profileId;
       if (_restrictedFor[target] == profile) continue;
@@ -410,27 +426,17 @@ mixin HostEditorDrafts<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     if (busy) return false;
     if (_leaveConfirmed || !editorDirty) return true;
     final l10n = AppLocalizations.of(context);
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        key: const Key('host-leave-dialog'),
-        title: Text(l10n.hostLeaveTitle),
-        content: Text(l10n.hostLeaveBody),
-        actions: [
-          TextButton(
-            key: const Key('host-leave-stay'),
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.hostLeaveStay),
-          ),
-          FilledButton(
-            key: const Key('host-leave-discard'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.hostLeaveDiscard),
-          ),
-        ],
-      ),
+    final leave = await confirmEditorAction(
+      context,
+      title: l10n.hostLeaveTitle,
+      body: l10n.hostLeaveBody,
+      action: l10n.hostLeaveDiscard,
+      cancel: l10n.hostLeaveStay,
+      dialogKey: const Key('host-leave-dialog'),
+      cancelKey: const Key('host-leave-stay'),
+      confirmKey: const Key('host-leave-discard'),
     );
-    if (leave != true || !mounted) return false;
+    if (!leave || !mounted) return false;
     setState(() => _leaveConfirmed = true);
     return true;
   }
@@ -441,26 +447,15 @@ mixin HostEditorDrafts<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   /// Explain what applying interrupts; `true` when the user agreed.
   Future<bool> confirmApply(AppServeStatus host) async {
     final l10n = AppLocalizations.of(context);
-    final agreed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        key: const Key('host-apply-dialog'),
-        title: Text(l10n.hostApplyConfirmTitle(host.name)),
-        content: Text(l10n.hostApplyConfirmBody),
-        actions: [
-          TextButton(
-            key: const Key('host-apply-cancel'),
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            key: const Key('host-apply-confirm'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.hostApplyRestart),
-          ),
-        ],
-      ),
+    final agreed = await confirmEditorAction(
+      context,
+      title: l10n.hostApplyConfirmTitle(host.name),
+      body: l10n.hostApplyConfirmBody,
+      action: l10n.hostApplyRestart,
+      dialogKey: const Key('host-apply-dialog'),
+      cancelKey: const Key('host-apply-cancel'),
+      confirmKey: const Key('host-apply-confirm'),
     );
-    return agreed == true && mounted;
+    return agreed && mounted;
   }
 }

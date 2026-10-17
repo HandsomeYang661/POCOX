@@ -1,53 +1,6 @@
 part of '../app_session_screen.dart';
 
 extension _SessionProjects on _AppSessionState {
-  /// Keep the empty view focused on the project and the composer below it.
-  Widget _newSessionGuidance(AppLocalizations l10n) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 460),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // The mark anchors the empty view so the switcher below reads
-              // as "where this conversation runs", not a stray dropdown.
-              const BrandLogo(size: 36),
-              const SizedBox(height: 14),
-              _projectSwitcher(
-                l10n,
-                label: _newProjectLabel(l10n, l10n.workOutsideProject),
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
-              ),
-              if ((_cwd?.trim().isNotEmpty ?? false)
-                      ? _cwd!.trim()
-                      : _automaticProject
-                  case final shown?) ...[
-                const SizedBox(height: 4),
-                Text(
-                  shown,
-                  key: const Key('new-session-cwd'),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: monoFontFamily,
-                    fontFamilyFallback: monoCjkFallback,
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   void _focusNewComposer(int generation) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && generation == _threadLoadGeneration && _threadId == null) {
@@ -129,7 +82,7 @@ extension _SessionProjects on _AppSessionState {
     if (_cwd?.trim().isNotEmpty ?? false) return _projectName();
     final automatic = _automaticProject;
     if (automatic == null) return fallback;
-    return l10n.defaultProjectLabel(_AppSessionState._leafOf(automatic));
+    return l10n.defaultProjectLabel(_leafOf(automatic));
   }
 
   /// A send without the project it needs: ask for the folder first. The
@@ -177,13 +130,11 @@ extension _SessionProjects on _AppSessionState {
     if (!merging) _submit();
   }
 
-  /// The project name rendered as a dropdown trigger, wired to [ProjectMenu].
-  Widget _projectSwitcher(
-    AppLocalizations l10n, {
-    required String label,
-    TextStyle? style,
-  }) {
-    final scheme = Theme.of(context).colorScheme;
+  /// The project name rendered as a dropdown trigger, wired to [ProjectMenu]:
+  /// the headline of a new conversation's opening view.
+  Widget _projectSwitcher(AppLocalizations l10n, {required String label}) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return ProjectMenu(
       projects: _knownProjects(),
       current: _cwd?.trim().isEmpty ?? true ? null : _cwd!.trim(),
@@ -208,15 +159,15 @@ extension _SessionProjects on _AppSessionState {
                     label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        style ??
-                        TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 2),
                 Icon(
-                  Icons.expand_more,
-                  size: style == null ? 16 : 20,
+                  AppIcons.expand_more,
+                  size: 20,
                   color: scheme.onSurfaceVariant,
                 ),
               ],
@@ -293,40 +244,43 @@ extension _SessionProjects on _AppSessionState {
     required VoidCallback onTap,
   }) {
     final scheme = Theme.of(context).colorScheme;
-    // Touch: the list's primary action is a full-width tonal pill in the
-    // brand blue — the one accent of the sidebar besides live work.
+    // The list's primary action: a capsule of chrome glass on the backdrop,
+    // found by its lift rather than an accent. It yields under the pointer.
     final touch = !isDesktop;
-    final ink = touch ? scheme.onTertiaryContainer : scheme.onSurface;
-    final radius = BorderRadius.circular(touch ? 28 : kRowRadius);
-    return Material(
-      color: touch ? scheme.tertiaryContainer : Colors.transparent,
-      borderRadius: radius,
-      child: InkWell(
-        key: key,
-        mouseCursor: clickable,
+    final ink = scheme.onSurface;
+    const radius = BorderRadius.all(Radius.circular(999));
+    return PressScale(
+      scale: 0.97,
+      child: Glass(
+        depth: GlassDepth.chrome,
         borderRadius: radius,
-        onTap: onTap,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: touch ? 52 : 32),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: touch ? 18 : 8),
-            child: Row(
-              children: [
-                Icon(icon, size: touch ? 20 : 16, color: ink),
-                SizedBox(width: touch ? 14 : 10),
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: touch ? 15 : 13,
-                      fontWeight: touch ? FontWeight.w600 : FontWeight.w500,
-                      color: ink,
+        child: InkWell(
+          key: key,
+          mouseCursor: clickable,
+          borderRadius: radius,
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: touch ? 50 : 38),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: touch ? 18 : 14),
+              child: Row(
+                children: [
+                  Icon(icon, size: touch ? 20 : 16, color: ink),
+                  SizedBox(width: touch ? 14 : 10),
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: touch ? 15 : 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: ink,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -445,7 +399,7 @@ extension _SessionProjects on _AppSessionState {
     required int count,
     required VoidCallback onNew,
   }) {
-    final leaf = _AppSessionState._leafOf(cwd);
+    final leaf = _leafOf(cwd);
     return ProjectSectionHeader(
       key: ValueKey('project-section-$cwd'),
       path: cwd,
@@ -544,3 +498,6 @@ extension _SessionProjects on _AppSessionState {
     return l10n.timeDaysAgo(diff.inDays);
   }
 }
+
+/// Leaf folder name of [cwd], or empty when unknown.
+String _leafOf(String cwd) => folderName(cwd.trim());

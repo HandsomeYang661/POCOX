@@ -1,13 +1,12 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pocket_codex/l10n/gen/app_localizations.dart';
 import 'package:pocket_codex/src/bridge_api.dart';
 import 'package:pocket_codex/src/desktop_theme.dart';
+import 'package:pocket_codex/src/fonts.dart';
 import 'package:pocket_codex/src/managed/default_project_tile.dart';
 import 'package:pocket_codex/src/providers.dart';
 import 'package:pocket_codex/src/service_key.dart';
@@ -17,6 +16,8 @@ import 'package:pocket_codex/src/widgets/brand_logo.dart';
 import 'package:pocket_codex/src/widgets/links.dart';
 import 'package:pocket_codex/src/widgets/local_host_dialog.dart';
 import 'package:pocket_codex/src/widgets/status_dots.dart';
+import 'package:pocket_codex/src/app_icons.dart';
+import 'package:pocket_codex/src/widgets/field_help.dart';
 
 /// First-run welcome guide, shown once per device right after the first
 /// account sign-in (`/welcome`; gated by [UiPrefs.guideSeen]).
@@ -41,12 +42,6 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
 
   Timer? _detectTimer;
 
-  bool get _isDesktop =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.windows ||
-          defaultTargetPlatform == TargetPlatform.macOS ||
-          defaultTargetPlatform == TargetPlatform.linux);
-
   @override
   void initState() {
     super.initState();
@@ -55,7 +50,7 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
     Future.microtask(() {
       if (mounted) ref.read(uiPrefsProvider.notifier).markGuideSeen();
     });
-    if (!_isDesktop) {
+    if (!isDesktop) {
       _detectTimer = Timer.periodic(_detectInterval, (_) {
         if (mounted) ref.invalidate(servicesProvider);
       });
@@ -91,15 +86,14 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
             children: [
               const Center(child: BrandLogo(size: 64)),
               const SizedBox(height: 16),
-              Text(
+              BrandHeadline(
                 l10n.welcomeTitle,
                 key: const Key('welcome-title'),
-                style: Theme.of(context).textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                _isDesktop
+                isDesktop
                     ? l10n.welcomeSubtitleDesktop
                     : l10n.welcomeSubtitleMobile,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -108,8 +102,8 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              if (_isDesktop) ..._desktopSteps(l10n, scheme),
-              if (!_isDesktop) ..._mobileSteps(l10n, scheme),
+              if (isDesktop) ..._desktopSteps(l10n, scheme),
+              if (!isDesktop) ..._mobileSteps(l10n, scheme),
               const SizedBox(height: 24),
               FilledButton(
                 key: const Key('welcome-enter-btn'),
@@ -154,7 +148,7 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
                 child: FilledButton.icon(
                   key: const Key('welcome-start-hosting-btn'),
                   onPressed: _startHosting,
-                  icon: const Icon(Icons.rocket_launch_outlined, size: 18),
+                  icon: const Icon(AppIcons.rocket_launch_outlined, size: 18),
                   label: Text(l10n.startHosting),
                 ),
               )
@@ -205,7 +199,7 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
           child: FilledButton.tonalIcon(
             key: const Key('welcome-codex-setup-btn'),
             onPressed: () => context.push('/setup/codex'),
-            icon: const Icon(Icons.tune, size: 18),
+            icon: const Icon(AppIcons.tune, size: 18),
             label: Text(l10n.codexSetup),
           ),
         ),
@@ -225,7 +219,6 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
         number: 1,
         done: false,
         title: l10n.welcomeMobileStep1,
-        description: null,
         child: Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
@@ -234,7 +227,7 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
               context,
               'https://github.com/acking-you/pocket-codex/releases/latest',
             ),
-            icon: const Icon(Icons.download_outlined, size: 18),
+            icon: const Icon(AppIcons.download_outlined, size: 18),
             label: Text(l10n.welcomeDownloadDesktop),
           ),
         ),
@@ -245,7 +238,6 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
         number: 2,
         done: false,
         title: l10n.welcomeMobileStep2,
-        description: null,
       ),
       const SizedBox(height: 12),
       _stepCard(
@@ -253,7 +245,6 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
         number: 3,
         done: found.isNotEmpty,
         title: l10n.welcomeMobileStep3,
-        description: null,
         child: found.isEmpty
             ? Row(
                 children: [
@@ -294,18 +285,21 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
     required int number,
     required bool done,
     required String title,
-    required String? description,
+    String? description,
     Widget? child,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
+      // A done step says so with its green check and a faint wash, not a
+      // heavy outline.
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(kPanelRadius),
-        border: Border.all(
-          color: done ? successColor(scheme) : scheme.outlineVariant,
-          width: done ? 1.4 : 1,
-        ),
+        color: done
+            ? Color.alphaBlend(
+                successColor(scheme).withValues(alpha: 0.07),
+                cardFill(scheme),
+              )
+            : cardFill(scheme),
+        borderRadius: BorderRadius.circular(kCardRadius),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,7 +310,7 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
                 radius: 13,
                 backgroundColor: done ? successColor(scheme) : scheme.primary,
                 child: done
-                    ? const Icon(Icons.check, size: 16, color: Colors.white)
+                    ? const Icon(AppIcons.check, size: 16, color: Colors.white)
                     : Text(
                         '$number',
                         style: TextStyle(
@@ -339,12 +333,7 @@ class _WelcomeGuideScreenState extends ConsumerState<WelcomeGuideScreen> {
             const SizedBox(height: 6),
             Padding(
               padding: const EdgeInsets.only(left: 36),
-              child: Text(
-                description,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-              ),
+              child: Text(description, style: helpTextStyle(Theme.of(context))),
             ),
           ],
           if (child != null) ...[

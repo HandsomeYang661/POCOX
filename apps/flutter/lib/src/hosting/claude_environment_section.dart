@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pocket_codex/l10n/gen/app_localizations.dart';
 import 'package:pocket_codex/src/bridge_api.dart';
@@ -6,6 +5,8 @@ import 'package:pocket_codex/src/hosting/claude_environment_field.dart';
 import 'package:pocket_codex/src/hosting/claude_environment_group.dart';
 import 'package:pocket_codex/src/hosting/editor_block.dart';
 import 'package:pocket_codex/src/theme.dart';
+import 'package:pocket_codex/src/widgets/field_help.dart';
+import 'package:pocket_codex/src/app_icons.dart';
 
 /// Per-field inheritance and secret retention, owned by one host draft.
 class ClaudeEnvironmentDraft extends ChangeNotifier {
@@ -35,13 +36,8 @@ class ClaudeEnvironmentDraft extends ChangeNotifier {
 
   void setOverride(String name, bool value) {
     if (value) {
-      const credentials = {
-        'ANTHROPIC_AUTH_TOKEN',
-        'ANTHROPIC_API_KEY',
-        'CLAUDE_CODE_OAUTH_TOKEN',
-      };
-      if (credentials.contains(name)) {
-        _overrides.removeAll(credentials.difference({name}));
+      if (claudeCredentials.contains(name)) {
+        _overrides.removeAll(claudeCredentials.where((c) => c != name));
       }
       _overrides.add(name);
     } else {
@@ -62,7 +58,6 @@ class ClaudeEnvironmentDraft extends ChangeNotifier {
           : field(name).text.trim(),
   };
 
-  bool get dirty => !mapEquals(input, _saved);
   bool get valid => input.values.every((v) => v == null || v.isNotEmpty);
 
   @override
@@ -114,10 +109,10 @@ class _ClaudeEnvironmentSectionState extends State<ClaudeEnvironmentSection> {
   bool _showDormant = false;
 
   static const _groups = {
-    'connection': Icons.vpn_key_outlined,
-    'models': Icons.layers_outlined,
-    'reasoning': Icons.psychology_outlined,
-    'network': Icons.lan_outlined,
+    'connection': AppIcons.vpn_key_outlined,
+    'models': AppIcons.layers_outlined,
+    'reasoning': AppIcons.psychology_outlined,
+    'network': AppIcons.lan_outlined,
   };
 
   bool _dormant(ClaudeVariable v) =>
@@ -207,7 +202,11 @@ class _ClaudeEnvironmentSectionState extends State<ClaudeEnvironmentSection> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.info_outline, size: 18, color: scheme.onSurfaceVariant),
+            Icon(
+              AppIcons.info_outline,
+              size: 18,
+              color: scheme.onSurfaceVariant,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -279,7 +278,14 @@ class _ClaudeEnvironmentSectionState extends State<ClaudeEnvironmentSection> {
             spacing: 8,
             runSpacing: 6,
             children: [
-              Text(l.claudeEnvTitle, style: theme.textTheme.titleSmall),
+              // How inheritance and overrides work is behind the info mark.
+              InfoTitle(
+                title: Text(
+                  l.claudeEnvTitle,
+                  style: theme.textTheme.titleSmall,
+                ),
+                info: l.claudeEnvHint,
+              ),
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
@@ -301,8 +307,6 @@ class _ClaudeEnvironmentSectionState extends State<ClaudeEnvironmentSection> {
             ],
           ),
         ),
-        const SizedBox(height: 6),
-        EditorNote(l.claudeEnvHint),
         for (final section in sections) ...[
           const SizedBox(height: 10),
           section,

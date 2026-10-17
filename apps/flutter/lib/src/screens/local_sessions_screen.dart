@@ -18,6 +18,7 @@ import 'package:pocket_codex/src/theme.dart';
 import 'package:pocket_codex/src/time_ago.dart';
 import 'package:pocket_codex/src/ui_prefs.dart';
 import 'package:pocket_codex/src/widgets/app_toast.dart';
+import 'package:pocket_codex/src/widgets/field_help.dart';
 import 'package:pocket_codex/src/widgets/loading.dart';
 import 'package:pocket_codex/src/widgets/search_field.dart';
 import 'package:pocket_codex/src/widgets/status_dots.dart';
@@ -25,6 +26,8 @@ import 'package:pocket_codex/src/widgets/takeover_dialog.dart';
 import 'package:pocket_codex/src/widgets/utility_page.dart';
 
 import 'session_source.dart';
+import 'package:pocket_codex/src/app_icons.dart';
+import 'package:pocket_codex/src/widgets/app_dialog.dart';
 export 'session_source.dart';
 part 'local_sessions/native_inventory.dart';
 
@@ -192,17 +195,26 @@ class _LocalSessionsState extends ConsumerState<LocalSessionsScreen> {
         if (!_localUnavailable)
           IconButton(
             key: const Key('local-sessions-refresh'),
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(AppIcons.refresh),
             tooltip: l10n.refreshStatus,
             onPressed: _loading ? null : _load,
           ),
       ],
-      body: Column(
-        children: [
-          if (!_source.isRemote && !_localUnavailable) _providerBar(l10n),
-          Expanded(child: body),
-          if (_source.isNative && !_loading) _inventoryFooter(l10n),
-        ],
+      // A reading measure rather than the window's full width: a session row
+      // stretched across a wide monitor puts its status a long glance away
+      // from its title.
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1120),
+          child: Column(
+            children: [
+              if (!_source.isRemote && !_localUnavailable) _providerBar(l10n),
+              Expanded(child: body),
+              if (_source.isNative && !_loading) _inventoryFooter(l10n),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -211,7 +223,7 @@ class _LocalSessionsState extends ConsumerState<LocalSessionsScreen> {
     if (_localUnavailable) {
       return _emptyState(
         key: const ValueKey('local-unavailable'),
-        icon: Icons.devices_outlined,
+        icon: AppIcons.devices_outlined,
         title: l10n.localSessionsUnavailable,
         description: l10n.localSessionsMobileHint,
       );
@@ -222,7 +234,7 @@ class _LocalSessionsState extends ConsumerState<LocalSessionsScreen> {
     if (_error != null) {
       return _emptyState(
         key: const ValueKey('local-error'),
-        icon: Icons.folder_off_outlined,
+        icon: AppIcons.folder_off_outlined,
         title: l10n.sessionsReadFailed,
         description: widget.source.isRemote
             ? l10n.remoteSessionsReadHint
@@ -234,7 +246,7 @@ class _LocalSessionsState extends ConsumerState<LocalSessionsScreen> {
     if (_sessions.isEmpty) {
       return _emptyState(
         key: const ValueKey('local-empty'),
-        icon: Icons.history_outlined,
+        icon: AppIcons.history_outlined,
         title: widget.source.isRemote
             ? l10n.noHostSessions
             : l10n.noLocalSessions,
@@ -288,14 +300,14 @@ class _LocalSessionsState extends ConsumerState<LocalSessionsScreen> {
                   if (retry)
                     OutlinedButton.icon(
                       onPressed: _load,
-                      icon: const Icon(Icons.refresh),
+                      icon: const Icon(AppIcons.refresh),
                       label: Text(l10n.retry),
                     ),
                   if (!widget.source.isRemote)
                     FilledButton.icon(
                       key: const Key('local-sessions-services'),
                       onPressed: () => context.go('/manage'),
-                      icon: const Icon(Icons.devices_outlined),
+                      icon: const Icon(AppIcons.devices_outlined),
                       label: Text(l10n.manageServices),
                     ),
                 ],
@@ -342,17 +354,12 @@ class _LocalSessionsState extends ConsumerState<LocalSessionsScreen> {
         )
         .toList();
 
-    final allTree = SessionTree(
+    SessionTree<LocalSession> treeOf(Iterable<LocalSession> sessions) =>
+        SessionTree(sessions, (s) => s.threadId, (s) => s.parentThreadId);
+    final included = treeOf(
       _sessions,
-      (LocalSession s) => s.threadId,
-      (s) => s.parentThreadId,
-    );
-    final included = allTree.withAncestors(matched.map((s) => s.threadId));
-    final tree = SessionTree(
-      _sessions.where((s) => included.contains(s.threadId)),
-      (LocalSession s) => s.threadId,
-      (s) => s.parentThreadId,
-    );
+    ).withAncestors(matched.map((s) => s.threadId));
+    final tree = treeOf(_sessions.where((s) => included.contains(s.threadId)));
     final filtered = tree.roots;
     final activeParents = tree.withAncestors(
       _sessions.where((s) => s.safety == 'ownedRunning').map((s) => s.threadId),
@@ -391,15 +398,8 @@ class _LocalSessionsState extends ConsumerState<LocalSessionsScreen> {
             expanded: expanded.contains(s.threadId),
             childSession: s.parentThreadId != null,
             guardian: s.isGuardian,
-            onToggle: () => setState(() {
-              if (expanded.contains(s.threadId)) {
-                _expandedParents.remove(s.threadId);
-                _collapsedParents.add(s.threadId);
-              } else {
-                _collapsedParents.remove(s.threadId);
-                _expandedParents.add(s.threadId);
-              }
-            }),
+            onToggle: () =>
+                _toggle(s.threadId, open: !expanded.contains(s.threadId)),
             child: _SessionRow(
               session: s,
               now: now,
@@ -415,6 +415,14 @@ class _LocalSessionsState extends ConsumerState<LocalSessionsScreen> {
     section(l10n.groupActive, active);
     section(l10n.groupToday, today);
     section(l10n.groupEarlier, earlier);
+    final list = RefreshIndicator(
+      key: const ValueKey('local-list'),
+      onRefresh: _load,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 8),
+        children: rows,
+      ),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -437,30 +445,25 @@ class _LocalSessionsState extends ConsumerState<LocalSessionsScreen> {
               : desktop
               ? Padding(
                   padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-                  child: Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: RefreshIndicator(
-                      key: const ValueKey('local-list'),
-                      onRefresh: _load,
-                      child: ListView(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        children: rows,
-                      ),
-                    ),
-                  ),
+                  child: Card(clipBehavior: Clip.antiAlias, child: list),
                 )
-              : RefreshIndicator(
-                  key: const ValueKey('local-list'),
-                  onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    children: rows,
-                  ),
-                ),
+              : list,
         ),
       ],
     );
   }
+
+  /// Fold or unfold [id]'s children by hand; a manual fold outranks the
+  /// automatic reveal of a search or filter.
+  void _toggle(String id, {required bool open}) => setState(() {
+    if (open) {
+      _collapsedParents.remove(id);
+      _expandedParents.add(id);
+    } else {
+      _expandedParents.remove(id);
+      _collapsedParents.add(id);
+    }
+  });
 
   Widget _desktopToolbar(AppLocalizations l10n) {
     final scheme = Theme.of(context).colorScheme;
@@ -614,14 +617,10 @@ class _SessionRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
             child: Row(
               children: [
-                Icon(
-                  session.heldOpen
-                      ? Icons.lock_outline
-                      : Icons.chat_bubble_outline,
-                  size: 18,
-                  color: session.heldOpen ? scheme.error : scheme.primary,
-                ),
-                const SizedBox(width: 10),
+                // No per-row glyph: every row is a session, and the one
+                // fact that differs (held open by another process) is the
+                // status at the end of the row.
+                const SizedBox(width: 4),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -798,7 +797,7 @@ Future<void> resumeLocalSession(
   }
 
   if (requiresTakeover) {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (_) =>
           TakeoverDialog(holders: holders, hasTarget: target != null),
@@ -836,11 +835,5 @@ Future<void> resumeLocalSession(
 
   // Open the resumed conversation (only reached on success).
   if (!context.mounted || !current()) return;
-  final key = Uri.encodeComponent(target);
-  final q = <String>[
-    'tid=${Uri.encodeComponent(threadId)}',
-    if (cwd != null && cwd.trim().isNotEmpty)
-      'cwd=${Uri.encodeComponent(cwd.trim())}',
-  ];
-  context.push('/app/$key/session?${q.join('&')}');
+  context.push(conversationRoute(target, threadId, cwd: cwd));
 }

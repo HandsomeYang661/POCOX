@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:pocket_codex/l10n/gen/app_localizations.dart';
+import 'package:pocket_codex/src/motion.dart';
 
 /// Drives the sweep for the skeleton shapes ([SkeletonBox]) beneath it, so a
 /// screen waiting on data reads as "content is coming" rather than as a frozen
@@ -34,12 +35,7 @@ class _ShimmerState extends State<Shimmer> with SingleTickerProviderStateMixin {
     super.didChangeDependencies();
     // Reduced-motion users keep the skeleton and lose the movement: the shape
     // is what says "loading", the sweep is only polish.
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _c.stop();
-      _c.value = 0.5;
-    } else if (!_c.isAnimating) {
-      _c.repeat();
-    }
+    _c.loopUnlessReduced(context, rest: 0.5);
   }
 
   @override
@@ -125,17 +121,72 @@ class _SlideGradient extends GradientTransform {
       Matrix4.translationValues((t * 2 - 1) * bounds.width, 0, 0);
 }
 
-/// A quiet initial-history state. Fast cache hits never flash a loading shape.
-class ChatLoadingSkeleton extends StatefulWidget {
+/// A quiet initial-history state: after a short delay, a label with a small
+/// spinner fades in. Fast cache hits never flash a loading shape, and no mock
+/// conversation stands in for the real one.
+class ChatLoadingSkeleton extends StatelessWidget {
+  /// Creates the loading state.
   const ChatLoadingSkeleton({super.key});
 
   @override
-  State<ChatLoadingSkeleton> createState() => _ChatLoadingSkeletonState();
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Center(
+      child: _DelayedFadeIn(
+        delay: const Duration(milliseconds: 250),
+        hidden: const SizedBox.shrink(),
+        child: Semantics(
+          liveRegion: true,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Reduced motion keeps the label alone, perfectly still.
+              if (Motion.ambientAllowed(context)) ...[
+                SizedBox.square(
+                  dimension: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.6,
+                    color: muted,
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Text(
+                AppLocalizations.of(context).historyLoading,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: muted),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _ChatLoadingSkeletonState extends State<ChatLoadingSkeleton> {
+/// Shows [child] only once [delay] has passed, fading it in, so a wait that
+/// ends at once never flashes a placeholder and one that only just outlasts
+/// the delay does not pop. [hidden] holds the place meanwhile; [child] is not
+/// built before it shows, so a hidden sweep never ticks.
+class _DelayedFadeIn extends StatefulWidget {
+  const _DelayedFadeIn({
+    required this.delay,
+    required this.hidden,
+    required this.child,
+  });
+
+  final Duration delay;
+  final Widget hidden;
+  final Widget child;
+
+  @override
+  State<_DelayedFadeIn> createState() => _DelayedFadeInState();
+}
+
+class _DelayedFadeInState extends State<_DelayedFadeIn> {
   bool _visible = false;
-  late final Timer _delay = Timer(const Duration(milliseconds: 250), () {
+  late final Timer _delay = Timer(widget.delay, () {
     if (mounted) setState(() => _visible = true);
   });
 
@@ -152,18 +203,11 @@ class _ChatLoadingSkeletonState extends State<ChatLoadingSkeleton> {
   }
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: _visible
-        ? Semantics(
-            liveRegion: true,
-            child: Text(
-              AppLocalizations.of(context).historyLoading,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          )
-        : const SizedBox.shrink(),
+  Widget build(BuildContext context) => AnimatedOpacity(
+    opacity: _visible ? 1 : 0,
+    duration: Motion.of(context, Motion.slow),
+    curve: Motion.enter,
+    child: _visible ? widget.child : widget.hidden,
   );
 }
 
@@ -201,4 +245,95 @@ class ListLoadingSkeleton extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// The sessions sidebar while its first listing is on its way: after a short
+/// delay, quiet rows under project headings fade in, so a listing that
+/// answers at once never flashes a placeholder.
+class ConversationListSkeleton extends StatelessWidget {
+  /// Creates the skeleton; [touch] lays it out with touch-sized rows.
+  const ConversationListSkeleton({super.key, this.touch = false});
+
+  /// Touch-sized rows rather than pointer-sized ones.
+  final bool touch;
+
+  // Each group: its heading's width, then its rows' title widths (fractions
+  // of the row), uneven the way real titles are.
+  static const _groups = [
+    (84.0, [0.78, 0.56, 0.68]),
+    (64.0, [0.62, 0.84]),
+    (96.0, [0.5, 0.72, 0.6]),
+  ];
+
+  // A pointer row: the title, its time at the end of the line.
+  static Widget _pointerRow(double title) => SizedBox(
+    height: 34,
+    child: Row(
+      children: [
+        Expanded(
+          child: FractionallySizedBox(
+            alignment: AlignmentDirectional.centerStart,
+            widthFactor: title,
+            child: const SkeletonBox(height: 10, radius: 5),
+          ),
+        ),
+        const SizedBox(width: 14),
+        const SkeletonBox(width: 22, height: 8, radius: 4),
+      ],
+    ),
+  );
+
+  // A touch row: the title, its time on the line below.
+  static Widget _touchRow(double title) => SizedBox(
+    height: 58,
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FractionallySizedBox(
+          widthFactor: title,
+          child: const SkeletonBox(height: 11, radius: 5.5),
+        ),
+        const SizedBox(height: 9),
+        const SkeletonBox(width: 52, height: 8, radius: 4),
+      ],
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <Widget>[
+      for (final (heading, titles) in _groups) ...[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 16, 10, 10),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: SkeletonBox(width: heading, height: 9, radius: 4.5),
+          ),
+        ),
+        for (final title in titles)
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(28, 0, 10, 0),
+            child: touch ? _touchRow(title) : _pointerRow(title),
+          ),
+      ],
+    ];
+    return Semantics(
+      label: AppLocalizations.of(context).conversationsLoading,
+      liveRegion: true,
+      child: ExcludeSemantics(
+        child: _DelayedFadeIn(
+          delay: const Duration(milliseconds: 180),
+          hidden: const SizedBox.expand(),
+          child: Shimmer(
+            child: ListView(
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+              children: rows,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

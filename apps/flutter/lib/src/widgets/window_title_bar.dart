@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:pocket_codex/l10n/gen/app_localizations.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:pocket_codex/src/app_icons.dart';
+import 'package:pocket_codex/src/desktop_theme.dart';
 
 /// True on the desktop platforms that run frameless (macOS + Windows). Linux
 /// keeps its native title bar for now. Gated on [defaultTargetPlatform] (NOT
@@ -23,11 +25,18 @@ bool get isMacDesktop =>
 abstract final class WindowChrome {
   /// Height of the top strip that doubles as the title bar.
   ///
-  /// macOS: 52 pt, the unified-toolbar height native apps use (Finder, Mail,
-  /// Xcode). The traffic lights are re-centred into it natively (see
-  /// `MainFlutterWindow.swift`), so controls in the strip share their centre
-  /// line. Windows: 44 px, which the 46 px caption buttons fill edge to edge.
-  static double get barHeight => isMacDesktop ? 52 : 44;
+  /// macOS: 60 pt, a unified-toolbar height. The traffic lights are
+  /// re-centred into it natively (see `MainFlutterWindow.swift`), so controls
+  /// in the strip — and in a content sheet's bar, see [sheetBarHeight] —
+  /// share their centre line. Windows: 44 px, which the 46 px caption
+  /// buttons fill edge to edge.
+  static double get barHeight => isMacDesktop ? 60 : 44;
+
+  /// Height of a bar heading a content sheet, which sits [kSheetInset]
+  /// below the window's top edge: on macOS it is centred on the traffic
+  /// lights' line; elsewhere it keeps the full bar height.
+  static double get sheetBarHeight =>
+      isMacDesktop ? barHeight - 2 * kSheetInset : barHeight;
 
   /// Width the macOS traffic lights occupy from the window's leading edge,
   /// including the native 20 pt inset and the gap after the zoom button.
@@ -52,7 +61,7 @@ abstract final class WindowChrome {
 /// keeps its native traffic lights (top-left, floating over content), so we
 /// only inset the leading edge to clear them; Windows loses ALL native caption
 /// buttons with `TitleBarStyle.hidden`, so this bar draws its own
-/// minimize/maximize/close ([_WindowCaptionButtons]) at the trailing edge. The
+/// minimize/maximize/close ([WindowCaptionButtons]) at the trailing edge. The
 /// theme's `appBarTheme` flattens tint/elevation so it blends into the content.
 ///
 /// On mobile (and Linux, which keeps native decorations) it is a plain
@@ -70,7 +79,16 @@ class WindowTitleBar extends StatelessWidget implements PreferredSizeWidget {
     this.backgroundColor,
     this.foregroundColor,
     this.centerTitle,
+    this.clearTrafficLights = true,
+    this.height,
   });
+
+  /// Whether the bar keeps clear of the macOS traffic lights. False for a
+  /// bar inside a content sheet, whose window corner the sidebar owns.
+  final bool clearTrafficLights;
+
+  /// Overrides the bar's height (the window chrome's by default).
+  final double? height;
 
   /// Whether to centre the title; null follows the platform (centred on
   /// macOS, leading elsewhere).
@@ -100,7 +118,7 @@ class WindowTitleBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => Size.fromHeight(
-    (isFramelessDesktop ? WindowChrome.barHeight : kToolbarHeight) +
+    (height ?? (isFramelessDesktop ? WindowChrome.barHeight : kToolbarHeight)) +
         (bottom?.preferredSize.height ?? 0),
   );
 
@@ -112,6 +130,7 @@ class WindowTitleBar extends StatelessWidget implements PreferredSizeWidget {
         title: title,
         actions: actions,
         bottom: bottom,
+        toolbarHeight: height,
         automaticallyImplyLeading: automaticallyImplyLeading,
         backgroundColor: backgroundColor,
         foregroundColor: foregroundColor,
@@ -119,8 +138,8 @@ class WindowTitleBar extends StatelessWidget implements PreferredSizeWidget {
     }
 
     final isMac = isMacDesktop;
-    final leadInset = WindowChrome.leadingInset;
-    final barHeight = WindowChrome.barHeight;
+    final leadInset = clearTrafficLights ? WindowChrome.leadingInset : 0.0;
+    final barHeight = height ?? WindowChrome.barHeight;
 
     // Materialise the implied back button ourselves: AppBar's own implied
     // leading knows nothing about the traffic lights and would sit under
@@ -192,27 +211,28 @@ class WindowDragArea extends StatelessWidget {
   /// Optional content painted inside the drag area.
   final Widget? child;
 
-  Future<void> _zoom() async {
-    try {
-      if (await windowManager.isMaximized()) {
-        await windowManager.unmaximize();
-      } else {
-        await windowManager.maximize();
-      }
-    } catch (_) {
-      // Best-effort; there is no real window under `flutter test`.
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!isFramelessDesktop) return child ?? const SizedBox.expand();
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onPanStart: (_) => windowManager.startDragging(),
-      onDoubleTap: _zoom,
+      onDoubleTap: _toggleMaximized,
       child: child ?? const SizedBox.expand(),
     );
+  }
+}
+
+/// Maximize the window, or restore it when it already is.
+Future<void> _toggleMaximized() async {
+  try {
+    if (await windowManager.isMaximized()) {
+      await windowManager.unmaximize();
+    } else {
+      await windowManager.maximize();
+    }
+  } catch (_) {
+    // Best-effort; there is no real window under `flutter test`.
   }
 }
 
@@ -266,16 +286,6 @@ class _WindowCaptionButtonsState extends State<WindowCaptionButtons>
     if (mounted) setState(() => _maximized = false);
   }
 
-  Future<void> _toggleMaximize() async {
-    try {
-      if (await windowManager.isMaximized()) {
-        await windowManager.unmaximize();
-      } else {
-        await windowManager.maximize();
-      }
-    } catch (_) {}
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -283,19 +293,19 @@ class _WindowCaptionButtonsState extends State<WindowCaptionButtons>
       mainAxisSize: MainAxisSize.min,
       children: [
         _CaptionButton(
-          icon: Icons.remove,
+          icon: AppIcons.remove,
           tooltip: l10n.windowMinimize,
           onTap: () => windowManager.minimize(),
         ),
         _CaptionButton(
-          icon: _maximized ? Icons.filter_none : Icons.crop_square,
+          icon: _maximized ? AppIcons.filter_none : AppIcons.crop_square,
           tooltip: _maximized ? l10n.windowRestore : l10n.windowMaximize,
           // filter_none (two stacked squares) reads better a touch smaller.
           iconSize: _maximized ? 13 : 15,
-          onTap: _toggleMaximize,
+          onTap: _toggleMaximized,
         ),
         _CaptionButton(
-          icon: Icons.close,
+          icon: AppIcons.close,
           tooltip: l10n.windowClose,
           isClose: true,
           // Honors setPreventClose → hides to tray, matching the native button.
