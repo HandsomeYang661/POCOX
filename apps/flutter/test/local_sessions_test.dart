@@ -188,6 +188,32 @@ void main() {
     expect(find.byKey(const Key('resume-thr-running')), findsNothing);
   });
 
+  desktopTest('a turn the host app-server runs is joined, not waited out', (
+    t,
+  ) async {
+    final api = FakeBridgeApi()
+      ..localSessions = const [
+        LocalSession(
+          threadId: 'thr-host',
+          cwd: '/proj',
+          preview: 'first message',
+          name: 'Renamed on the phone',
+          status: 'active',
+          updatedAt: 0,
+          turnState: 'incomplete',
+          heldOpen: true,
+          safety: 'ownedRunning',
+          allowsResume: true,
+          requiresTakeover: false,
+        ),
+      ];
+    await t.pumpWidget(_host(const LocalSessionsScreen(), api));
+    await _settle(t);
+    expect(find.text('Renamed on the phone'), findsOneWidget);
+    expect(find.text('其他进程运行中'), findsNothing);
+    expect(find.byKey(const Key('resume-thr-host')), findsOneWidget);
+  });
+
   desktopTest('force-takeover opens a confirm dialog listing the holders', (
     t,
   ) async {
@@ -339,10 +365,12 @@ void main() {
       int updated, {
       String safety = 'resumable',
       bool running = false,
+      String? name,
     }) => LocalSession(
       threadId: id,
       cwd: '/proj',
       preview: preview,
+      name: name,
       source: 'cli',
       updatedAt: updated,
       turnState: running ? 'incomplete' : 'completed',
@@ -366,7 +394,7 @@ void main() {
         mk('c', 'today two', nowSec - 300),
         mk('d', 'today three', nowSec - 600),
         mk('e', 'old uniquexyz', nowSec - 3 * 86400),
-        mk('f', 'old two', nowSec - 4 * 86400),
+        mk('f', 'old two', nowSec - 4 * 86400, name: 'Renamed plan'),
         mk('g', 'old three', nowSec - 5 * 86400),
       ];
     await t.pumpWidget(_host(LocalSessionsScreen(clock: () => now), api));
@@ -386,6 +414,12 @@ void main() {
     expect(find.text('old uniquexyz'), findsOneWidget);
     expect(find.text('today one'), findsNothing);
     expect(find.text('running now'), findsNothing);
+
+    // A renamed session is found by the title it shows.
+    await t.enterText(find.byKey(const Key('local-search')), 'renamed');
+    await _settle(t);
+    expect(find.text('Renamed plan'), findsOneWidget);
+    expect(find.text('old uniquexyz'), findsNothing);
   });
 
   desktopTest('viewer renders the transcript read-only and offers force-resume '
