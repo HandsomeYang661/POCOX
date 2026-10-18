@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in Pocket-Codex isn't behaving the way the docs / CLI help say it should.
+description: Something in POCOX isn't behaving the way the docs / CLI help say it should.
 title: "bug: <short description>"
 labels: ["bug", "triage"]
 body:
@@ -8,7 +8,7 @@ body:
       value: |
         Thanks for filing a bug. A few things that help us land the fix faster:
 
-        - **Pocket-Codex is pre-1.0.** APIs, on-disk layout and the protocol
+        - **POCOX is pre-1.0.** APIs, on-disk layout and the protocol
           mapping are all expected to change. Please include the exact
           commit / version you saw the bug on.
         - **Logs help.** `pocket-codex` uses `tracing`; running with
@@ -23,9 +23,9 @@ body:
     attributes:
       label: Pre-flight checks
       options:
-        - label: I searched [open and closed issues](https://github.com/acking-you/pocket-codex/issues?q=is%3Aissue) and didn't find a duplicate.
+        - label: I searched [open and closed issues](https://github.com/acking-you/POCOX/issues?q=is%3Aissue) and didn't find a duplicate.
           required: true
-        - label: I read the relevant section of [`AGENTS.md`](https://github.com/acking-you/pocket-codex/blob/main/AGENTS.md) / [`README.md`](https://github.com/acking-you/pocket-codex/blob/main/README.md) and the bug isn't documented as known / expected.
+        - label: I read the relevant section of [`AGENTS.md`](https://github.com/acking-you/POCOX/blob/main/AGENTS.md) / [`README.md`](https://github.com/acking-you/POCOX/blob/main/README.md) and the bug isn't documented as known / expected.
           required: true
 
   - type: textarea
@@ -89,7 +89,7 @@ body:
   - type: input
     id: pcx-version
     attributes:
-      label: Pocket-Codex version
+      label: POCOX version
       description: Output of `pocket-codex version` (or the commit SHA you built from).
       placeholder: "pocket-codex 0.1.0 (commit abcdef0)"
     validations:

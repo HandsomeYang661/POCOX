@@ -284,6 +284,8 @@ class _ProviderSnippet extends StatelessWidget {
   final String localAddr;
   @override
   Widget build(BuildContext context) {
+    // Pasted into Codex configuration: its values keep the former product
+    // name, like everything else written there.
     final snippet =
         'model_provider = "pocket-codex-api"\n\n'
         '[model_providers.pocket-codex-api]\n'

@@ -1,11 +1,15 @@
 <p align="center">
-  <img src="assets/logo/poster.png" alt="Pocket-Codex poster" width="100%" />
+  <img src="assets/logo/poster.png" alt="POCOX poster" width="100%" />
 </p>
 
-<h1 align="center">Pocket-Codex</h1>
+<h1 align="center">POCOX</h1>
 
 <p align="center">
-  <em>把你的 Codex 装进口袋，在任意设备上原生驱动它。</em>
+  <strong>PO</strong>cket&nbsp;<strong>CO</strong>de<strong>X</strong>
+</p>
+
+<p align="center">
+  <em>把你的每一台设备，都装进口袋。</em>
 </p>
 
 <p align="center">
@@ -20,16 +24,41 @@
 </p>
 
 > [!WARNING]
-> **Pocket-Codex 正在积极开发中。** 这里的一切都还不稳定——API、磁盘布局、
+> **POCOX 正在积极开发中。** 这里的一切都还不稳定——API、磁盘布局、
 > 协议映射，乃至 crate 的边界，都可能在不另行通知的情况下变动。请**不要**将其
 > 用于生产环境。在我们打地基的过程中，非常欢迎 PR、设计反馈与缺陷报告。
 
 ## 这是什么？
 
-Pocket-Codex 是一个实验：把上游
-[`codex app-server`](https://github.com/openai/codex) 协议变成一种可移植、
-多设备的体验；同时把宿主机的 Codex 登录态，暴露成一个经由中转（relay）可达、
-任意设备都能访问的 Responses API 端点：
+POCOX（取自 **PO**cket **CO**de**X**）把你拥有的每一台设备都装进口袋。
+它是媒介，而不是又一个智能体 harness：Codex、Claude Code 和 OpenCode 照原厂的方式
+继续用，我们也推荐这样做。POCOX 在每台电脑上陪在它们旁边：看到它们运行的每一个
+会话，让你在手机、平板或另一台机器上实时跟进、随时接手，并把这台电脑的服务开放给
+你的其它所有设备。
+
+现在已经能做到：
+
+- **这台机器上的每一个会话。** POCOX 列出 Codex、Claude Code 与 OpenCode 在一台电脑
+  上运行的会话，包括在它们自己的 App 和 CLI 里开启的，并实时跟进。空闲的 Codex 会话
+  可以从任意设备接管；Claude Code 与 OpenCode 的会话在其原生客户端释放后，可在
+  POCOX 托管上继续。
+- **任意桌面都能托管智能体。** macOS、Windows 与 Linux 可以托管 Codex（通过它的
+  [`app-server`](https://github.com/openai/codex) 协议）、原生 OpenCode，以及经
+  ACP 接入的 Claude Code 或其它智能体，多个可以同时运行。
+- **随处触及。** iOS、Android 与桌面的原生 App 以及 CLI，可以跟进并引导每一轮对话、
+  处理审批、浏览历史、查看改动，覆盖你所有设备上的每一个托管。
+- **共享的是订阅，不只是会话。** 一台电脑的 Codex 登录可以发布成 OpenAI 兼容的
+  Responses API（HTTP 与 WebSocket），没有安装 Codex 的设备和工具也能用同一个模型。
+- **管理你的其它电脑。** 在手机或 CLI 上为另一台桌面添加、配置、重启和停止服务。
+
+接下来的方向：一个内建工具，让一台设备上的智能体能够操作你的其它设备，一次对话
+就能触及口袋里的一切。目前仍在规划中，尚未提供。
+
+### 工作原理
+
+POCOX 把上游 [`codex app-server`](https://github.com/openai/codex) 协议变成一种
+可移植、多设备的体验；同时把宿主机的 Codex 登录态，暴露成一个经由中转（relay）
+可达、任意设备都能访问的 Responses API 端点：
 
 - 一个纯 Rust 的 CLI，在装有 Codex 的机器上管理本地的
   `codex app-server` 进程。
@@ -49,8 +78,10 @@ Pocket-Codex 是一个实验：把上游
   按用户隔离的 `pcxu:<user>:…` 键，替每个账号经中转代理其服务，因此中转的主
   密钥永远不会下发给客户端，账号之间也彼此不可见。
 
-一句话：**一台机器保持登录 Codex；其它每台设备——Flutter 界面、远端的 `codex`
-CLI，或任意 OpenAI 兼容工具——都通过中转访问它**，要么用共享的中转密钥
+改名只换了名字：命令、crate、包名与应用标识仍是 `pocket-codex`，已有安装、脚本和设置照常沿用。
+
+一句话：**每台电脑保留自己的智能体与登录；其它每台设备——POCOX App、远端的
+`codex` CLI，或任意 OpenAI 兼容工具——都通过中转访问它们**，要么用共享的中转密钥
 （自建），要么用按账号的 GitHub 登录（托管）。
 
 ## 状态
@@ -132,12 +163,12 @@ pocket-codex/
 
 ```bash
 # Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/acking-you/pocket-codex/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/acking-you/POCOX/main/scripts/install.sh | sh
 ```
 
 ```powershell
 # Windows（PowerShell）
-irm https://raw.githubusercontent.com/acking-you/pocket-codex/main/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/acking-you/POCOX/main/scripts/install.ps1 | iex
 ```
 
 可用环境变量覆盖：`POCKET_CODEX_VERSION` 固定某个 tag（如 `v0.1.3`）、
@@ -148,8 +179,8 @@ PATH 处理。想用包管理器或从源码构建？见下文。
 
 ```bash
 # 连同所有子模块一起 clone（deps/codex、pb-mapper、kanal、uni-stream）。
-git clone --recurse-submodules git@github.com:acking-you/pocket-codex.git
-cd pocket-codex
+git clone --recurse-submodules git@github.com:acking-you/POCOX.git
+cd POCOX
 
 # 如果你没带 --recurse-submodules：
 git submodule update --init --recursive
@@ -161,7 +192,7 @@ cargo build --workspace
 cargo run -p pocket-codex-cli -- --help
 ```
 
-`$PATH` 中需有可用的 `codex` 程序；Pocket-Codex **不**自带模型运行时。CLI 提供：
+`$PATH` 中需有可用的 `codex` 程序；POCOX **不**自带模型运行时。CLI 提供：
 
 ```text
 pocket-codex login                          # 托管账号（GitHub）
@@ -252,6 +283,6 @@ flutter_rust_bridge_codegen generate
 
 ## 许可证
 
-Pocket-Codex 以 [Apache License 2.0](LICENSE) 授权。
+POCOX 以 [Apache License 2.0](LICENSE) 授权。
 
 `deps/` 下的上游项目各自保留其许可证；详情请查阅各子模块。

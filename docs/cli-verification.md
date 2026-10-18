@@ -1,4 +1,4 @@
-# Pocket-Codex CLI 端到端验证指南
+# POCOX CLI 端到端验证指南
 
 > 适用环境：relay 已部署在 `lb7666.top:7666`（pb-mapper **0.2.14**，systemd 托管，
 > 已在线）。本指南让你在**一台机器上**用 loopback-through-relay 的方式跑通
@@ -185,7 +185,7 @@ $PCX status
 应有 3 条 alive：`codex` + `pb register` + `pb subscribe`，以表格形式输出：
 
 ```text
-Pocket-Codex runtime status · lb7666.top:7666
+POCOX runtime status · lb7666.top:7666
 
 ┌──────────────┬───────┬───────┬──────────────────────┬────────────────────────┬────────┐
 │ COMPONENT    ┆ STATE ┆ PID   ┆ ENDPOINT             ┆ KEY                    ┆ UPTIME │

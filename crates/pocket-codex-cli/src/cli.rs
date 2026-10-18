@@ -28,7 +28,7 @@ pub struct Cli {
 /// Top-level subcommands.
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Sign in to a hosted Pocket-Codex account via GitHub (device code by
+    /// Sign in to a hosted POCOX account via GitHub (device code by
     /// default, or `--web` for a browser redirect).
     Login(LoginArgs),
 
@@ -51,14 +51,14 @@ pub enum Command {
     #[command(subcommand)]
     Api(ApiCmd),
 
-    /// Discover and configure relay-exposed Pocket-Codex services.
+    /// Discover and configure relay-exposed POCOX services.
     #[command(subcommand)]
     Services(ServicesCmd),
 
-    /// Show all Pocket-Codex managed runtime sessions.
+    /// Show all POCOX managed runtime sessions.
     Status,
 
-    /// Stop Pocket-Codex managed runtime sessions.
+    /// Stop POCOX managed runtime sessions.
     Stop(StopArgs),
 
     /// Print build / runtime version info.
@@ -124,7 +124,7 @@ pub struct ServeArgs {
     #[arg(long, conflicts_with_all = ["key", "extra"])]
     pub allow_remote_management: bool,
 
-    /// Exact pb-mapper key to register. When omitted, Pocket-Codex builds
+    /// Exact pb-mapper key to register. When omitted, POCOX builds
     /// `pcx:<device>:app:<name>`.
     #[arg(long)]
     pub key: Option<String>,
@@ -134,7 +134,7 @@ pub struct ServeArgs {
     #[arg(long)]
     pub device: Option<String>,
 
-    /// Service instance name used in generated Pocket-Codex service keys.
+    /// Service instance name used in generated POCOX service keys.
     #[arg(long, default_value = "default")]
     pub name: String,
 
@@ -156,7 +156,7 @@ pub struct ServeArgs {
 
     /// Upstream proxy the spawned `codex app-server` should use to reach
     /// chatgpt.com (`http://` or `socks5://`; `https://` proxies are
-    /// rejected). When unset, Pocket-Codex falls back to the standard
+    /// rejected). When unset, POCOX falls back to the standard
     /// `$HTTPS_PROXY` / `$ALL_PROXY` / `$HTTP_PROXY` environment
     /// variables. Note: codex_apps and plugin sync are HTTP traffic that
     /// only an `http://` proxy can carry; a `socks5://` proxy reaches the
@@ -175,7 +175,7 @@ pub struct ServeArgs {
 /// Args for `pocket-codex connect`.
 #[derive(Debug, Args)]
 pub struct ConnectArgs {
-    /// Exact pb-mapper key to attach to. When omitted, Pocket-Codex resolves
+    /// Exact pb-mapper key to attach to. When omitted, POCOX resolves
     /// the target from `--device`, local defaults, or relay discovery.
     #[arg(long)]
     pub key: Option<String>,
@@ -184,7 +184,7 @@ pub struct ConnectArgs {
     #[arg(long)]
     pub device: Option<String>,
 
-    /// Service instance name to connect to. When omitted, Pocket-Codex
+    /// Service instance name to connect to. When omitted, POCOX
     /// uses the stored default target name or falls back to `default`.
     #[arg(long)]
     pub name: Option<String>,
@@ -209,7 +209,7 @@ pub enum ApiCmd {
 /// Args for `pocket-codex api serve`.
 #[derive(Debug, Args)]
 pub struct ApiServeArgs {
-    /// Exact pb-mapper key to register. When omitted, Pocket-Codex builds
+    /// Exact pb-mapper key to register. When omitted, POCOX builds
     /// `pcx:<device>:api:<name>`.
     #[arg(long)]
     pub key: Option<String>,
@@ -219,7 +219,7 @@ pub struct ApiServeArgs {
     #[arg(long)]
     pub device: Option<String>,
 
-    /// Service instance name used in generated Pocket-Codex service keys.
+    /// Service instance name used in generated POCOX service keys.
     #[arg(long, default_value = "default")]
     pub name: String,
 
@@ -233,7 +233,7 @@ pub struct ApiServeArgs {
 
     /// Upstream proxy used to reach chatgpt.com (`http://` or
     /// `socks5://`; `https://` proxies are rejected). When unset,
-    /// Pocket-Codex falls back to the standard `$HTTPS_PROXY` /
+    /// POCOX falls back to the standard `$HTTPS_PROXY` /
     /// `$ALL_PROXY` / `$HTTP_PROXY` environment variables.
     #[arg(long)]
     pub proxy: Option<String>,
@@ -249,7 +249,7 @@ pub struct ApiServeArgs {
 /// Args for `pocket-codex api connect`.
 #[derive(Debug, Args)]
 pub struct ApiConnectArgs {
-    /// Exact pb-mapper key to attach to. When omitted, Pocket-Codex resolves
+    /// Exact pb-mapper key to attach to. When omitted, POCOX resolves
     /// the target from `--device`, local defaults, or relay discovery.
     #[arg(long)]
     pub key: Option<String>,
@@ -258,7 +258,7 @@ pub struct ApiConnectArgs {
     #[arg(long)]
     pub device: Option<String>,
 
-    /// Service instance name to connect to. When omitted, Pocket-Codex
+    /// Service instance name to connect to. When omitted, POCOX
     /// uses the stored default target name or falls back to `default`.
     #[arg(long)]
     pub name: Option<String>,
@@ -274,7 +274,7 @@ pub struct ApiConnectArgs {
 /// Subcommands under `pocket-codex services …`.
 #[derive(Debug, Subcommand)]
 pub enum ServicesCmd {
-    /// List relay-exposed Pocket-Codex service keys.
+    /// List relay-exposed POCOX service keys.
     List(ServicesListArgs),
     /// Manage local default service targets.
     #[command(subcommand)]
@@ -416,7 +416,7 @@ pub struct CodexStartArgs {
 
     /// Upstream proxy the spawned `codex app-server` should use to reach
     /// chatgpt.com (`http://` or `socks5://`; `https://` proxies are
-    /// rejected). When unset, Pocket-Codex falls back to the standard
+    /// rejected). When unset, POCOX falls back to the standard
     /// `$HTTPS_PROXY` / `$ALL_PROXY` / `$HTTP_PROXY` environment
     /// variables. Note: codex_apps and plugin sync are HTTP traffic that
     /// only an `http://` proxy can carry; a `socks5://` proxy reaches the
