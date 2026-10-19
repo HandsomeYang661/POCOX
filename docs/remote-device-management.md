@@ -194,7 +194,9 @@ too. If the overrides cannot be read, nothing is restored and the reason is
 shown under the switch. Nothing is restored by a second app on the same
 hosting state ([one desktop app per hosting state](#one-desktop-app-per-hosting-state)).
 Each restore is revalidated by the host (`hostRestoreService`); a stopped host
-is never restarted by polling.
+is never restarted by polling. A restore starts what is saved and saves
+nothing: neither the configuration's revision nor the restore choice moves, so
+the restored host runs the revision controllers see as saved.
 
 ## Default project folder
 
