@@ -244,6 +244,7 @@ mixin _RustHosting implements BridgeApi {
       provider: r.provider,
       serviceKey: r.serviceKey,
       reused: r.reused,
+      notice: r.notice,
     );
   }
 
