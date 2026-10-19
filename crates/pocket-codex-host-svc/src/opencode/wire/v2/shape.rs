@@ -92,11 +92,18 @@ pub(super) struct Model {
     variants: Vec<Variant>,
     status: String,
     enabled: bool,
+    #[serde(default)]
+    capabilities: Capabilities,
 }
 
 #[derive(Deserialize)]
 struct Variant {
     id: String,
+}
+
+#[derive(Default, Deserialize)]
+struct Capabilities {
+    input: Vec<String>,
 }
 
 /// `data` is absent, not null, when no default model is configured.
@@ -151,9 +158,7 @@ pub(super) fn catalog(
                 id: model.id,
                 name: model.name,
                 variants: model.variants.into_iter().map(|v| v.id).collect(),
-                // Attachments are not translated for this wire yet, so the
-                // composer must not offer them.
-                images: false,
+                images: model.capabilities.input.iter().any(|kind| kind == "image"),
             })
         })
         .collect();
@@ -331,8 +336,8 @@ impl Form {
     }
 }
 
-/// One history item. Selection, location, system, shell, skill, compaction
-/// and idle markers have no 1.x conversation form and are skipped.
+/// One history item. Selection, location, system, shell, skill and
+/// compaction markers have no 1.x conversation form and are skipped.
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 #[allow(
@@ -342,8 +347,18 @@ impl Form {
 pub(super) enum Message {
     User(User),
     Assistant(Assistant),
+    Idle(Idle),
     #[serde(other)]
     Other,
+}
+
+/// The end of a run, with the error that ended it.
+#[derive(Deserialize)]
+pub(super) struct Idle {
+    id: String,
+    outcome: String,
+    error: Option<Error>,
+    time: Value,
 }
 
 #[derive(Deserialize)]
@@ -351,10 +366,28 @@ pub(super) struct User {
     id: String,
     text: String,
     #[serde(default)]
-    files: Vec<File>,
+    files: Vec<Attached>,
     time: Value,
 }
 
+/// A prompt attachment. V2 keeps its bytes; only a path attachment names a
+/// URI.
+#[derive(Deserialize)]
+struct Attached {
+    data: String,
+    mime: String,
+    source: Source,
+    name: Option<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+enum Source {
+    Inline,
+    Uri { uri: String },
+}
+
+/// Tool output content.
 #[derive(Deserialize)]
 struct File {
     uri: String,
@@ -433,16 +466,20 @@ enum ToolContent {
 /// One newest-first page as 1.x messages, oldest first. V2 assistant
 /// messages name neither their prompt nor, on the prompt, its selection: each
 /// assistant takes the nearest earlier user message as its parent, and that
-/// user message takes the first reply's model and agent.
+/// user message takes the first reply's model and agent. A failed run's
+/// error goes to its latest reply, or becomes one when the run failed before
+/// answering, as 1.x records it.
 pub(super) fn history(session: &str, page: Vec<Message>) -> Vec<schema::Message> {
     let mut native = Vec::with_capacity(page.len());
     let mut parent: Option<String> = None;
     let mut unanswered: Option<usize> = None;
+    let mut reply: Option<usize> = None;
     for message in page.into_iter().rev() {
         match message {
             Message::User(user) => {
                 parent = Some(user.id.clone());
                 unanswered = Some(native.len());
+                reply = None;
                 native.push(user.into_native(session));
             },
             Message::Assistant(assistant) => {
@@ -451,9 +488,39 @@ pub(super) fn history(session: &str, page: Vec<Message>) -> Vec<schema::Message>
                     info["agent"] = assistant.agent.as_str().into();
                     info["model"] = assistant.model.native();
                 }
+                reply = Some(native.len());
                 native.push(assistant.into_native(session, parent.as_deref()));
             },
-            Message::Other => {},
+            Message::Idle(Idle {
+                id,
+                outcome,
+                error: Some(error),
+                time,
+            }) if outcome == "failed" => match reply {
+                Some(index) if native[index].info["error"].is_null() => {
+                    native[index].info["error"] = error.into_native();
+                },
+                Some(_) => {},
+                None => {
+                    reply = Some(native.len());
+                    let completed = time["created"].clone();
+                    let mut info = object([
+                        ("id", id.into()),
+                        ("sessionID", session.into()),
+                        ("role", "assistant".into()),
+                        ("parentID", parent.as_deref().into()),
+                        ("finish", "error".into()),
+                        ("error", error.into_native()),
+                        ("time", time),
+                    ]);
+                    info["time"]["completed"] = completed;
+                    native.push(schema::Message {
+                        info,
+                        parts: Vec::new(),
+                    });
+                },
+            },
+            Message::Idle(_) | Message::Other => {},
         }
     }
     native
@@ -499,7 +566,11 @@ impl User {
             ("text", self.text.into()),
         ]));
         for (index, file) in self.files.into_iter().enumerate() {
-            parts.push(file.into_native(format!("{}:file:{index}", self.id), session, &self.id));
+            parts.push(file.into_file().into_native(
+                format!("{}:file:{index}", self.id),
+                session,
+                &self.id,
+            ));
         }
         schema::Message {
             info: object([
@@ -509,6 +580,24 @@ impl User {
                 ("time", self.time),
             ]),
             parts,
+        }
+    }
+}
+
+impl Attached {
+    /// The 1.x file part: an inline attachment as a data URL, a path
+    /// attachment by its URI, as 1.x keeps it.
+    fn into_file(self) -> File {
+        let uri = match self.source {
+            Source::Inline => format!("data:{};base64,{}", self.mime, self.data),
+            Source::Uri {
+                uri,
+            } => uri,
+        };
+        File {
+            uri,
+            mime: Some(self.mime),
+            name: self.name,
         }
     }
 }

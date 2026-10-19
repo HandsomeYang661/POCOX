@@ -1483,8 +1483,11 @@ shared/cloned-state limits in `docs/remote-device-management.md`.
 42. **OpenCode 2 wire (2026-10-19).** The native client speaks each OpenCode
     major through one `Wire` implementation (`opencode/wire/`), chosen once
     from `--version` and dispatched statically; everything above it reads
-    1.x shapes. Untested versions start with a notice. 2.x refuses
-    attachments. See `docs/opencode-native.md#versions`.
+    1.x shapes. Untested versions start with a notice. 2.x receives images
+    as `files`; custom providers and Local sessions read 2.x databases (from
+    `session_v2`). OpenCode 2's background server (`opencode serve --service`)
+    makes a shared-history host follow read-only, named as such; writing
+    through it waits for item 35. See `docs/opencode-native.md#versions`.
 
 ## 10. Communication conventions
 

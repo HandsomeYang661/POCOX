@@ -61,10 +61,16 @@ fn fixture_with_model(root: &std::path::Path, model: &model_fixture::Fixture) ->
         "plugin":[],"model":"fixture/test","permission":{"bash":"ask"},
         "command":{"fixture":{"template":"COMMAND_FIXTURE $ARGUMENTS","description":"Isolated command"}},
         "provider":{"fixture":{"npm":"@ai-sdk/openai-compatible","options":{"baseURL":model.address,"apiKey":"fixture-only"},
-            "models":{"test":{"name":"Fixture test","limit":{"context":32000,"output":1024},"variants":{"careful":{"temperature":0.1}}}}}}
+            "models":{"test":{"name":"Fixture test","limit":{"context":32000,"output":1024},
+                "modalities":{"input":["text","image"],"output":["text"]},"variants":{"careful":{"temperature":0.1}}}}}}
     }).to_string().into()));
     launch
 }
+
+/// A real 1x1 PNG: OpenCode 2 sniffs the type from the bytes.
+const PIXEL: &str = "data:image/png;base64,\
+                     iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/\
+                     pLvAAAAAElFTkSuQmCC";
 
 /// An outside reader that only opens the database, whatever its schema.
 const OUTSIDE_READER: &str = "import sqlite3,sys,time; \
@@ -104,7 +110,10 @@ async fn native_lifecycle_original_session_and_external_database_holder() {
         model: None,
         agent: None,
         variant: None,
-        parts: vec![json!({"type":"text","text":"Original session fixture"})],
+        parts: vec![
+            json!({"type":"text","text":"Original session fixture"}),
+            json!({"type":"file","mime":"image/png","url":PIXEL}),
+        ],
     };
     server
         .client
@@ -121,7 +130,8 @@ async fn native_lifecycle_original_session_and_external_database_holder() {
             .expect("native history");
         let parts = || read.messages.iter().flat_map(|m| &m.parts);
         if parts().any(|p| p["text"] == "Original session fixture")
-            && parts().any(|p| p["text"] == "NATIVE_PREFIX COMPLETE")
+            && parts().any(|p| p["type"] == "file" && p["url"] == PIXEL)
+            && parts().any(|p| p["text"] == "NATIVE_PREFIX IMAGE COMPLETE")
         {
             page = Some(read);
             break;
@@ -185,13 +195,13 @@ async fn native_gateway_original_admission_and_closed_mutation_routes() {
         api,
         host::{Host, Snapshot},
     };
-    use tokio::io::AsyncReadExt;
+    use tokio::io::AsyncBufReadExt;
 
     let root = tempfile::tempdir().expect("disposable source");
-    let server = Server::start(&fixture(root.path()))
-        .await
-        .expect("native start");
+    let launch = fixture(root.path());
+    let server = Server::start(&launch).await.expect("native start");
     let database = server.detection.database.clone();
+    let v2 = server.detection.version.starts_with("2.");
     let host = Host::new(server).await.expect("host stream ready");
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -297,23 +307,34 @@ async fn native_gateway_original_admission_and_closed_mutation_routes() {
         .expect("access");
     assert_eq!(released["reason"], "released_here");
 
+    // 2.x's own clients leave its background server holding the history; its
+    // port is the fixture's own. 1.x has none, so an outside reader stands in.
+    let (program, args, ready) = if v2 {
+        let args = ["serve", "--service", "--port", "0"]
+            .map(String::from)
+            .to_vec();
+        (launch.program.clone(), args, "server listening on")
+    } else {
+        let args = vec!["-c".into(), OUTSIDE_READER.into(), database.display().to_string()];
+        (PathBuf::from("/usr/bin/python3"), args, "ready")
+    };
     let process::Spawned {
         mut process,
         stdin,
-        mut stdout,
-    } = process::spawn(
-        std::path::Path::new("/usr/bin/python3"),
-        &["-c".into(), OUTSIDE_READER.into(), database.display().to_string()],
-        None,
-        &[],
-    )
-    .expect("isolated outside reader");
+        stdout,
+    } = process::spawn(&program, &args, None, &launch.env).expect("isolated outside holder");
     drop(stdin);
-    let mut ready = [0; 6];
-    tokio::time::timeout(Duration::from_secs(10), stdout.read_exact(&mut ready))
-        .await
-        .expect("fixture deadline")
-        .expect("fixture ready");
+    let mut lines = tokio::io::BufReader::new(stdout).lines();
+    tokio::time::timeout(Duration::from_secs(20), async {
+        while let Some(line) = lines.next_line().await.expect("holder output") {
+            if line.contains(ready) {
+                return;
+            }
+        }
+        panic!("the outside holder exited before it was ready");
+    })
+    .await
+    .expect("fixture deadline");
     let followed: Snapshot = http
         .post(format!("{origin}/opencode/v1/open"))
         .json(&mutation)
@@ -326,6 +347,8 @@ async fn native_gateway_original_admission_and_closed_mutation_routes() {
         .await
         .expect("follow snapshot");
     assert_eq!(followed.access.reason, "external_source_open");
+    let holder = followed.access.holder.as_ref().map(|h| h.client.as_str());
+    assert_eq!(holder, Some(if v2 { "opencode_service" } else { "unknown" }));
     assert_eq!(followed.access.turn, "unknown");
     assert_eq!(followed.access.mode, "follow");
     let mut rename = mutation.clone();
@@ -438,11 +461,8 @@ async fn native_host_stream_options_permissions_questions_commands_and_cancel() 
         tokio::time::sleep(Duration::from_millis(100)).await;
         catalog = host.catalog(Some(directory)).await.expect("catalog");
     }
-    assert!(catalog
-        .model("fixture/test")
-        .expect("native model")
-        .variants
-        .contains(&"careful".into()));
+    let model = catalog.model("fixture/test").expect("native model");
+    assert!(model.variants.contains(&"careful".into()) && model.images);
     assert!(catalog
         .commands
         .iter()
