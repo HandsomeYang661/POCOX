@@ -6740,6 +6740,22 @@ abstract class AppLocalizations {
   /// **'{title} · port {ports} on {device}'**
   String toolsRequestDetail(String title, String ports, String device);
 
+  /// No description provided for @toolsConnectRequestTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{owner} wants to connect'**
+  String toolsConnectRequestTitle(String owner);
+
+  /// No description provided for @toolsConnectRequestDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} · Responses API on {serviceDevice}, for {device}'**
+  String toolsConnectRequestDetail(
+    String name,
+    String serviceDevice,
+    String device,
+  );
+
   /// No description provided for @toolsAllowOnce.
   ///
   /// In en, this message translates to:
@@ -6923,7 +6939,7 @@ abstract class AppLocalizations {
   /// No description provided for @toolsAsk.
   ///
   /// In en, this message translates to:
-  /// **'Ask before an agent shares'**
+  /// **'Ask before agents share or connect an API'**
   String get toolsAsk;
 
   /// No description provided for @toolsEndpoint.
@@ -7147,6 +7163,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Only pages shared from your devices open here.'**
   String get browserNotLocal;
+
+  /// No description provided for @builtinTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in tools'**
+  String get builtinTools;
+
+  /// No description provided for @builtinToolServices.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices and services'**
+  String get builtinToolServices;
+
+  /// No description provided for @builtinToolServicesSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'The agent can see your devices and the services on them.'**
+  String get builtinToolServicesSummary;
+
+  /// No description provided for @builtinToolShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a port'**
+  String get builtinToolShare;
+
+  /// No description provided for @builtinToolShareSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'The agent can share a port of its computer with your devices without asking first in this conversation.'**
+  String get builtinToolShareSummary;
+
+  /// No description provided for @builtinToolConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect a service'**
+  String get builtinToolConnect;
+
+  /// No description provided for @builtinToolConnectSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'The agent can reach a service on another of your devices, a Responses API included, without asking first in this conversation.'**
+  String get builtinToolConnectSummary;
+
+  /// No description provided for @builtinToolRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {tool}'**
+  String builtinToolRemove(String tool);
 
   /// No description provided for @browserFailed.
   ///

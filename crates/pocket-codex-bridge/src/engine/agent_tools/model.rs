@@ -6,11 +6,16 @@
 
 use serde::{Deserialize, Serialize};
 
+pub use super::builtin::BuiltinTool;
+
 /// Version of `/services/v1` and of the local surface.
 pub const PROTOCOL: u32 = 1;
 
 /// Longest title or label kept from any source.
 pub const MAX_LABEL: usize = 80;
+
+/// Longest ACP session id the host admits, in bytes; kept exactly.
+pub const MAX_SESSION_ID: usize = 1024;
 
 /// Most ports one device shares at a time.
 pub const MAX_SHARED_PORTS: usize = 8;
@@ -70,6 +75,10 @@ pub struct Catalog {
     /// Agent hosts and APIs this device serves.
     #[serde(default)]
     pub services: Vec<HostedView>,
+    /// Built-in tools a conversation on this device can be handed from the
+    /// composer (none from a POCOX that predates them).
+    #[serde(default)]
+    pub builtin: Vec<BuiltinTool>,
 }
 
 /// The switch of one installation.
@@ -168,7 +177,8 @@ pub enum PortStatus {
     Refused,
 }
 
-/// A share waiting for the user's answer.
+/// A share, or a connection to another device's Responses API, waiting for
+/// the user's answer.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ConsentView {
@@ -176,10 +186,14 @@ pub struct ConsentView {
     pub id: String,
     /// Who asks.
     pub owner: OwnerView,
-    /// What would be shared.
+    /// What would be shared, or the name of the service to connect.
     pub title: String,
-    /// Which ports.
+    /// Which ports (none for a connection).
     pub ports: Vec<u16>,
+    /// The key of the service to connect; none for a share. Older apps,
+    /// which do not know it, show the request by its title.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub service: Option<String>,
     /// Unix milliseconds.
     pub created_ms: i64,
     /// Unanswered requests lapse.
@@ -284,6 +298,9 @@ pub struct DeviceView {
     /// Shares of it waiting for the user.
     #[serde(default)]
     pub consents: Vec<ConsentView>,
+    /// Its built-in tools, when its catalog answered.
+    #[serde(default)]
+    pub builtin: Vec<BuiltinTool>,
 }
 
 /// One service in an [`Overview`].

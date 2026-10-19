@@ -40,6 +40,13 @@ fn schema(value: Value) -> Arc<JsonObject> {
     }
 }
 
+/// Every tool, as harnesses list them. Hosted harnesses run all of them
+/// without asking ([`super::inject`]): POCOX asks the user itself where it
+/// matters, whatever the harness's approval policy.
+pub fn tools() -> Vec<Tool> {
+    vec![services_tool(), connect_tool()]
+}
+
 fn services_tool() -> Tool {
     Tool::new(
         "services",
@@ -84,8 +91,9 @@ fn connect_tool() -> Tool {
          server the user wants to preview on their phone), stop sharing it, or connect to a \
          service on another of the user's devices so it is reachable on this machine. \
          action=share needs `ports`; stop_sharing needs `service` (a key or port); connect and \
-         disconnect need `service` (a key, `device:kind:name` or `device/port`). A share may \
-         wait for the user's consent in POCOX; repeating the same call continues it.",
+         disconnect need `service` (a key, `device:kind:name` or `device/port`). A share, or a \
+         connection to another device's Responses API, may wait for the user's consent in \
+         POCOX; repeating the same call continues it.",
         schema(json!({
             "type": "object",
             "properties": {
@@ -258,13 +266,14 @@ async fn act(caller: &Caller, args: &JsonObject) -> CallToolResult {
                     local_port: port(args.get("local_port")),
                 };
                 match connections::connect(caller, request).await {
-                    Ok(mut view) => {
+                    Ok(Ok(mut view)) => {
                         for_agent(caller, &mut view.owner);
                         let message = render::connected(&view);
                         let mut value = serde_json::to_value(&view).unwrap_or_default();
                         value["status"] = json!("connected");
                         done(value, message)
                     },
+                    Ok(Err(waiting)) => pending(&waiting),
                     Err(error) => failed(&error),
                 }
             },
@@ -301,15 +310,11 @@ impl ServerHandler for Tools {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
-        Ok(ListToolsResult::with_all_items(vec![services_tool(), connect_tool()]))
+        Ok(ListToolsResult::with_all_items(tools()))
     }
 
     fn get_tool(&self, name: &str) -> Option<Tool> {
-        match name {
-            "services" => Some(services_tool()),
-            "connect" => Some(connect_tool()),
-            _ => None,
-        }
+        tools().into_iter().find(|tool| tool.name == name)
     }
 
     async fn call_tool(
@@ -350,5 +355,16 @@ impl ServerHandler for Tools {
             },
         };
         Ok(CallToolResponse::Complete(result))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_served_tools_are_the_ones_harnesses_are_told_about() {
+        let served: Vec<String> = tools().iter().map(|tool| tool.name.to_string()).collect();
+        assert_eq!(served, super::super::builtin::MCP_TOOLS);
     }
 }

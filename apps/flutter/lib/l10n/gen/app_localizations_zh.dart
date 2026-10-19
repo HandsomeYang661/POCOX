@@ -3665,6 +3665,20 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String toolsConnectRequestTitle(String owner) {
+    return '$owner 想要连接';
+  }
+
+  @override
+  String toolsConnectRequestDetail(
+    String name,
+    String serviceDevice,
+    String device,
+  ) {
+    return '$name · $serviceDevice 的 Responses API，供$device使用';
+  }
+
+  @override
   String get toolsAllowOnce => '允许一次';
 
   @override
@@ -3774,7 +3788,7 @@ class AppLocalizationsZh extends AppLocalizations {
       'Codex、Claude、OpenCode 等智能体可以看到你的设备和服务，把这台电脑的端口共享给你的其他设备，并连接其他设备上的服务。';
 
   @override
-  String get toolsAsk => '智能体共享前先问我';
+  String get toolsAsk => '智能体共享或连接 API 前先问我';
 
   @override
   String get toolsEndpoint => 'MCP 端点';
@@ -3899,6 +3913,33 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get browserNotLocal => '这里只能打开你的设备共享的页面。';
+
+  @override
+  String get builtinTools => '内置工具';
+
+  @override
+  String get builtinToolServices => '设备与服务';
+
+  @override
+  String get builtinToolServicesSummary => '智能体可以查看你的设备和设备上的服务。';
+
+  @override
+  String get builtinToolShare => '共享端口';
+
+  @override
+  String get builtinToolShareSummary => '在这个对话中，智能体可以把所在电脑的端口共享给你的设备，无需再次确认。';
+
+  @override
+  String get builtinToolConnect => '连接服务';
+
+  @override
+  String get builtinToolConnectSummary =>
+      '在这个对话中，智能体可以连接你其他设备上的服务（包括 Responses API），无需再次确认。';
+
+  @override
+  String builtinToolRemove(String tool) {
+    return '移除$tool';
+  }
 
   @override
   String get browserFailed => '无法打开页面';

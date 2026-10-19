@@ -128,16 +128,19 @@ fn share(s: model::ShareView) -> ToolsShareDto {
     }
 }
 
-/// A share waiting for the user's answer.
+/// A share, or a connection to another device's Responses API, waiting for
+/// the user's answer.
 pub struct ToolsConsentDto {
     /// Answer with this id.
     pub id: String,
     /// Who asks.
     pub owner: ToolsOwnerDto,
-    /// What would be shared.
+    /// What would be shared, or the name of the service to connect.
     pub title: String,
-    /// Which ports.
+    /// Which ports (none for a connection).
     pub ports: Vec<u16>,
+    /// The key of the service to connect; none for a share.
+    pub service: Option<String>,
     /// Unix milliseconds.
     pub created_ms: i64,
     /// When it lapses.
@@ -166,6 +169,18 @@ pub struct ToolsServiceDto {
     pub share: Option<String>,
 }
 
+/// A built-in tool the composer can hand a conversation on a device.
+pub struct ToolsBuiltinToolDto {
+    /// Stable id (`services`, `share`, `connect`).
+    pub id: String,
+    /// English name, for an id this app does not know.
+    pub title: String,
+    /// What it lets the agent do, for an id this app does not know.
+    pub summary: String,
+    /// Picking it gives the user's consent for the conversation.
+    pub gated: bool,
+}
+
 /// One device.
 pub struct ToolsDeviceDto {
     /// Device id.
@@ -184,6 +199,8 @@ pub struct ToolsDeviceDto {
     pub shares: Vec<ToolsShareDto>,
     /// Its shares waiting for the user.
     pub consents: Vec<ToolsConsentDto>,
+    /// Its built-in tools (none from an older POCOX).
+    pub builtin_tools: Vec<ToolsBuiltinToolDto>,
 }
 
 /// A service of another device reachable here.
@@ -256,8 +273,19 @@ fn overview(o: model::Overview) -> ToolsOverviewDto {
                         owner: owner(c.owner),
                         title: c.title,
                         ports: c.ports,
+                        service: c.service,
                         created_ms: c.created_ms,
                         expires_ms: c.expires_ms,
+                    })
+                    .collect(),
+                builtin_tools: d
+                    .builtin
+                    .into_iter()
+                    .map(|t| ToolsBuiltinToolDto {
+                        id: t.id,
+                        title: t.title,
+                        summary: t.summary,
+                        gated: t.gated,
                     })
                     .collect(),
             })
@@ -361,6 +389,19 @@ pub fn tools_answer(device: String, consent_id: String, decision: String) -> Res
     tools::answer_on(&device, &consent_id, decision)
 }
 
+/// Hand built-in `tools` the user picked in the composer to `conversation`
+/// of agent service `service`, on whichever device hosts it: the gated ones
+/// need no consent prompt in that conversation.
+pub fn tools_grant(service: String, conversation: String, tools: Vec<String>) -> Result<()> {
+    use pocket_codex_account_proto::key::NamespacedServiceId;
+    use pocket_codex_core::service::ServiceId;
+    let device = ServiceId::parse_key(&service)
+        .or_else(|| NamespacedServiceId::parse_key(&service).map(|id| id.service))
+        .map(|id| id.device)
+        .ok_or_else(|| anyhow!("not a service key"))?;
+    tools::grant_on(&device, &service, &conversation, &tools)
+}
+
 /// Stop a share of `device`, as the user.
 pub fn tools_stop_share(device: String, share_id: String) -> Result<()> {
     tools::stop_on(&device, &share_id)
@@ -425,10 +466,11 @@ pub fn tools_connect(service: String, local_port: Option<u16>) -> Result<ToolsCo
         local_port,
     };
     let caller = shares::Caller::user("This device");
-    runtime::runtime()
-        .block_on(connections::connect(&caller, request))
-        .map(connection)
-        .map_err(|error| anyhow!(error.message()))
+    match runtime::runtime().block_on(connections::connect(&caller, request)) {
+        Ok(Ok(view)) => Ok(connection(view)),
+        Ok(Err(pending)) => Err(anyhow!(pending.message())),
+        Err(error) => Err(anyhow!(error.message())),
+    }
 }
 
 /// End this device's connection to `service`.

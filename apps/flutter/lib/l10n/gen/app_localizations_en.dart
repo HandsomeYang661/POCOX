@@ -3888,6 +3888,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String toolsConnectRequestTitle(String owner) {
+    return '$owner wants to connect';
+  }
+
+  @override
+  String toolsConnectRequestDetail(
+    String name,
+    String serviceDevice,
+    String device,
+  ) {
+    return '$name · Responses API on $serviceDevice, for $device';
+  }
+
+  @override
   String get toolsAllowOnce => 'Allow once';
 
   @override
@@ -3998,7 +4012,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Codex, Claude, OpenCode and other agents can see your devices and services, share a port of this computer with your other devices, and connect to services elsewhere.';
 
   @override
-  String get toolsAsk => 'Ask before an agent shares';
+  String get toolsAsk => 'Ask before agents share or connect an API';
 
   @override
   String get toolsEndpoint => 'MCP endpoint';
@@ -4130,6 +4144,35 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get browserNotLocal =>
       'Only pages shared from your devices open here.';
+
+  @override
+  String get builtinTools => 'Built-in tools';
+
+  @override
+  String get builtinToolServices => 'Devices and services';
+
+  @override
+  String get builtinToolServicesSummary =>
+      'The agent can see your devices and the services on them.';
+
+  @override
+  String get builtinToolShare => 'Share a port';
+
+  @override
+  String get builtinToolShareSummary =>
+      'The agent can share a port of its computer with your devices without asking first in this conversation.';
+
+  @override
+  String get builtinToolConnect => 'Connect a service';
+
+  @override
+  String get builtinToolConnectSummary =>
+      'The agent can reach a service on another of your devices, a Responses API included, without asking first in this conversation.';
+
+  @override
+  String builtinToolRemove(String tool) {
+    return 'Remove $tool';
+  }
 
   @override
   String get browserFailed => 'Couldn\'t open the page';

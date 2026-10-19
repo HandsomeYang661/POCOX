@@ -15,6 +15,7 @@ use pocket_codex_host_svc::acp::{McpGrant, SessionMcp};
 use serde_json::{json, Map, Value};
 
 use super::{
+    builtin::MCP_TOOLS,
     state::{self, OwnerKey, State},
     tokens::{Kind, Principal},
 };
@@ -44,21 +45,30 @@ impl Drop for Grant {
     }
 }
 
-/// Revoke the tokens `which` selects and end what they made. A revocation
-/// that cannot be saved now still ends them in this process at once (their
-/// holder is gone or failed to start) and reaches the disk as soon as it can.
+/// Revoke the tokens `which` selects. A revocation that cannot be saved now
+/// still ends them in this process at once (their holder is gone or never
+/// got them) and reaches the disk as soon as it can.
+fn revoke(which: impl Fn(&Principal) -> bool) -> Vec<Principal> {
+    let mut state = state::lock();
+    match state.tokens.revoke_where(&which) {
+        Ok(revoked) => revoked,
+        Err(error) => {
+            tracing::warn!("agent tool tokens not saved: {error:#}");
+            state.tokens.forget_where(&which)
+        },
+    }
+}
+
+/// Withdraw tokens that were never put to use, and end what they made: the
+/// instance or session they were minted for keeps its grants.
 fn retract(which: impl Fn(&Principal) -> bool) {
-    let revoked = {
-        let mut state = state::lock();
-        match state.tokens.revoke_where(&which) {
-            Ok(revoked) => revoked,
-            Err(error) => {
-                tracing::warn!("agent tool tokens not saved: {error:#}");
-                state.tokens.forget_where(&which)
-            },
-        }
-    };
-    super::ended(&revoked);
+    super::ended(&revoke(which));
+}
+
+/// Revoke the tokens of holders that are gone, with what the user granted
+/// them.
+fn retire(which: impl Fn(&Principal) -> bool) {
+    super::retired(&revoke(which));
 }
 
 fn endpoint() -> Option<String> {
@@ -94,22 +104,22 @@ pub fn hosted(host: &str, harness: &str, label: &str) -> Option<Grant> {
 }
 
 /// A hosted launch is committed (recorded as running): an adopted process
-/// kept its earlier token, so the new one is withdrawn; a fresh one replaces
-/// the earlier tokens of `host`.
+/// kept its earlier token, so the new one is withdrawn and the running
+/// instance keeps its grants; a fresh one replaces the earlier instance.
 pub fn hosted_started(host: &str, mut grant: Grant, reused: bool) {
     grant.committed = true;
     let id = grant.token_id.clone();
-    retract(|p| {
-        p.kind == Kind::Hosted
-            && p.host.as_deref() == Some(host)
-            && if reused { p.id == id } else { p.id != id }
-    });
+    if reused {
+        retract(|p| p.id == id);
+    } else {
+        retire(|p| p.kind == Kind::Hosted && p.host.as_deref() == Some(host) && p.id != id);
+    }
 }
 
 /// A hosted instance stopped: its tokens are revoked and what its harness
-/// shared or connected ends.
+/// shared or connected ends, with what the user granted it.
 pub fn hosted_stopped(host: &str) {
-    retract(|p| matches!(p.kind, Kind::Hosted | Kind::Session) && p.host.as_deref() == Some(host));
+    retire(|p| matches!(p.kind, Kind::Hosted | Kind::Session) && p.host.as_deref() == Some(host));
 }
 
 /// Codex launch overrides for `grant`, with the token's environment entry.
@@ -126,8 +136,25 @@ pub fn codex(grant: &Grant) -> (Vec<String>, (String, Secret)) {
     set("startup_timeout_sec", "10".into());
     // Longer than the time a share waits for the user's answer.
     set("tool_timeout_sec", "180".into());
-    set("tools.services.approval_mode", quoted("approve"));
+    // Codex would ask before every call of a tool that is not read-only
+    // (its own prompt, or its auto-reviewer, which may refuse); POCOX asks
+    // the user itself before an agent shares.
+    for tool in MCP_TOOLS {
+        set(&format!("tools.{tool}.approval_mode"), quoted("approve"));
+    }
     (args, (TOKEN_VAR.to_string(), grant.token.clone()))
+}
+
+/// The Claude adapter's options for Claude Code: every POCOX tool runs
+/// without Claude Code's own permission prompt, as in [`codex`].
+fn claude_meta() -> Map<String, Value> {
+    let allowed: Vec<String> = MCP_TOOLS
+        .iter()
+        .map(|tool| format!("mcp__pocox__{tool}"))
+        .collect();
+    let mut meta = Map::new();
+    meta.insert("claudeCode".into(), json!({"options": {"allowedTools": allowed}}));
+    meta
 }
 
 /// Merge the tools into native OpenCode's inline configuration in `env`
@@ -247,14 +274,14 @@ fn rekey(state: &mut State, older: &[String], id: &str) {
     for consent in &mut state.consents {
         moved(&mut consent.key);
     }
-    for (key, _) in &mut state.declined {
+    for (key, _, _) in &mut state.declined {
         moved(key);
     }
     state.allowed = std::mem::take(&mut state.allowed)
         .into_iter()
-        .map(|mut key| {
+        .map(|(mut key, tool)| {
             moved(&mut key);
-            key
+            (key, tool)
         })
         .collect();
     state::changed(state);
@@ -288,16 +315,7 @@ impl SessionMcp for AcpTools {
             "url": mcp_url(&base),
             "headers": [{"name": "Authorization", "value": format!("Bearer {secret}")}],
         })];
-        // The Claude adapter passes these options to Claude Code: the read
-        // tool runs without a prompt.
-        let meta = self.claude.then(|| {
-            let mut meta = Map::new();
-            meta.insert(
-                "claudeCode".into(),
-                json!({"options": {"allowedTools": ["mcp__pocox__services"]}}),
-            );
-            meta
-        });
+        let meta = self.claude.then(claude_meta);
         Some(McpGrant {
             servers,
             meta,
@@ -306,7 +324,7 @@ impl SessionMcp for AcpTools {
     }
 
     fn closed(&self, session: &str) {
-        retract(|p| {
+        retire(|p| {
             p.kind == Kind::Session
                 && p.host.as_deref() == Some(self.host.as_str())
                 && p.session.as_deref() == Some(session)
@@ -339,11 +357,66 @@ mod tests {
     }
 
     #[test]
+    fn a_launch_that_adopts_the_running_instance_keeps_its_grants() {
+        // The process-wide state: a host name no other test uses.
+        let host = "adopted-keeps-grants";
+        let mint = || {
+            state::lock()
+                .tokens
+                .mint(Kind::Hosted, host, Some("codex"), Some(host))
+                .expect("mint")
+                .0
+                .id
+        };
+        let granted = state::Granted {
+            host: host.into(),
+            conversation: Some("t1".into()),
+            tool: super::super::builtin::SHARE.into(),
+        };
+        let running = mint();
+        state::lock().granted.insert(granted.clone());
+        let launch = Grant {
+            url: String::new(),
+            token: Secret::new("pcxt_unused"),
+            token_id: mint(),
+            committed: false,
+        };
+        let unused = launch.token_id.clone();
+        hosted_started(host, launch, true);
+        {
+            let state = state::lock();
+            assert!(state.tokens.contains(&running) && !state.tokens.contains(&unused));
+            assert!(state.granted.contains(&granted), "the running instance keeps its grant");
+        }
+        hosted_stopped(host);
+        assert!(!state::lock().granted.contains(&granted), "a stopped instance loses it");
+    }
+
+    #[test]
     fn codex_gets_the_endpoint_by_override_and_the_token_by_environment() {
         let (args, (var, token)) = codex(&grant());
         assert!(args.contains(&"mcp_servers.pocox.url=\"http://127.0.0.1:17863/mcp\"".to_string()));
         assert!(args.iter().all(|arg| !arg.contains("pcxt_")), "no token in argv");
         assert_eq!((var.as_str(), token.expose()), (TOKEN_VAR, "pcxt_secret"));
+    }
+
+    #[test]
+    fn hosted_harnesses_run_every_tool_without_their_own_prompt() {
+        let (args, _) = codex(&grant());
+        let meta = claude_meta();
+        let allowed = &meta["claudeCode"]["options"]["allowedTools"];
+        for name in MCP_TOOLS {
+            assert!(
+                args.contains(&format!("mcp_servers.pocox.tools.{name}.approval_mode=\"approve\"")),
+                "Codex asks before `{name}`"
+            );
+            assert!(
+                allowed
+                    .as_array()
+                    .is_some_and(|tools| tools.contains(&json!(format!("mcp__pocox__{name}")))),
+                "Claude asks before `{name}`"
+            );
+        }
     }
 
     #[test]

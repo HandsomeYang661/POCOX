@@ -137,7 +137,8 @@ class ToolsShare {
   String get status => ports.isEmpty ? 'starting' : ports.first.status;
 }
 
-/// An agent's share waiting for the user's answer.
+/// An agent's share, or its connection to another device's Responses API,
+/// waiting for the user's answer.
 class ToolsConsent {
   /// Creates a request.
   const ToolsConsent({
@@ -145,6 +146,7 @@ class ToolsConsent {
     required this.owner,
     required this.title,
     required this.ports,
+    this.service,
     required this.createdMs,
     required this.expiresMs,
   });
@@ -155,11 +157,14 @@ class ToolsConsent {
   /// Who asks.
   final ToolsOwner owner;
 
-  /// What would be shared.
+  /// What would be shared, or the name of the service to connect.
   final String title;
 
-  /// Which ports.
+  /// Which ports (none for a connection).
   final List<int> ports;
+
+  /// The key of the service to connect; null for a share.
+  final String? service;
 
   /// Unix milliseconds.
   final int createdMs;
@@ -223,6 +228,7 @@ class ToolsDevice {
     this.services = const [],
     this.shares = const [],
     this.consents = const [],
+    this.builtinTools = const [],
   });
 
   /// Device id.
@@ -248,6 +254,33 @@ class ToolsDevice {
 
   /// Its shares waiting for the user.
   final List<ToolsConsent> consents;
+
+  /// The built-in tools a conversation on it can be handed from the
+  /// composer (none from an older POCOX).
+  final List<ToolsBuiltinTool> builtinTools;
+}
+
+/// A built-in tool of POCOX that the composer can hand a conversation.
+class ToolsBuiltinTool {
+  /// Creates a tool.
+  const ToolsBuiltinTool({
+    required this.id,
+    required this.title,
+    required this.summary,
+    this.gated = false,
+  });
+
+  /// Stable id (`services`, `share`, `connect`).
+  final String id;
+
+  /// English name, for an id this app does not know.
+  final String title;
+
+  /// What it lets the agent do, for an id this app does not know.
+  final String summary;
+
+  /// Picking it gives the user's consent for the conversation.
+  final bool gated;
 }
 
 /// Another device's service reachable on this device.

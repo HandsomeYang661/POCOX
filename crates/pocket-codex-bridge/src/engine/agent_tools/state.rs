@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::{watch, Notify};
 
 use super::{
+    builtin::{CONNECT, SHARE},
     error::ToolError,
     model::{
         ConnectionView, ConsentView, Decision, HostedView, OwnerKind, OwnerView, PortStatus,
@@ -34,6 +35,20 @@ pub struct OwnerKey {
     /// Conversation, when the caller named one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub conversation: Option<String>,
+}
+
+/// A gated built-in tool the user picked in the composer for one
+/// conversation of a hosted instance: its agents use it without asking, as
+/// if the user had answered Allow in this conversation.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Granted {
+    /// The hosted instance.
+    pub host: String,
+    /// The conversation; `None` for an instance whose harness names none
+    /// (native OpenCode), where the instance is the owner.
+    pub conversation: Option<String>,
+    /// The built-in tool's id.
+    pub tool: String,
 }
 
 /// One shared port and its registration.
@@ -185,7 +200,7 @@ pub struct SavedShare {
     pub ports: Vec<u16>,
 }
 
-/// A share waiting for the user.
+/// A share or connection waiting for the user.
 pub struct Consent {
     /// What controllers show.
     pub view: ConsentView,
@@ -195,6 +210,17 @@ pub struct Consent {
     pub decision: Option<Decision>,
     /// Wakes the calls waiting for the answer.
     pub answered: Arc<Notify>,
+}
+
+impl Consent {
+    /// The capability it asks for ([`SHARE`] or [`CONNECT`]).
+    pub fn tool(&self) -> &'static str {
+        if self.view.service.is_some() {
+            CONNECT
+        } else {
+            SHARE
+        }
+    }
 }
 
 /// A service of another device reachable here.
@@ -270,10 +296,14 @@ pub struct State {
     pub shares: Vec<Share>,
     /// Requests waiting for the user.
     pub consents: Vec<Consent>,
-    /// Owners the user let share without asking again.
-    pub allowed: HashSet<OwnerKey>,
-    /// Recently declined owners (they are not asked again for a while).
-    pub declined: Vec<(OwnerKey, i64)>,
+    /// Owners the user let use a capability ([`SHARE`] or [`CONNECT`])
+    /// without asking again.
+    pub allowed: HashSet<(OwnerKey, &'static str)>,
+    /// Gated built-in tools the user handed conversations from the composer.
+    pub granted: HashSet<Granted>,
+    /// Owners recently declined a capability, and until when they are not
+    /// asked again for it.
+    pub declined: Vec<(OwnerKey, &'static str, i64)>,
     /// Connections of this device.
     pub connections: Vec<Connection>,
     /// Agent hosts and APIs this process serves, as last read.
@@ -325,6 +355,18 @@ impl State {
             return Err(ToolError::Revoked);
         }
         Ok(())
+    }
+
+    /// Whether the user handed gated built-in tool `tool` to the
+    /// conversation `key` of `caller`'s hosted instance from the composer.
+    pub fn granted(&self, caller: &Caller, key: &OwnerKey, tool: &str) -> bool {
+        caller.principal.host.as_ref().is_some_and(|host| {
+            self.granted.contains(&Granted {
+                host: host.clone(),
+                conversation: key.conversation.clone(),
+                tool: tool.to_string(),
+            })
+        })
     }
 
     /// Ports already shared on this device.

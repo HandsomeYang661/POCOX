@@ -150,7 +150,7 @@ One `action` with its fields:
 | --- | --- | --- |
 | `share` | `ports` (1–4, the page's first), `title`, `path`, `scheme` (`https` for a TLS page), `wait_ready_seconds` (≤ 20) | `shared` with the share, a `pocox://open` link and the local URL; or `waiting_for_user` / `waiting_for_port`, to repeat |
 | `stop_sharing` | `service` (share id, port or key) | `stopped`; only what the caller's conversation shared |
-| `connect` | `service` (key, `device:kind:name` or `device/port`), `local_port` | `connected` with the local address; shared ports and APIs only |
+| `connect` | `service` (key, `device:kind:name` or `device/port`), `local_port` | `connected` with the local address; shared ports and APIs only; or `waiting_for_user` for another device's Responses API, to repeat |
 | `disconnect` | `service` | `disconnected`; only what the caller's conversation connected |
 
 - A share is published only after its first port answers on 127.0.0.1 or
@@ -170,21 +170,27 @@ One `action` with its fields:
 
 ## Consent
 
-The first share of each owner (a conversation, or a token when the harness
-names none) needs the user's answer. It is asked on every POCOX device of the
-user, the agent's own included, above whatever page is open, or with
-`pocox tools requests|allow|deny` in a terminal. A request names its ports,
-and an answer covers what the user was shown:
+An agent needs the user's answer before its first share, and before it
+connects another device's Responses API (which spends that device's model
+account), per owner: a conversation, or a token when the harness names none.
+Connecting a shared port needs none, since it was shared with the user's
+devices; nor do listing, stopping its own shares and disconnecting. It is
+asked on every POCOX device of the user, the agent's own included, above
+whatever page is open, or with `pocox tools requests|allow|deny` in a
+terminal. A request names its ports or the API, and an answer covers what
+the user was shown:
 
-- **Allow once** admits the ports of that request, once; a call for other
-  ports is a request of its own.
-- **Allow in this conversation** lets the owner share without asking again.
-- **Deny** refuses the owner for ten minutes.
+- **Allow once** admits that request, once; a call for other ports, or for
+  some of them, is a request of its own.
+- **Allow in this conversation** lets the owner share, or connect APIs,
+  without asking again; sharing does not cover connecting, nor the reverse.
+- **Deny** refuses the owner's sharing, or connecting, for ten minutes.
 
-The last two settle the owner's other waiting requests too. The tool call
-waits for the answer (110 s for hosted harnesses, whose tool timeout POCOX
-sets to 180 s, 18 s for others) and otherwise returns `waiting_for_user`; an
-answer given later applies to the next call with the same ports. A waiting
+The last two settle the owner's other waiting requests of the same kind too.
+The tool call waits for the answer (110 s for hosted harnesses, whose tool
+timeout POCOX sets to 180 s, 18 s for others) and otherwise returns
+`waiting_for_user`; an answer given later applies to the next call asking
+the same. A waiting
 call fails as soon as the switch goes off or its token ends, and nothing is
 published after that. At most 16 requests wait at once, 4 per token.
 
@@ -192,8 +198,41 @@ Harness prompts (MCP elicitation, multi round-trip requests) are deliberately
 not used: a harness may answer them itself — Codex accepts a plain
 confirmation by itself under full access and declines under its `never`
 policy — so they cannot carry the user's consent. POCOX enforces it for every
-harness and approval policy. **Ask before an agent shares** can be switched
-off.
+harness and approval policy. **Ask before agents share or connect an API**
+can be switched off.
+
+### Built-in tools in the composer
+
+The user can hand an agent POCOX's built-in tools with a message: **+ ›
+Built-in tools** in the composer offers what the conversation's host lists in
+its catalog (`builtin`: Devices and services, Share a port, Connect a service
+today; a newer host's tools appear by its own title), several at once. The
+picked tools show as chips above the field and go with the next message, like
+attachments:
+
+- the message ends with a block naming them for the agent
+  (`<pocox_tools ids="share,services">…</pocox_tools>`; a tool this app does
+  not know is described in the host's own words); transcripts and list
+  previews, truncated ones included, show chips instead;
+- before the turn starts, a tool that needs consent (Share a port, and
+  Connect a service for a Responses API) is granted to that conversation, as
+  if the user had answered **Allow in this conversation** in advance, on the
+  host itself or through its management entry (`POST /services/v1/grants`,
+  bound to the account or relay like every answer). A request already waiting
+  there goes ahead.
+
+The tools go wherever the message goes: to the project chosen for a new
+conversation's first message, into a supplement to a running turn (granted
+before it is sent, and queued with it when the turn ended first), and into a
+retry, which grants again the tools its text names.
+
+A grant names the hosted instance and the conversation its harness reports,
+exactly as its calls carry it (native OpenCode names none, so there it covers
+the instance, as its consent does). It ends with the instance or the session
+(a launch that adopts the running instance keeps it), when the switch or
+**Ask before agents share or connect an API** goes off, and when the account
+or relay changes. While asking is off nothing is recorded, so switching it on
+again asks as before. A host that cannot be reached keeps its consent prompt.
 
 ## Ownership and lifetimes
 
@@ -234,16 +273,24 @@ that cannot be read keeps the tools off until the switch is saved again.
 
 ## Getting the tools into each harness
 
-| Harness | How | Read tool without asking |
+| Harness | How | Tools without the harness asking |
 | --- | --- | --- |
-| Codex app-server | launch overrides `mcp_servers.pocox.{url, bearer_token_env_var}`, token in the child's environment, `tool_timeout_sec = 180` | `tools.services.approval_mode = "approve"` |
-| Claude (ACP adapter) | an HTTP entry in `mcpServers` of every `session/new`/`session/load`, with a token for that session | `_meta.claudeCode.options.allowedTools` |
+| Codex app-server | launch overrides `mcp_servers.pocox.{url, bearer_token_env_var}`, token in the child's environment, `tool_timeout_sec = 180` | `tools.<name>.approval_mode = "approve"` for every tool |
+| Claude (ACP adapter) | an HTTP entry in `mcpServers` of every `session/new`/`session/load`, with a token for that session | every `mcp__pocox__<name>` in `_meta.claudeCode.options.allowedTools` |
 | Other ACP agents | the same entry when they advertise `mcpCapabilities.http` | the agent's own prompt |
 | Native OpenCode | a `mcp.pocox` remote entry (headers, `oauth: false`, `timeout`) merged into its inline configuration at launch | OpenCode does not prompt for MCP tools |
 | Anything else | Settings › Agent tools › Add to another agent, or `pocox tools config --harness codex|claude|opencode|generic`: a ready entry with a new token for the harness's configuration file (`~/.codex/config.toml`, an `mcpServers` entry for `~/.claude.json`, `opencode.json`) | the harness's own |
 
 Nothing writes another program's files, and no entry is a shell command: the
 token never reaches a command line.
+
+Hosted harnesses run every POCOX tool without their own prompt. Codex would
+otherwise ask before any tool that is not read-only (`connect` reaches other
+devices), by its own prompt or its auto-reviewer, which can refuse a share
+before POCOX asks the user; POCOX's consent is the one gate, for what reaches
+beyond what the user already exposed: shares, and connections to another
+device's Responses API (see Consent). The tools are listed once
+(`builtin.rs`), so a new tool is approved the same way.
 
 ## The CLI
 
@@ -330,6 +377,11 @@ own token is protected by the proof above.
   only. Existing `pb register|subscribe`, keys and `config.toml` are unchanged.
 - The page shortcuts after Services moved one key: Galaxy ⌘2, Local sessions
   ⌘3, Runtime logs ⌘4.
+- A catalog's `builtin` list and `/services/v1/grants` are additions: an
+  older host lists no built-in tools, so its conversations offer none.
+- A consent request for an agent's connection to a Responses API carries the
+  API's key (`service`); an older app shows it by its name as if it were a
+  share, and its answer still settles it.
 
 ## Verification
 
@@ -392,8 +444,28 @@ own token is protected by the proof above.
     the engine's accessibility entry point: the iOS 27 simulator ignored a
     written Reduce Motion preference) the scene stood still and drew no frames,
     in list mode too; clearing the flag resumed it.
+- Built-in tools in the composer, live (2026-10-19): the same relay, an
+  isolated CLI host with a hosted Codex 0.161.0 and the iPhone simulator.
+  The Codex host read back `tools.services` and `tools.connect` with
+  `approval_mode = "approve"` (`config/read`) and served both tools with
+  its token. On the phone, **+ › Built-in tools** listed the host's three
+  tools; the two picked showed as chips above the field and on the sent
+  message, never as the block, and the composer emptied. The grant reached
+  the host through its management entry before the turn: an MCP share from
+  that conversation was shared at once, with no consent request, under the
+  agent's name; the same call from another conversation raised the card on
+  the phone, returned `waiting_for_user` after 110 s, and after a Deny from
+  the terminal its repeat was refused at once. The turn itself failed (the
+  isolated host had no sign-in), so no model read the block.
+- Consent for an agent's connection to a Responses API (2026-10-19), by
+  unit and widget tests only: an answer covers sharing or connecting, not
+  both; Allow once covers only the exact request; a composer pick settles
+  only what was picked; the card for it shows and answers on a phone.
 - Not verified: a share card at a real model's tool call in the transcript,
-  Claude and OpenCode hosts calling the tools, a physical phone, Android
+  a model reading the picked tools' block, an agent's Responses API
+  connection waiting for a live answer, Claude and OpenCode hosts
+  calling the tools (their pre-approval by unit tests only), a physical
+  phone, Android
   (including its loopback cleartext allowance), Windows and Linux, account
   mode across machines, connecting at the shared port's own number on a phone,
   and the operating systems' Reduce Motion settings themselves.

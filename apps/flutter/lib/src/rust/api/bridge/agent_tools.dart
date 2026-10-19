@@ -46,6 +46,19 @@ Future<void> toolsAnswer({
   decision: decision,
 );
 
+/// Hand built-in `tools` the user picked in the composer to `conversation`
+/// of agent service `service`, on whichever device hosts it: the gated ones
+/// need no consent prompt in that conversation.
+Future<void> toolsGrant({
+  required String service,
+  required String conversation,
+  required List<String> tools,
+}) => RustLib.instance.api.crateApiBridgeAgentToolsToolsGrant(
+  service: service,
+  conversation: conversation,
+  tools: tools,
+);
+
 /// Stop a share of `device`, as the user.
 Future<void> toolsStopShare({
   required String device,
@@ -184,6 +197,42 @@ class AgentToolsStatusDto {
           connections == other.connections;
 }
 
+/// A built-in tool the composer can hand a conversation on a device.
+class ToolsBuiltinToolDto {
+  /// Stable id (`services`, `share`, `connect`).
+  final String id;
+
+  /// English name, for an id this app does not know.
+  final String title;
+
+  /// What it lets the agent do, for an id this app does not know.
+  final String summary;
+
+  /// Picking it gives the user's consent for the conversation.
+  final bool gated;
+
+  const ToolsBuiltinToolDto({
+    required this.id,
+    required this.title,
+    required this.summary,
+    required this.gated,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^ title.hashCode ^ summary.hashCode ^ gated.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ToolsBuiltinToolDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          title == other.title &&
+          summary == other.summary &&
+          gated == other.gated;
+}
+
 /// A service of another device reachable here.
 class ToolsConnectionDto {
   /// The remote service's key.
@@ -229,7 +278,8 @@ class ToolsConnectionDto {
           expiresMs == other.expiresMs;
 }
 
-/// A share waiting for the user's answer.
+/// A share, or a connection to another device's Responses API, waiting for
+/// the user's answer.
 class ToolsConsentDto {
   /// Answer with this id.
   final String id;
@@ -237,11 +287,14 @@ class ToolsConsentDto {
   /// Who asks.
   final ToolsOwnerDto owner;
 
-  /// What would be shared.
+  /// What would be shared, or the name of the service to connect.
   final String title;
 
-  /// Which ports.
+  /// Which ports (none for a connection).
   final Uint16List ports;
+
+  /// The key of the service to connect; none for a share.
+  final String? service;
 
   /// Unix milliseconds.
   final PlatformInt64 createdMs;
@@ -254,6 +307,7 @@ class ToolsConsentDto {
     required this.owner,
     required this.title,
     required this.ports,
+    this.service,
     required this.createdMs,
     required this.expiresMs,
   });
@@ -264,6 +318,7 @@ class ToolsConsentDto {
       owner.hashCode ^
       title.hashCode ^
       ports.hashCode ^
+      service.hashCode ^
       createdMs.hashCode ^
       expiresMs.hashCode;
 
@@ -276,6 +331,7 @@ class ToolsConsentDto {
           owner == other.owner &&
           title == other.title &&
           ports == other.ports &&
+          service == other.service &&
           createdMs == other.createdMs &&
           expiresMs == other.expiresMs;
 }
@@ -306,6 +362,9 @@ class ToolsDeviceDto {
   /// Its shares waiting for the user.
   final List<ToolsConsentDto> consents;
 
+  /// Its built-in tools (none from an older POCOX).
+  final List<ToolsBuiltinToolDto> builtinTools;
+
   const ToolsDeviceDto({
     required this.name,
     this.platform,
@@ -315,6 +374,7 @@ class ToolsDeviceDto {
     required this.services,
     required this.shares,
     required this.consents,
+    required this.builtinTools,
   });
 
   @override
@@ -326,7 +386,8 @@ class ToolsDeviceDto {
       toolsEnabled.hashCode ^
       services.hashCode ^
       shares.hashCode ^
-      consents.hashCode;
+      consents.hashCode ^
+      builtinTools.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -340,7 +401,8 @@ class ToolsDeviceDto {
           toolsEnabled == other.toolsEnabled &&
           services == other.services &&
           shares == other.shares &&
-          consents == other.consents;
+          consents == other.consents &&
+          builtinTools == other.builtinTools;
 }
 
 /// Every device and service visible now.
