@@ -7,7 +7,7 @@ use pocket_codex_host_svc::{
     opencode::{
         ownership::{Evidence, Source},
         runtime::{Launch, Server},
-        schema::Session,
+        schema::{Prompt, Session},
     },
     process,
 };
@@ -51,11 +51,33 @@ fn fixture(root: &std::path::Path) -> Launch {
     }
 }
 
+/// `fixture` whose default model is the local deterministic model service.
+fn fixture_with_model(root: &std::path::Path, model: &model_fixture::Fixture) -> Launch {
+    let mut launch = fixture(root);
+    launch
+        .env
+        .retain(|(key, _)| key != "OPENCODE_CONFIG_CONTENT");
+    launch.env.push(("OPENCODE_CONFIG_CONTENT".into(), json!({
+        "plugin":[],"model":"fixture/test","permission":{"bash":"ask"},
+        "command":{"fixture":{"template":"COMMAND_FIXTURE $ARGUMENTS","description":"Isolated command"}},
+        "provider":{"fixture":{"npm":"@ai-sdk/openai-compatible","options":{"baseURL":model.address,"apiKey":"fixture-only"},
+            "models":{"test":{"name":"Fixture test","limit":{"context":32000,"output":1024},"variants":{"careful":{"temperature":0.1}}}}}}
+    }).to_string().into()));
+    launch
+}
+
+/// An outside reader that only opens the database, whatever its schema.
+const OUTSIDE_READER: &str = "import sqlite3,sys,time; \
+                              c=sqlite3.connect('file:'+sys.argv[1]+'?mode=ro',uri=True); \
+                              c.execute('select count(*) from sqlite_master').fetchone(); \
+                              print('ready',flush=True); time.sleep(60)";
+
 #[tokio::test]
-#[ignore = "requires PCX_OPENCODE_BIN pointing to installed OpenCode 1.19+"]
+#[ignore = "requires PCX_OPENCODE_BIN pointing to installed OpenCode 1.19+ or 2.x"]
 async fn native_lifecycle_original_session_and_external_database_holder() {
+    let model = model_fixture::start().await;
     let root = tempfile::tempdir().expect("disposable source");
-    let launch = fixture(root.path());
+    let launch = fixture_with_model(root.path(), &model);
     let mut server = Server::start(&launch).await.expect("native start");
     let source =
         Source::new(server.detection.database.clone(), server.pid, server.started).expect("source");
@@ -66,15 +88,10 @@ async fn native_lifecycle_original_session_and_external_database_holder() {
     let directory = directory.to_str().expect("UTF-8");
     let session: Session = server
         .client
-        .mutate(
-            reqwest::Method::POST,
-            &["session"],
-            Some(directory),
-            &json!({"title":"Native lifecycle fixture"}),
-        )
+        .create_session(directory)
         .await
         .expect("create original session");
-    let mut events = server.client.events(None).await.expect("global events");
+    let mut events = server.client.events().await.expect("global events");
     let event = tokio::time::timeout(Duration::from_secs(5), events.next())
         .await
         .expect("connection event deadline")
@@ -82,38 +99,46 @@ async fn native_lifecycle_original_session_and_external_database_holder() {
         .expect("event frame");
     assert_eq!(event.kind, "server.connected");
     drop(events);
-    let _: Value = server
+    let input = Prompt {
+        message_id: None,
+        model: None,
+        agent: None,
+        variant: None,
+        parts: vec![json!({"type":"text","text":"Original session fixture"})],
+    };
+    server
         .client
-        .mutate(
-            reqwest::Method::POST,
-            &["session", &session.id, "message"],
-            Some(directory),
-            &json!({"noReply":true,"parts":[{"type":"text","text":"Original session fixture"}]}),
-        )
+        .prompt(&session.id, directory, &input, false)
         .await
-        .expect("persist user input without any model call");
-    let page = server
-        .client
-        .messages(&session.id, directory, None)
-        .await
-        .expect("native history");
-    assert!(page.messages.iter().any(|m| m
-        .parts
-        .iter()
-        .any(|p| p["text"] == "Original session fixture")));
+        .expect("prompt the local fixture model");
+    // The prompt route answers before the reply is persisted.
+    let mut page = None;
+    for _ in 0..100 {
+        let read = server
+            .client
+            .messages(&session.id, directory, None)
+            .await
+            .expect("native history");
+        let parts = || read.messages.iter().flat_map(|m| &m.parts);
+        if parts().any(|p| p["text"] == "Original session fixture")
+            && parts().any(|p| p["text"] == "NATIVE_PREFIX COMPLETE")
+        {
+            page = Some(read);
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    let page = page.expect("persisted prompt and reply");
 
     // This independently owned fixture only opens the same SQLite database;
     // it performs no write. Even an idle holder prevents a false free claim.
-    let script = "import sqlite3,sys,time; \
-                  c=sqlite3.connect('file:'+sys.argv[1]+'?mode=ro',uri=True); c.execute('select \
-                  count(*) from session').fetchone(); print('ready',flush=True); time.sleep(60)";
     let process::Spawned {
         mut process,
         stdin,
         mut stdout,
     } = process::spawn(
         std::path::Path::new("/usr/bin/python3"),
-        &["-c".into(), script.into(), server.detection.database.display().to_string()],
+        &["-c".into(), OUTSIDE_READER.into(), server.detection.database.display().to_string()],
         None,
         &[],
     )
@@ -134,9 +159,9 @@ async fn native_lifecycle_original_session_and_external_database_holder() {
     assert_eq!(source.inspect().await, Evidence::Clear);
     server.stop().await.expect("confirmed native stop");
     let mut resumed = Server::start(&launch).await.expect("restart same source");
-    let original: Session = resumed
+    let original = resumed
         .client
-        .get(&["session", &session.id], Some(directory), &[])
+        .session(&session.id)
         .await
         .expect("original session");
     assert_eq!(original.id, session.id);
@@ -154,7 +179,7 @@ async fn native_lifecycle_original_session_and_external_database_holder() {
 }
 
 #[tokio::test]
-#[ignore = "requires PCX_OPENCODE_BIN pointing to installed OpenCode 1.19+"]
+#[ignore = "requires PCX_OPENCODE_BIN pointing to installed OpenCode 1.19+ or 2.x"]
 async fn native_gateway_original_admission_and_closed_mutation_routes() {
     use pocket_codex_host_svc::opencode::{
         api,
@@ -272,16 +297,13 @@ async fn native_gateway_original_admission_and_closed_mutation_routes() {
         .expect("access");
     assert_eq!(released["reason"], "released_here");
 
-    let script = "import sqlite3,sys,time; \
-                  c=sqlite3.connect('file:'+sys.argv[1]+'?mode=ro',uri=True); c.execute('select \
-                  count(*) from session').fetchone(); print('ready',flush=True); time.sleep(60)";
     let process::Spawned {
         mut process,
         stdin,
         mut stdout,
     } = process::spawn(
         std::path::Path::new("/usr/bin/python3"),
-        &["-c".into(), script.into(), database.display().to_string()],
+        &["-c".into(), OUTSIDE_READER.into(), database.display().to_string()],
         None,
         &[],
     )
@@ -357,7 +379,7 @@ async fn native_gateway_original_admission_and_closed_mutation_routes() {
 }
 
 #[tokio::test]
-#[ignore = "requires PCX_OPENCODE_BIN pointing to installed OpenCode 1.19+"]
+#[ignore = "requires PCX_OPENCODE_BIN pointing to installed OpenCode 1.19+ or 2.x"]
 async fn native_host_stream_options_permissions_questions_commands_and_cancel() {
     use pocket_codex_host_svc::opencode::host::{Answer, Host, Input, Options, Snapshot};
     async fn until(host: &Host, id: &str, ready: impl Fn(&Snapshot) -> bool) -> Snapshot {
@@ -390,23 +412,32 @@ async fn native_host_stream_options_permissions_questions_commands_and_cancel() 
     }
     let model_service = model_fixture::start().await;
     let root = tempfile::tempdir().expect("disposable source");
-    let mut launch = fixture(root.path());
-    launch
-        .env
-        .retain(|(key, _)| key != "OPENCODE_CONFIG_CONTENT");
-    launch.env.push(("OPENCODE_CONFIG_CONTENT".into(), json!({
-        "plugin":[],"model":"fixture/test","permission":{"bash":"ask"},
-        "command":{"fixture":{"template":"COMMAND_FIXTURE $ARGUMENTS","description":"Isolated command"}},
-        "provider":{"fixture":{"npm":"@ai-sdk/openai-compatible","options":{"baseURL":model_service.address,"apiKey":"fixture-only"},
-            "models":{"test":{"name":"Fixture test","limit":{"context":32000,"output":1024},"variants":{"careful":{"temperature":0.1}}}}}}
-    }).to_string().into()));
-    let server = Server::start(&launch).await.expect("native start");
+    let server = Server::start(&fixture_with_model(root.path(), &model_service))
+        .await
+        .expect("native start");
+    // 1.x streams a reply's text as it arrives; 2.x shows it when the text
+    // step ends.
+    let streams = server.detection.version.starts_with("1.");
     let native = server.client.clone();
     let host = Host::new(server).await.expect("host ready");
     let directory = root.path().join("project");
     std::fs::create_dir(&directory).expect("project");
+    // 2.x asks before reading `.env` by default; the fixture reads it there.
+    std::fs::write(directory.join(".env"), "FIXTURE=1\n").expect("permission fixture");
     let directory = directory.to_str().expect("UTF8");
-    let catalog = host.catalog(Some(directory)).await.expect("catalog");
+    // 2.x loads configured commands shortly after it starts listening.
+    let mut catalog = host.catalog(Some(directory)).await.expect("catalog");
+    for _ in 0..50 {
+        if catalog
+            .commands
+            .iter()
+            .any(|command| command.name == "fixture")
+        {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        catalog = host.catalog(Some(directory)).await.expect("catalog");
+    }
     assert!(catalog
         .model("fixture/test")
         .expect("native model")
@@ -434,7 +465,11 @@ async fn native_host_stream_options_permissions_questions_commands_and_cancel() 
         .prompt(&session.id, input("HOLD_FIXTURE"), None, &identity)
         .await
         .expect("prompt");
-    let streaming = until(&host, &session.id, |s| text(s).contains("NATIVE_PREFIX ")).await;
+    let streaming = if streams {
+        until(&host, &session.id, |s| text(s).contains("NATIVE_PREFIX ")).await
+    } else {
+        until(&host, &session.id, |s| s.access.turn == "running").await
+    };
     assert!(!text(&streaming).contains("COMPLETE"));
     assert_eq!(streaming.turn_id.as_deref(), Some(first.as_str()));
     let persisted = native
@@ -464,6 +499,24 @@ async fn native_host_stream_options_permissions_questions_commands_and_cancel() 
     model_service.gate.notify_waiters();
     let settled = until(&host, &session.id, |s| s.access.turn == "idle").await;
     assert!(text(&settled).contains("NATIVE_PREFIX COMPLETE"));
+    // A controller finds a turn's outcome on its replies, by parent.
+    assert!(
+        settled
+            .window
+            .messages
+            .iter()
+            .any(|m| m.info["role"] == "assistant"
+                && m.info["parentID"] == first.as_str()
+                && m.info["finish"] == "stop"
+                && m.info["time"]["completed"].is_number()),
+        "{:#?}",
+        settled
+            .window
+            .messages
+            .iter()
+            .map(|m| &m.info)
+            .collect::<Vec<_>>()
+    );
     assert!(!text(&settled).contains("NATIVE_PREFIX NATIVE_PREFIX"));
     assert_eq!(settled.options, options);
     host.prompt(&session.id, input("PERMISSION_FIXTURE"), None, &identity)
