@@ -33,22 +33,29 @@
 ## What is this?
 
 POCOX (**PO**cket **CO**de**X**) puts every device you own in your pocket.
-It is a medium, not another agent harness: keep using Codex, Claude Code and
-OpenCode the way their makers ship them; we recommend it. POCOX works beside
-them on each computer. It sees every session they run, lets you follow any of
-them live and pick one up from your phone, a tablet or another machine, and
-exposes the computer's services to every other device you own.
+It is a medium, not another agent harness: keep using Codex, Claude Code,
+OpenCode and Grok Build the way their makers ship them; we recommend it.
+POCOX works beside them on each computer. It sees every session they run,
+lets you follow any of them live and pick one up from your phone, a tablet or
+another machine, and opens any service of one device to every other device
+you own.
 
 What works today:
 
-- **Every session on the machine.** POCOX lists the sessions Codex, Claude Code
-  and OpenCode run on a computer, including ones started in their own apps and
-  CLIs, and follows them live. An idle Codex session can be taken over from any
-  device; Claude Code and OpenCode sessions continue on a POCOX host once their
-  own client has let go.
+- **Every session on the machine.** POCOX lists the sessions Codex, Claude
+  Code, Grok Build and OpenCode run on a computer, including ones started in
+  their own apps and CLIs, and follows them live. An idle Codex session can be
+  taken over from any device; Claude Code, Grok Build and OpenCode sessions
+  continue on a POCOX host once their own client has let go.
+- **Any service, on every device.** Share a dev server, an API or an agent
+  from one computer with every other device you own, and connect to theirs.
+  Agents do it themselves with POCOX's built-in `pocox` tools, so a turn can
+  start a server and hand it to your phone. The galaxy shows every device and
+  its services as a living star map ([details](docs/agent-tools.md)).
 - **Agents on any desktop.** macOS, Windows and Linux host Codex through its
   [`app-server`](https://github.com/openai/codex) protocol, OpenCode natively,
-  and Claude Code or any other agent through ACP, several side by side.
+  and Claude Code, Grok Build or any other agent through ACP, several side by
+  side.
 - **Reach from anywhere.** Native apps for iOS, Android and desktop, and a CLI,
   follow and steer every turn, answer approvals, browse history and review
   changes on every host of every device you own.
@@ -58,9 +65,9 @@ What works today:
 - **Manage your other computers.** Add, configure, restart and stop another
   desktop's services from your phone or the CLI.
 
-Where it is going: a built-in tool that lets an agent on one device work with
-your other devices, so a single conversation reaches everything in your pocket.
-It is planned, not available yet.
+Where it is going: agents working with your other devices themselves (their
+shells, their files), so a single conversation reaches everything in your
+pocket. It is planned, not available yet.
 
 ### How it works
 
@@ -108,7 +115,7 @@ or a per-account GitHub login (hosted).
 | ------------------------------ | -------------------------------------- |
 | Workspace / lints / CI         | bootstrapped                           |
 | `pocox` CLI                    | `login`, `logout`, `account`, `init`, `serve`, `connect`, `api {serve,connect}`, `services {list,default set,share,unshare,connect,disconnect}`, `open`, `tools`, top-level `status`/`stop`, `codex {start,stop,status}`, `pb {register,subscribe,status}`, `remote-hint`, `version` |
-| Agent tools + galaxy           | one `pocox` MCP server for every harness: see the user's devices and services, share a dev server with the phone (asking the user first), connect to another device's service. Hosted Codex, Claude and OpenCode get it by default; other agents get a copied entry. The galaxy shows every device and service as a living star map ([details](docs/agent-tools.md)) |
+| Agent tools + galaxy           | one `pocox` MCP server for every harness: see the user's devices and services, share a dev server with the phone (asking the user first), connect to another device's service. Hosted Codex, Claude and OpenCode get it by default, and so does Grok Build (it accepts HTTP MCP servers in each ACP session); other agents get a copied entry. The galaxy shows every device and service as a living star map ([details](docs/agent-tools.md)) |
 | `pb-mapper` register/subscribe | SDK 0.6.0 from the `pocket-codex` branch, pinned by `Cargo.lock`; bounded recovery and data-v2 nonce separation without data-key derivation or extra frame bytes |
 | `codex app-server` supervision | native process identity, upgrade-aware executable matching, and state.toml |
 | App-server protocol | synced to upstream main `8d9f6466f` (2026-10-18), fork merge `35eabb7013`; host session inventory, running state, liveness and resume follow the app-server's own `thread/list` and `Thread.status` (rollout probes only for writers it cannot see), controllers follow `thread/status/changed`, and compressed (`.jsonl.zst`) rollouts are read; verified aggregated command output, persisted truncation markers, unknown error variants, initialization and opaque history cursors ([audit](docs/app-server-protocol-sync.md)) |

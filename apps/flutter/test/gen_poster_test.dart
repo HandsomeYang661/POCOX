@@ -1,9 +1,10 @@
 // Derives the README poster from the app itself, rendered with the bundled
-// fonts, the light theme and fixture data (no real session): on the computer,
-// POCOX's Local sessions view of every session its agents' own apps run; on
-// the phone, one of those sessions, in use by Codex's app, ready to be taken
-// over. Beside them: the mark, the POCOX wordmark (spelled out of "POcket
-// COdeX") and the agents and services a pocket reaches.
+// fonts and fixture data (no real session): the galaxy of every device and
+// the services it shares; behind it, POCOX's Local sessions view of every
+// session its agents' own apps run; on the phone, an agent that started a
+// dev server and shared it with the user's other devices through POCOX's
+// built-in tools. Beside them: the mark, the POCOX wordmark (spelled out of
+// "POcket COdeX") and the agents and services a pocket reaches.
 //
 // Opt-in like gen_icon_test (PNG output differs across platforms):
 //   REGEN_ICONS=1 fvm flutter test test/gen_poster_test.dart
@@ -14,6 +15,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +27,7 @@ import 'package:pocket_codex/src/providers.dart';
 import 'package:pocket_codex/src/screens/app_session_screen.dart';
 import 'package:pocket_codex/src/screens/local_sessions_screen.dart';
 import 'package:pocket_codex/src/theme.dart';
+import 'package:pocket_codex/src/tools/galaxy/galaxy_screen.dart';
 import 'package:pocket_codex/src/widgets/agent_icon.dart';
 
 import 'fake_bridge_api.dart';
@@ -220,6 +223,240 @@ const _heldHistory = ThreadHistory(
   ],
 );
 
+/// The phone's conversation: the agent starts the landing page and shares it.
+const _shareThread = 'p1';
+const _sharePrompt = 'Start the landing page and put it on my phone.';
+const _landing = 'pcx:studio:port:5173';
+
+const _shareHistory = ThreadHistory(
+  running: false,
+  branch: 'landing',
+  cwd: _cwd,
+  items: [
+    ThreadItem(
+      id: 'u0',
+      itemType: 'userMessage',
+      title: '',
+      text: _sharePrompt,
+      turnId: 'turn0',
+    ),
+    ThreadItem(
+      id: 'c0',
+      itemType: 'commandExecution',
+      title: 'npm run dev -- --port 5173',
+      text: 'VITE ready in 412 ms\n  Local: http://localhost:5173/',
+      turnId: 'turn0',
+      turnDurationMs: 23000,
+    ),
+    ThreadItem(
+      id: 'm0',
+      itemType: 'mcpToolCall',
+      title: 'pocox.connect',
+      text:
+          '{"result":{"structuredContent":{"status":"shared","service":'
+          '"$_landing","share":{"id":"s1","title":"Landing page","path":"/",'
+          '"ports":[{"port":5173}]}},"content":[{"type":"text","text":'
+          '"Shared: pocox://open?service=$_landing&path=/"}]}}',
+      turnId: 'turn0',
+      turnDurationMs: 23000,
+    ),
+    ThreadItem(
+      id: 'a0',
+      itemType: 'agentMessage',
+      title: '',
+      text:
+          'The landing page runs on **studio** and is shared with your '
+          'devices: open it from the card. It stays up for a day, or until '
+          'you stop it.',
+      turnId: 'turn0',
+      turnDurationMs: 23000,
+    ),
+  ],
+);
+
+ToolsService _service(
+  String device,
+  String kind,
+  String name, {
+  String status = 'online',
+  String? agent,
+  String? title,
+  String? owner,
+  String? share,
+}) => ToolsService(
+  key:
+      'pcx:$device:${kind == 'agent' ? switch (agent) {
+              'codex' => 'app',
+              'opencode' => 'opencode',
+              _ => 'acp',
+            } : kind}:$name',
+  kind: kind,
+  name: name,
+  status: status,
+  agent: agent,
+  title: title,
+  port: kind == 'port' ? int.parse(name) : null,
+  owner: owner,
+  share: share,
+);
+
+/// Every device the user has, with its agents, APIs and shared ports, as
+/// [thisDevice] sees them.
+ToolsOverview _galaxy({String thisDevice = 'studio'}) {
+  final now = DateTime.now().millisecondsSinceEpoch;
+  const codex = ToolsOwner(
+    kind: 'agent',
+    label: 'Codex · default',
+    harness: 'codex',
+    host: 'default',
+    conversation: _shareThread,
+  );
+  final landing = ToolsShare(
+    id: 's1',
+    title: 'Landing page',
+    path: '/',
+    ports: const [ToolsPort(port: 5173, key: _landing, status: 'online')],
+    owner: codex,
+    createdMs: now - 60000,
+    expiresMs: now + 24 * 3600000,
+  );
+  const docs = ToolsShare(
+    id: 's2',
+    title: 'Docs preview',
+    path: '/docs',
+    ports: [
+      ToolsPort(port: 8000, key: 'pcx:studio:port:8000', status: 'online'),
+    ],
+    owner: ToolsOwner(kind: 'user', label: 'You'),
+    createdMs: 0,
+  );
+  const board = ToolsShare(
+    id: 's3',
+    title: 'Training board',
+    path: '/',
+    ports: [
+      ToolsPort(port: 6006, key: 'pcx:gpu-rig:port:6006', status: 'online'),
+    ],
+    owner: ToolsOwner(kind: 'agent', label: 'Grok · grok', harness: 'grok'),
+    createdMs: 0,
+  );
+  return ToolsOverview(
+    thisDevice: thisDevice,
+    devices: [
+      ToolsDevice(
+        name: 'studio',
+        platform: 'macos',
+        online: true,
+        catalog: true,
+        toolsEnabled: true,
+        services: [
+          _service('studio', 'agent', 'default', agent: 'codex'),
+          _service('studio', 'agent', 'claude', agent: 'claude'),
+          _service('studio', 'agent', 'grok', agent: 'grok'),
+          _service('studio', 'api', 'default'),
+          _service(
+            'studio',
+            'port',
+            '5173',
+            title: 'Landing page',
+            owner: 'Codex · default',
+            share: 's1',
+          ),
+          _service(
+            'studio',
+            'port',
+            '8000',
+            title: 'Docs preview',
+            owner: 'You',
+            share: 's2',
+          ),
+        ],
+        shares: [landing, docs],
+      ),
+      ToolsDevice(
+        name: 'devbox',
+        platform: 'linux',
+        online: true,
+        catalog: true,
+        toolsEnabled: true,
+        services: [
+          _service('devbox', 'agent', 'opencode', agent: 'opencode'),
+          _service('devbox', 'agent', 'grok', agent: 'grok'),
+          _service('devbox', 'api', 'default'),
+          _service('devbox', 'port', '3000', title: 'Orders API'),
+        ],
+      ),
+      ToolsDevice(
+        name: 'gpu-rig',
+        platform: 'linux',
+        online: true,
+        catalog: true,
+        toolsEnabled: true,
+        services: [
+          _service('gpu-rig', 'agent', 'default', agent: 'codex'),
+          _service(
+            'gpu-rig',
+            'port',
+            '6006',
+            title: 'Training board',
+            owner: 'Grok · grok',
+            share: 's3',
+          ),
+        ],
+        shares: const [board],
+      ),
+      const ToolsDevice(name: 'nas', online: false, catalog: false),
+    ],
+    connections: const [
+      ToolsConnection(
+        service: 'pcx:devbox:api:default',
+        local: '127.0.0.1:18180',
+        samePort: true,
+        owner: ToolsOwner(kind: 'user', label: 'This device'),
+      ),
+      ToolsConnection(
+        service: 'pcx:gpu-rig:port:6006',
+        local: '127.0.0.1:6006',
+        samePort: true,
+        owner: ToolsOwner(kind: 'user', label: 'This device'),
+      ),
+    ],
+  );
+}
+
+/// The phone: one conversation on the computer's Codex host, with the
+/// computer's shares known to it.
+Future<FakeBridgeApi> _phoneApi() async {
+  final api =
+      FakeBridgeApi(
+          config: const ConfigInfo(
+            relay: 'relay.example.com:7666',
+            hasKey: true,
+          ),
+          services: const [
+            ServiceEntry(
+              device: 'studio',
+              kind: 'app',
+              name: 'default',
+              key: _codex,
+            ),
+          ],
+        )
+        ..appThreads.add(
+          ThreadMeta(
+            id: _shareThread,
+            preview: _sharePrompt,
+            name: 'Put the landing page on my phone',
+            cwd: _cwd,
+            updatedAt: _ago(const Duration(minutes: 1)),
+          ),
+        )
+        ..readResult = _shareHistory
+        ..toolsOverviewValue = _galaxy(thisDevice: 'iphone');
+  await api.appConnect(_codex, 1);
+  return api;
+}
+
 /// Bounded pumps: connection probes and spinners never settle.
 Future<void> _frames(WidgetTester t, [int count = 10]) async {
   for (var i = 0; i < count; i++) {
@@ -235,6 +472,9 @@ Future<ui.Image> _shot(
   required Widget child,
   FakeBridgeApi? api,
   EdgeInsets safeArea = EdgeInsets.zero,
+  bool dark = false,
+  int frames = 10,
+  Future<void> Function(WidgetTester t)? arrange,
 }) async {
   debugDefaultTargetPlatformOverride = platform;
   try {
@@ -253,7 +493,7 @@ Future<ui.Image> _shot(
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
           locale: const Locale('en'),
-          theme: lightTheme(),
+          theme: dark ? darkTheme() : lightTheme(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, navigator) =>
@@ -262,7 +502,11 @@ Future<ui.Image> _shot(
         ),
       ),
     );
-    await _frames(t);
+    await _frames(t, frames);
+    if (arrange != null) {
+      await arrange(t);
+      await _frames(t, frames);
+    }
     final boundary = t.renderObject<RenderRepaintBoundary>(
       find.byKey(previewKey),
     );
@@ -316,6 +560,7 @@ Widget _services() {
           chip(const AgentIcon(kind: AgentKind.codex, size: 15), 'Codex'),
           chip(const AgentIcon(kind: AgentKind.claude, size: 15), 'Claude'),
           chip(const AgentIcon(kind: AgentKind.opencode, size: 15), 'OpenCode'),
+          chip(const AgentIcon(kind: AgentKind.grok, size: 15), 'Grok Build'),
           chip(
             const Icon(Icons.api_rounded, size: 15, color: _signal),
             'Responses API',
@@ -452,7 +697,8 @@ void _phone(Canvas canvas, ui.Image screen, Rect at) {
 }
 
 Future<ui.Image> _compose({
-  required ui.Image desktop,
+  required ui.Image galaxy,
+  required ui.Image sessions,
   required ui.Image phone,
   required ui.Image services,
   required ui.Image mark,
@@ -480,10 +726,10 @@ Future<ui.Image> _compose({
   );
 
   const left = 96.0;
-  _image(canvas, mark, const Rect.fromLTWH(left - 4, 132, 100, 100));
+  _image(canvas, mark, const Rect.fromLTWH(left - 4, 92, 92, 92));
   canvas.drawParagraph(
-    _text([('POCOX', _ink)], size: 120, weight: FontWeight.w700, spacing: -2.5),
-    const Offset(left - 6, 244),
+    _text([('POCOX', _ink)], size: 112, weight: FontWeight.w700, spacing: -2.4),
+    const Offset(left - 6, 194),
   );
   // The name, spelled out of the words it comes from.
   canvas.drawParagraph(
@@ -495,45 +741,70 @@ Future<ui.Image> _compose({
         ('de', _faint),
         ('X', _signal),
       ],
-      size: 40,
+      size: 38,
       weight: FontWeight.w600,
       spacing: 1,
     ),
-    const Offset(left, 392),
+    const Offset(left, 330),
   );
   canvas.drawParagraph(
     _text(
       [('Every device,\nin your pocket.', _ink)],
-      size: 46,
+      size: 44,
       weight: FontWeight.w600,
       height: 1.14,
       spacing: -0.6,
       width: 460,
     ),
-    const Offset(left, 486),
+    const Offset(left, 410),
   );
   canvas.drawParagraph(
     _text(
       [
         (
-          'Keep using Codex, Claude Code and OpenCode the way their makers '
-              'ship them. POCOX sees every session they run, lets you pick '
-              'any of them up from another device, and opens each machine\'s '
-              'services to the rest.',
+          'Keep using Codex, Claude Code, OpenCode and Grok Build the way '
+              'their makers ship them. POCOX sees every session they run and '
+              'lets you pick any of them up from another device.',
           _muted,
         ),
       ],
-      size: 19,
+      size: 18,
       height: 1.5,
-      width: 430,
+      width: 440,
     ),
-    const Offset(left, 618),
+    const Offset(left, 534),
+  );
+  // The second promise: any service, on every device, by agents too.
+  canvas.drawParagraph(
+    _text(
+      [('Any service, on every device.', _ink)],
+      size: 22,
+      weight: FontWeight.w600,
+      spacing: -0.2,
+    ),
+    const Offset(left, 666),
+  );
+  canvas.drawParagraph(
+    _text(
+      [
+        (
+          'Share a dev server, an API or an agent from one machine with all '
+              'your others. Your agents do it on their own, with POCOX\'s '
+              'built-in tools.',
+          _muted,
+        ),
+      ],
+      size: 18,
+      height: 1.5,
+      width: 440,
+    ),
+    const Offset(left, 702),
   );
   final chips = Size(
     services.width / _captureScale,
     services.height / _captureScale,
   );
-  _image(canvas, services, const Offset(left, 790) & chips);
+  _image(canvas, services, const Offset(left, 816) & chips);
   canvas.drawParagraph(
     _text(
       [('iOS · Android · macOS · Windows · Linux', _faint)],
@@ -541,11 +812,14 @@ Future<ui.Image> _compose({
       weight: FontWeight.w500,
       spacing: 0.2,
     ),
-    Offset(left + 2, 790 + chips.height + 18),
+    Offset(left + 2, 816 + chips.height + 16),
   );
 
-  _window(canvas, desktop, const Rect.fromLTWH(664, 104, 824, 570));
-  _phone(canvas, phone, const Rect.fromLTWH(570, 404, 266, 568));
+  // Behind: every session; in front: every device; on the phone: an agent's
+  // share. Windows keep the 1040 × 720 screens' proportions.
+  _window(canvas, sessions, const Rect.fromLTWH(890, 48, 600, 415.4));
+  _window(canvas, galaxy, const Rect.fromLTWH(640, 270, 850, 588.5));
+  _phone(canvas, phone, const Rect.fromLTWH(566, 372, 262, 568));
   return recorder.endRecording().toImage(
     (_poster.width * _outputScale).toInt(),
     (_poster.height * _outputScale).toInt(),
@@ -560,14 +834,37 @@ void main() {
   setUp(AppSessionScreen.debugResetThreadMemory);
 
   testWidgets('derive the README poster from the app', (t) async {
-    final desktop = await _shot(
+    final sessions = await _shot(
       t,
       platform: TargetPlatform.macOS,
       size: const Size(1040, 720),
       api: await _api(),
       child: const LocalSessionsScreen(),
     );
-    final phoneApi = await _api();
+    final galaxy = await _shot(
+      t,
+      platform: TargetPlatform.macOS,
+      size: const Size(1040, 720),
+      api: FakeBridgeApi()..toolsOverviewValue = _galaxy(),
+      dark: true,
+      // The camera settles into its framing, then comes closer.
+      frames: 40,
+      arrange: (t) async {
+        final mouse = TestPointer(1, PointerDeviceKind.mouse);
+        await t.sendEventToBinding(mouse.hover(const Offset(624, 400)));
+        for (var i = 0; i < 3; i++) {
+          await t.sendEventToBinding(mouse.scroll(const Offset(0, -60)));
+        }
+        // A slow, vertical drag only raises the view (no spin).
+        await t.timedDragFrom(
+          const Offset(624, 600),
+          const Offset(0, 40),
+          const Duration(seconds: 1),
+        );
+      },
+      child: const GalaxyScreen(),
+    );
+    final phoneApi = await _phoneApi();
     final phone = await _shot(
       t,
       platform: TargetPlatform.iOS,
@@ -576,7 +873,7 @@ void main() {
       api: phoneApi,
       child: AppSessionScreen(
         serviceKey: _codex,
-        threadId: 't1',
+        threadId: _shareThread,
         home: true,
         services: phoneApi.services,
       ),
@@ -584,16 +881,17 @@ void main() {
     final services = await _shot(
       t,
       platform: TargetPlatform.macOS,
-      size: const Size(500, 34),
+      size: const Size(440, 75),
       child: _services(),
     );
     final png = await t.runAsync(() async {
       final codec = await ui.instantiateImageCodec(
-        img.encodePng(await renderMark((100 * _outputScale).round())),
+        img.encodePng(await renderMark((92 * _outputScale).round())),
       );
       final mark = (await codec.getNextFrame()).image;
       final poster = await _compose(
-        desktop: desktop,
+        galaxy: galaxy,
+        sessions: sessions,
         phone: phone,
         services: services,
         mark: mark,

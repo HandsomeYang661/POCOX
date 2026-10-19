@@ -1292,7 +1292,10 @@ shared/cloned-state limits in `docs/remote-device-management.md`.
     shortcuts made under the old name. The README leads with the aim, every
     device in your pocket, and with POCOX as a medium beside the vendors' own
     harnesses. Its poster is regenerated at 2x from the app's own screens
-    (`test/gen_poster_test.dart`): Local sessions on a Mac and a phone ready
+    (`test/gen_poster_test.dart`; since 2026-10-20 the galaxy of every device
+    and its shares in front, Local sessions behind it, and a phone where an
+    agent shared a dev server through the built-in tools; earlier: Local
+    sessions on a Mac and a phone ready
     to take over a session Codex's app holds.
     The CLI executable is `pocox`, short to type. The installers update an
     existing `pocket-codex` CLI in place and leave that name as an alias (a
@@ -1449,8 +1452,9 @@ shared/cloned-state limits in `docs/remote-device-management.md`.
   `fvm dart run flutter_native_splash:create`, for every platform; keep both
   logo copies in sync and the splash colours equal to the `MarkStyle` tiles.
   The README poster is composed by `test/gen_poster_test.dart` from that mark,
-  the POCOX wordmark and the app's own chat screens rendered with fixture data
-  (never a real session); rerun it with `REGEN_ICONS=1` when the mark or the
+  the POCOX wordmark and the app's own galaxy, Local sessions and chat screens
+  rendered with fixture data (never a real session); rerun it with
+  `REGEN_ICONS=1` when the mark, the galaxy or the
   chat design changes.
 - Transcript rows must remain lazy and keyed. Preserve the visible message
   when prepending history (the centre anchor does this by construction, item
