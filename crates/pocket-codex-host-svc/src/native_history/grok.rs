@@ -89,6 +89,11 @@ impl GrokHistory {
         self.follows.as_ref()?.snapshot(session)
     }
 
+    /// [`Self::live`]'s running state alone, without copying its updates.
+    fn live_running(&self, session: &str) -> Option<Option<bool>> {
+        self.follows.as_ref()?.running(session)
+    }
+
     /// The Grok home this source reads.
     pub fn home(&self) -> &std::path::Path {
         &self.home
@@ -228,7 +233,15 @@ impl GrokHistory {
     /// runs there.
     pub async fn liveness(&self, session: &str) -> crate::sessions::SessionLiveness {
         let view = match &self.ownership {
-            Some(probe) => probe.inspect(session).await,
+            // A follow connects only on fresh verified ownership, so a
+            // display cache from before the client registered must not
+            // hide its live state: read it again.
+            Some(probe) => match probe.inspect(session).await {
+                view if !view.held_open && self.live_running(session).is_some() => {
+                    probe.inspect_fresh(session).await
+                },
+                view => view,
+            },
             None => ownership::unknown(session),
         };
         self.with_turn(session, view)
@@ -241,7 +254,7 @@ impl GrokHistory {
         session: &str,
         mut view: crate::sessions::SessionLiveness,
     ) -> crate::sessions::SessionLiveness {
-        let running = self.live(session).and_then(|snapshot| snapshot.running);
+        let running = self.live_running(session).flatten();
         if let (true, Some(running)) = (view.held_open, running) {
             view.turn_state = if running { "running" } else { "idle" }.into();
             view.safety = if running { "nativeOwnedRunning" } else { "nativeOwnedIdle" }.into();

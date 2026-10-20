@@ -91,9 +91,11 @@ Grok merges an interjection into the running turn at its next safe point:
 after a tool batch, or before the turn would return, when it asks the
 model again with the message (`The user sent a message while you were
 working: …`). The response streaming when it arrived keeps going into the
-same message, so POCOX holds the supplement until Grok's next model
-response starts (a new `_meta.streamStartMs` on its updates) and records it
-in the turn there, before that response, still naming its sender's
+same message, so POCOX holds the supplement from the moment it sends it
+(Grok may merge it before its answer arrives; one Grok does not take is
+withdrawn) until Grok's next model response starts (a new
+`_meta.streamStartMs` on its updates), and records it in the turn there,
+before that response, still naming its sender's
 `clientId`. The sending view shows its copy below the streaming reply until
 the host's item with that id marks the merge point (other views show the
 host's item there), and
@@ -301,7 +303,10 @@ view shows such a session, POCOX follows it there, read-only
   session was idle shows every update at once; one that subscribed mid-turn
   waits until the log reaches the first update it received, since a run
   begun earlier may still be buffered. A live rewind, or an update over
-  4 MiB, waits for the log too. A next prompt appears once its first line is
+  4 MiB, waits for the log too; a persisted line over 8 MiB is shown as
+  omitted, but its id (in `params._meta`, which Grok writes after the
+  update) still counts, so reaching it releases the wait. A next prompt
+  appears once its first line is
   written, which gives the turn its id. At most 4,096 updates or 16 MiB are
   kept, and updates the log holds are dropped.
 - Running state comes from the roster's activity, `_x.ai/queue/changed`
@@ -309,9 +314,12 @@ view shows such a session, POCOX follows it there, read-only
   `x.ai/sessions/changed` broadcasts. Local sessions then shows **Running
   elsewhere**, and a host's access reason becomes `external_running` or
   `external_idle` instead of `external_open`; the session stays read-only.
+  While a follow is connected, an ownership view cached as unowned is read
+  again, since the follow connected on fresh verified ownership.
 - Local sessions follows through `app_native_session_follow`, a stream that
   pushes a revision on each live change and every three seconds, ending
-  when the view closes. A host's native follow stream wakes on live
+  when the view closes, the app leaves the foreground or another page covers
+  it (it follows again when shown). A host's native follow stream wakes on live
   changes as well as every two seconds.
 
 Two effects on the leader remain. A subscriber keeps the session loaded

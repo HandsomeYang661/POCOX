@@ -43,6 +43,9 @@ const UPDATES_FILE: &str = "updates.jsonl";
 const XAI_UPDATE: &str = "_x.ai/session/update";
 /// Longest line parsed; a longer one is indexed but shown as omitted.
 const MAX_LINE: usize = 8 * 1024 * 1024;
+/// The end of an oversized line kept for its `params._meta`, which Grok
+/// writes after the update (ACP's `SessionNotification` field order).
+const LINE_TAIL: usize = 64 * 1024;
 /// Most lines one session index holds.
 const MAX_SPANS: usize = 500_000;
 /// Most log bytes one page read folds.
@@ -267,10 +270,10 @@ impl Index {
         }
         file.seek(SeekFrom::Start(self.scanned))?;
         let mut reader = BufReader::with_capacity(256 * 1024, file.take(meta.len() - self.scanned));
-        let mut line = Vec::new();
+        let (mut line, mut tail) = (Vec::new(), Vec::new());
         loop {
             let offset = self.scanned;
-            let (read, complete, oversized) = read_line(&mut reader, &mut line)?;
+            let (read, complete, oversized) = read_line(&mut reader, &mut line, &mut tail)?;
             if read == 0 || !complete {
                 // A partial last line is read again once it is finished.
                 break;
@@ -281,6 +284,15 @@ impl Index {
                 continue;
             }
             let span_len = u32::try_from(read).unwrap_or(u32::MAX);
+            if oversized && continues_turn(&line) {
+                // Its id still counts: reaching it in the log releases an
+                // overlay waiting for it (a live update too large to keep).
+                // A line that may open a turn the index cannot see (a
+                // prompt, or an xAI update such as a rewind) leaves the
+                // overlay to a later line.
+                let window = line_window(&line, &tail);
+                self.max_seq = self.max_seq.max(tail_seq(trim_line(&window)).unwrap_or(0));
+            }
             if oversized {
                 self.push(
                     Span {
@@ -363,11 +375,17 @@ impl Index {
     }
 }
 
-/// Read one line into `line` (cleared), keeping at most [`MAX_LINE`] bytes.
+/// Read one line into `line` (cleared), keeping at most [`MAX_LINE`] bytes,
+/// and the last [`LINE_TAIL`] bytes past them into `tail` (cleared).
 /// Returns the bytes consumed, whether a newline ended it and whether it
 /// was longer than kept.
-fn read_line(reader: &mut impl BufRead, line: &mut Vec<u8>) -> Result<(usize, bool, bool)> {
+fn read_line(
+    reader: &mut impl BufRead,
+    line: &mut Vec<u8>,
+    tail: &mut Vec<u8>,
+) -> Result<(usize, bool, bool)> {
     line.clear();
+    tail.clear();
     let mut consumed = 0;
     let mut oversized = false;
     loop {
@@ -383,6 +401,10 @@ fn read_line(reader: &mut impl BufRead, line: &mut Vec<u8>) -> Result<(usize, bo
         if chunk.len() > room {
             oversized = true;
             line.extend_from_slice(&chunk[..room]);
+            tail.extend_from_slice(&chunk[room..]);
+            if tail.len() > LINE_TAIL {
+                tail.drain(..tail.len() - LINE_TAIL);
+            }
         } else {
             line.extend_from_slice(chunk);
         }
@@ -393,6 +415,43 @@ fn read_line(reader: &mut impl BufRead, line: &mut Vec<u8>) -> Result<(usize, bo
             return Ok((consumed, true, oversized));
         }
     }
+}
+
+/// The last [`LINE_TAIL`] bytes of an oversized line: the end of its kept
+/// prefix `line`, then what was read past it (`tail`).
+fn line_window(line: &[u8], tail: &[u8]) -> Vec<u8> {
+    let from_line = LINE_TAIL.saturating_sub(tail.len());
+    let mut window = line[line.len().saturating_sub(from_line)..].to_vec();
+    window.extend_from_slice(tail);
+    window
+}
+
+/// Whether an oversized line can only continue its turn: an ACP update
+/// other than a user message chunk. Its kind is the first `sessionUpdate`
+/// of the kept prefix `head` (the envelope and `sessionId` come before the
+/// update); unknown counts as no.
+fn continues_turn(head: &[u8]) -> bool {
+    fn value_of<'a>(head: &'a [u8], key: &[u8]) -> Option<&'a [u8]> {
+        let at = head.windows(key.len()).position(|w| w == key)? + key.len();
+        let len = head[at..].iter().position(|&b| b == b'"')?;
+        Some(&head[at..at + len])
+    }
+    let xai = value_of(head, br#""method":""#) == Some(XAI_UPDATE.as_bytes());
+    let kind = value_of(head, br#""sessionUpdate":""#);
+    !xai && kind.is_some_and(|kind| kind != b"user_message_chunk")
+}
+
+/// The `eventId` sequence in the last `_meta` object of a line's `tail`:
+/// its `params._meta`. A key is matched only unescaped, so text quoted in
+/// the update cannot pass for it.
+fn tail_seq(tail: &[u8]) -> Option<u64> {
+    const KEY: &[u8] = b"\"_meta\":";
+    let at = tail.windows(KEY.len()).rposition(|w| w == KEY)? + KEY.len();
+    let meta = serde_json::Deserializer::from_slice(&tail[at..])
+        .into_iter::<LineMeta<'_>>()
+        .next()?
+        .ok()?;
+    meta.event_id.and_then(event_seq)
 }
 
 fn trim_line(line: &[u8]) -> &[u8] {
