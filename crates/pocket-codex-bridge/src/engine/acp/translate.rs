@@ -140,9 +140,55 @@ fn tool_parts(item: &Item) -> (&'static str, String, String) {
         }
         text.push_str("[failed]");
     }
-    match tool.kind.as_str() {
+    // The agent's own finer kind (Grok's `x.ai/tool`) tells more apart than
+    // ACP's: a listing is ACP `other`, a web search ACP `search`.
+    let kind = match (tool.category.as_deref(), tool.kind.as_str()) {
+        (Some("execute" | "monitor"), _) | (None, "execute") => "execute",
+        (Some("read" | "memory_get"), _) | (None, "read") => "read",
+        (Some("list" | "list_dir"), _) => "list",
+        (Some("search" | "memory_search" | "lsp"), _) | (None, "search") => "search",
+        (Some("web_search" | "web_fetch"), _) | (None, "fetch") => "web",
+        (Some("task" | "active_agent_message"), _) => "subagent",
+        (Some("plan"), _) => "plan",
+        // Grok calls MCP tools through its `use_tool`.
+        (Some("use_tool"), _) => "mcp",
+        (Some("image_gen" | "video_gen" | "image_to_video" | "reference_to_video"), _) => {
+            "generate"
+        },
+        (_, kind) => kind,
+    };
+    let dynamic = |item_type: &'static str| {
+        let detail = ToolDetail {
+            input: tool.raw_input.as_ref(),
+            output: &text,
+            tool: tool.name.as_deref().unwrap_or(&tool.kind),
+        };
+        // reason: a struct of strings and a JSON value always serializes.
+        let detail = serde_json::to_string(&detail).expect("serializable");
+        (item_type, item.title.clone(), detail)
+    };
+    match kind {
         "execute" => ("commandExecution", item.title.clone(), text),
-        "edit" | "delete" | "move" if !tool.diffs.is_empty() => {
+        "read" => ("fileRead", item.title.clone(), text),
+        "list" => ("fileList", item.title.clone(), text),
+        "search" => ("fileSearch", item.title.clone(), text),
+        "web" => ("webSearch", item.title.clone(), text),
+        "plan" => ("planUpdate", item.title.clone(), text),
+        "subagent" => dynamic("subAgentActivity"),
+        "mcp" => {
+            let (_, title, detail) = dynamic("mcpToolCall");
+            // `<server>__<tool>` reads as `<server>.<tool>`, as Codex names
+            // MCP calls.
+            let named = tool
+                .raw_input
+                .as_ref()
+                .and_then(|input| input["tool_name"].as_str())
+                .and_then(|name| name.split_once("__"))
+                .map(|(server, tool)| format!("{server}.{tool}"));
+            ("mcpToolCall", named.unwrap_or(title), detail)
+        },
+        "generate" => dynamic("imageGeneration"),
+        "edit" | "delete" | "move" | "write" if !tool.diffs.is_empty() => {
             let title = match tool.diffs.as_slice() {
                 [one] => one.path.clone(),
                 many => format!("{} files", many.len()),
@@ -155,17 +201,7 @@ fn tool_parts(item: &Item) -> (&'static str, String, String) {
                 .join("\n");
             ("fileChange", title, body)
         },
-        "search" | "fetch" => ("webSearch", item.title.clone(), text),
-        _ => {
-            let detail = ToolDetail {
-                input: tool.raw_input.as_ref(),
-                output: &text,
-                tool: tool.name.as_deref().unwrap_or(&tool.kind),
-            };
-            // reason: a struct of strings and a JSON value always serializes.
-            let detail = serde_json::to_string(&detail).expect("serializable");
-            ("dynamicToolCall", item.title.clone(), detail)
-        },
+        _ => dynamic("dynamicToolCall"),
     }
 }
 
@@ -377,24 +413,50 @@ fn delta_event(thread: &str, item: &ThreadItem, delta: String) -> AppEvent {
 
 /// Full-text events for a fold rebuilt from history while its turn runs:
 /// each replaces what the UI shows for that item.
-pub fn recovered(thread: &str, turn: &Turn) -> Vec<AppEvent> {
+pub fn recovered(thread: &str, turn: &Turn, agent_started: bool) -> Vec<AppEvent> {
     let mut out: Vec<AppEvent> = turn_items(turn)
         .into_iter()
-        .filter(|mapped| mapped.item_type != "userMessage")
+        // A view holds its own copy of a prompt it sent; a turn the agent
+        // started has none, so its messages come from the fold.
+        .filter(|mapped| agent_started || mapped.item_type != "userMessage")
         .map(|mapped| {
+            // A reasoning or reply that another item follows has ended.
+            let followed = |at: usize| at + 1 < turn.items.len();
             let done = mapped.item_type == "historyGap"
                 || mapped.item_type == CONTENT_OMITTED
                 || turn
                     .items
                     .iter()
-                    .find(|item| item.id == mapped.id)
-                    .is_some_and(|item| item.kind == ItemKind::Plan || tool_done(item));
-            let kind = if done { "item/completed" } else { "item/started" };
+                    .position(|item| item.id == mapped.id)
+                    .is_some_and(|at| {
+                        let item = &turn.items[at];
+                        item.kind == ItemKind::Plan
+                            || tool_done(item)
+                            || (is_message(item) && followed(at))
+                    });
+            let kind = if done || mapped.item_type == "userMessage" {
+                "item/completed"
+            } else {
+                "item/started"
+            };
             item_event(kind, thread, &mapped, Some(mapped.text.clone()))
         })
         .collect();
     out.extend(cleared_notices(thread, turn));
+    if agent_started {
+        mark_agent_started(&mut out);
+    }
     out
+}
+
+/// Mark `events` as belonging to a turn the agent started by itself.
+fn mark_agent_started(events: &mut [AppEvent]) {
+    for event in events {
+        if let Ok(mut raw) = serde_json::from_str::<Value>(&event.raw) {
+            raw["agentStarted"] = Value::Bool(true);
+            event.raw = raw.to_string();
+        }
+    }
 }
 
 /// Completion events for a turn that ended: every retained item with its
@@ -451,10 +513,12 @@ pub fn install(shared: &mut Shared, thread: &str, turn: &str, history: &Value) -
     if history["session"]["runningTurnId"] == turn {
         shared.running.insert(thread.to_string(), turn.to_string());
     }
+    let agent_started = history["session"]["runningTurnId"] == turn
+        && history["session"]["runningAgentStarted"] == true;
     shared
         .live
         .turn(thread, turn)
-        .map(|fold| recovered(thread, fold))
+        .map(|fold| recovered(thread, fold, agent_started))
         .unwrap_or_default()
 }
 
@@ -504,17 +568,42 @@ pub fn turn_completed(thread: &str, turn: &str, outcome: Option<&Value>) -> AppE
     event("turn/completed", Some(thread), json!({"threadId": thread, "turn": turn_raw}))
 }
 
-fn turn_started(thread: &str, turn: &str) -> AppEvent {
+/// Completion of the reasoning or reply that an item started in `changes`
+/// follows: the agent moved on, so it stops showing as in progress (ACP
+/// reports no end of a message; the turn's end would settle it much later).
+fn settled(shared: &Shared, thread: &str, turn: &str, changes: &[Change]) -> Vec<AppEvent> {
+    let Some(fold) = shared.live.turn(thread, turn) else { return Vec::new() };
+    changes
+        .iter()
+        .filter_map(|change| match change {
+            Change::Started(item) => {
+                let at = fold.items.iter().position(|kept| kept.id == item.id)?;
+                let before = fold.items.get(at.checked_sub(1)?)?;
+                is_message(before).then(|| {
+                    let mapped = app_item(before, turn);
+                    item_event("item/completed", thread, &mapped, Some(mapped.text.clone()))
+                })
+            },
+            _ => None,
+        })
+        .collect()
+}
+
+fn turn_started(thread: &str, turn: &str, agent_started: bool) -> AppEvent {
     event(
         "turn/started",
         Some(thread),
-        json!({"threadId": thread, "turnId": turn, "turn": {"id": turn, "status": "inProgress"}}),
+        json!({"threadId": thread, "turnId": turn, "turn": {"id": turn, "status": "inProgress"},
+               "agentStarted": agent_started}),
     )
 }
 
 /// The request event for a pending permission body.
 pub fn permission_event(body: &Value) -> AppEvent {
     let thread = str_of(body, "sessionId");
+    if let Some(questions) = body["questions"].as_array() {
+        return question_event(body, thread, questions);
+    }
     let title = body["toolCall"]["title"].as_str().unwrap_or("").to_string();
     let raw = json!({
         "threadId": thread,
@@ -533,6 +622,34 @@ pub fn permission_event(body: &Value) -> AppEvent {
         request_id: body["handle"].as_str().map(str::to_string),
         raw: raw.to_string(),
     }
+}
+
+/// A host-held agent question (Grok's `ask_user_question`), as the app's
+/// structured question request; answered through
+/// [`super::respond_question`] with `{"q<i>": [labels]}`.
+fn question_event(body: &Value, thread: &str, questions: &[Value]) -> AppEvent {
+    let questions: Vec<Value> = questions
+        .iter()
+        .enumerate()
+        .map(|(index, question)| {
+            json!({
+                "id": format!("q{index}"),
+                "header": "",
+                "question": question["question"],
+                "multiple": question["multiSelect"] == true,
+                "isOther": false,
+                "isSecret": false,
+                "options": question["options"],
+            })
+        })
+        .collect();
+    let mut out = event(
+        "item/tool/requestUserInput",
+        Some(thread),
+        json!({"threadId": thread, "turnId": body["turnId"], "questions": questions}),
+    );
+    out.request_id = body["handle"].as_str().map(str::to_string);
+    out
 }
 
 fn resolved(thread: &str, handle: &str) -> AppEvent {
@@ -567,12 +684,25 @@ pub fn gateway_event(shared: &mut Shared, body: &Value) -> Vec<AppEvent> {
     match str_of(body, "type") {
         "turn_started" => {
             shared.running.insert(thread.clone(), turn.clone());
-            shared.live.apply(body);
-            vec![turn_started(&thread, &turn)]
+            let folded = shared.live.apply(body);
+            let agent_started = body["agentStarted"] == true;
+            let mut out = vec![turn_started(&thread, &turn, agent_started)];
+            // No controller sent a turn the agent started (Grok's own), so
+            // no view holds its message yet: it comes from the host, marked
+            // like the turn's start.
+            if agent_started {
+                let mut message = changes(&thread, &turn, folded);
+                mark_agent_started(&mut message);
+                out.extend(message);
+            }
+            out
         },
         "update" | "supplement" => {
             let folded = shared.live.apply(body);
-            changes(&thread, body["turnId"].as_str().unwrap_or(""), folded)
+            let turn = body["turnId"].as_str().unwrap_or("");
+            let mut out = settled(shared, &thread, turn, &folded);
+            out.extend(changes(&thread, turn, folded));
+            out
         },
         "turn_ended" => {
             // Only the end of the turn this view shows running releases it: a
@@ -609,6 +739,10 @@ pub fn gateway_event(shared: &mut Shared, body: &Value) -> Vec<AppEvent> {
         "host_state" => {
             shared.info["phase"] = body["phase"].clone();
             shared.info["authRequired"] = body["authRequired"].clone();
+            // Older hosts send no commands: keep what their info said.
+            if let Some(commands) = body.get("commands") {
+                shared.info["commands"] = commands.clone();
+            }
             vec![event(
                 HOST_STATE,
                 None,
@@ -664,8 +798,9 @@ pub struct Plan {
     pub generation: u64,
     /// Turns that ended meanwhile: `(thread, turn, recorded outcome)`.
     pub ended: Vec<(String, String, Option<Value>)>,
-    /// Running turns this view had not seen begin.
-    pub started: Vec<(String, String)>,
+    /// Running turns this view had not seen begin, and whether the agent
+    /// started them by itself.
+    pub started: Vec<(String, String, bool)>,
     /// Turns running now, whose folds must be rebuilt.
     pub running: Vec<(String, String)>,
 }
@@ -719,10 +854,15 @@ pub fn reconcile(shared: &mut Shared, snapshot: &Value) -> Plan {
             (thread.clone(), turn.clone(), outcome)
         })
         .collect();
-    let mut started: Vec<(String, String)> = running
+    let mut started: Vec<(String, String, bool)> = running
         .iter()
         .filter(|(thread, turn)| previous.get(*thread) != Some(*turn))
-        .map(|(thread, turn)| (thread.clone(), turn.clone()))
+        .map(|(thread, turn)| {
+            let agent = sessions
+                .get(thread)
+                .is_some_and(|session| session["runningAgentStarted"] == true);
+            (thread.clone(), turn.clone(), agent)
+        })
         .collect();
     started.sort();
     let mut running_list: Vec<(String, String)> = running
@@ -779,8 +919,8 @@ pub fn reconcile(shared: &mut Shared, snapshot: &Value) -> Plan {
 }
 
 /// `turn/started` for a running turn a recovery found.
-pub fn started(thread: &str, turn: &str) -> AppEvent {
-    turn_started(thread, turn)
+pub fn started(thread: &str, turn: &str, agent_started: bool) -> AppEvent {
+    turn_started(thread, turn, agent_started)
 }
 
 #[cfg(test)]

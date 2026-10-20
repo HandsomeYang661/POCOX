@@ -24,6 +24,8 @@ extension _SessionEvents on _AppSessionState {
     // Whatever the previous connection still answers is not this one's.
     if (moved) _linkEpoch++;
     _updateState(_invalidateCaps);
+    // The agent's command list arrives with its host state too.
+    ref.invalidate(agentCommandsProvider(_commandsKey));
     if (lost) {
       // The host attachments were granted for is gone (or another one
       // answers): nothing still being picked, read or uploaded may reach
@@ -224,15 +226,19 @@ extension _SessionEvents on _AppSessionState {
     switch (e.kind) {
       case 'turn/started':
         _turnStateRevision++;
-        _turnStartSeen();
+        // A turn the agent started is not the start a send here awaits.
+        if (!_agentStarted(e.raw)) _turnStartSeen();
         // A fresh turn supersedes any prior plan: re-enable the implement
         // prompt so a new plan (if this turn produces one) can offer it again.
         // Capture the turn id so the stop button can interrupt this turn.
+        final agentStarted = _agentStarted(e.raw);
         _updateState(() {
           _streaming = true;
           _turnId = _parseTurnId(e.raw);
           final prompt = _items.lastOrNull;
-          if (_turnId != null &&
+          // A message sent here is still waiting for its own turn.
+          if (!agentStarted &&
+              _turnId != null &&
               prompt != null &&
               prompt.isUser &&
               prompt.id.startsWith('local-user-') &&
@@ -282,9 +288,12 @@ extension _SessionEvents on _AppSessionState {
           _streaming = false;
           _supplement = false;
           _turnId = null;
+          // A supplement the turn ended without merging stays where it is.
           for (final it in _items) {
             it.streaming = false;
+            it.held = false;
           }
+          _placedSupplements.clear();
           final stopped =
               _pendingInterrupt || modelFailure?.code == 'cancelled';
           if (!stopped && modelFailure != null) {
@@ -607,6 +616,27 @@ extension _SessionEvents on _AppSessionState {
     return at;
   }
 
+  /// Where a new row goes while supplements are held: before them, as the
+  /// agent has not merged them yet. Null (the end) when none is held.
+  int? _beforeHeldSupplements() {
+    var at = _items.length;
+    while (at > 0 && _items[at - 1].held) {
+      at--;
+    }
+    return at == _items.length ? null : at;
+  }
+
+  /// Whether a `turn/started` event, or an item of its turn, belongs to a turn
+  /// the agent started by itself (Grok's own; no view sent it).
+  bool _agentStarted(String raw) {
+    try {
+      final m = jsonDecode(raw);
+      return m is Map && m['agentStarted'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// The turn an `item/*` event names by its explicit `turnId`; never an item's
   /// own `id`, which [_parseTurnId] accepts for turn events.
   String? _itemEventTurn(String raw) {
@@ -623,8 +653,22 @@ extension _SessionEvents on _AppSessionState {
     final id = e.itemId, type = e.itemType;
     if (id == null || type == null) return;
     // The user's own message is shown optimistically on send; ignore the
-    // server echo so it isn't duplicated.
-    if (type == 'userMessage') return;
+    // server echo so it isn't duplicated. A turn the agent started by itself
+    // has no such copy: its message is the host's.
+    if (type == 'userMessage' && !_agentStarted(e.raw)) {
+      // The host's copy of a supplement marks where the agent merged it:
+      // the held copy shown here stays where it now is.
+      if (id.contains(':s')) {
+        final text = e.text ?? '';
+        final held = _items.where((it) => it.held && it.text == text);
+        if (held.firstOrNull case final copy?) {
+          copy.held = false;
+        } else if (_placedSupplements.length < 8) {
+          _placedSupplements.add(text);
+        }
+      }
+      return;
+    }
     // An omission notice is state of the item it belongs to: re-sent empty,
     // the content fits again and the notice goes away (never added).
     if (type == 'contentOmitted' && (e.text ?? '').isEmpty) {
@@ -700,7 +744,9 @@ extension _SessionEvents on _AppSessionState {
           // several items groups the same way it will after a reload.
           turnId: _parseTurnId(e.raw) ?? _turnId ?? '',
         );
-        final at = lateTurn == null ? null : _lateItemSlot(item, lateTurn);
+        final at = lateTurn == null
+            ? _beforeHeldSupplements()
+            : _lateItemSlot(item, lateTurn);
         if (at == null) {
           _items.add(item);
           _itemIndex[id] = _items.length - 1;

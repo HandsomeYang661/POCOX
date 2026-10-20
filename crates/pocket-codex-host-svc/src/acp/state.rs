@@ -167,6 +167,9 @@ pub struct ActiveTurn {
     pub cancel_requested: bool,
     /// Whether `session/prompt` was handed to the writer.
     pub dispatched: bool,
+    /// Started by the agent itself, not by a prompt of this host (Grok's
+    /// own turns): it ends with the agent's turn event, not a prompt answer.
+    pub agent_started: bool,
 }
 
 impl ActiveTurn {
@@ -176,8 +179,63 @@ impl ActiveTurn {
             id,
             cancel_requested: false,
             dispatched: false,
+            agent_started: false,
         }
     }
+
+    /// A turn the agent started and is already running.
+    pub fn agent_started(id: String) -> Self {
+        Self {
+            dispatched: true,
+            agent_started: true,
+            ..Self::new(id)
+        }
+    }
+}
+
+/// Grok's permission mode: when it asks before acting.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum GrokPermission {
+    /// Asks for every action that needs approval.
+    #[default]
+    Ask,
+    /// Grok's classifier decides; it asks only when unsure (an account
+    /// without Grok's auto mode stays at asking).
+    Auto,
+    /// Never asks.
+    AlwaysApprove,
+}
+
+impl GrokPermission {
+    /// Every mode, in the order offered.
+    pub const ALL: [Self; 3] = [Self::Ask, Self::Auto, Self::AlwaysApprove];
+
+    /// Grok's name for the mode (`permission_mode`).
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::Ask => "ask",
+            Self::Auto => "auto",
+            Self::AlwaysApprove => "always-approve",
+        }
+    }
+
+    /// The mode named `id`.
+    pub fn from_id(id: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|mode| mode.id() == id)
+    }
+}
+
+/// A supplement the agent took but has not merged yet.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HeldSupplement {
+    /// The turn it was sent to.
+    pub turn: String,
+    /// Its text.
+    pub text: String,
+    /// How many images it carried.
+    pub images: usize,
+    /// The model response running when it was taken.
+    pub stream: Option<u64>,
 }
 
 /// One admitted session of the current generation.
@@ -205,10 +263,33 @@ pub struct Session {
     pub release_owners: Vec<pocket_codex_core::process::ProcessIdentity>,
     /// Updates are `session/load` history replay.
     pub replaying: bool,
+    /// The prompt the agent's own queue reports running (Grok's
+    /// `_x.ai/queue/changed`), with its text, when it reports one.
+    pub native_running: Option<(String, String)>,
+    /// The model response the latest update came from (Grok's
+    /// `_meta.streamStartMs`), within the running turn.
+    pub native_stream: Option<u64>,
+    /// Supplements Grok took for the running turn but merges only at its
+    /// next model response (see `host/grok.rs`).
+    pub held_supplements: Vec<HeldSupplement>,
     touched: u64,
 }
 
-/// A pending `session/request_permission`.
+/// What a pending request of the agent asks.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub enum RequestKind {
+    /// ACP `session/request_permission`: one of its options.
+    #[default]
+    Permission,
+    /// Grok's `_x.ai/exit_plan_mode`: approve the plan or keep planning
+    /// (the options are this host's, named by Grok's outcomes).
+    PlanApproval,
+    /// Grok's `_x.ai/ask_user_question`: its questions, verbatim.
+    Question(Vec<Value>),
+}
+
+/// A pending request of the agent: an ACP `session/request_permission`, or
+/// one of Grok's own ([`RequestKind`]).
 #[derive(Debug, Clone)]
 pub struct Permission {
     /// Session.
@@ -221,6 +302,19 @@ pub struct Permission {
     pub options: Vec<PermissionOption>,
     /// The tool call it is about (verbatim).
     pub tool_call: Value,
+    /// What it asks.
+    pub kind: RequestKind,
+}
+
+impl Permission {
+    /// The answer of a request withdrawn unanswered (its turn ended or was
+    /// cancelled).
+    pub fn withdrawn(&self) -> Value {
+        match self.kind {
+            RequestKind::Permission => json!({"outcome": {"outcome": "cancelled"}}),
+            RequestKind::PlanApproval | RequestKind::Question(_) => json!({"outcome": "cancelled"}),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -235,6 +329,9 @@ struct Recent {
 pub struct State {
     /// Current generation.
     pub generation: u64,
+    /// Grok's permission mode for this host's sessions (`ask`, `auto` or
+    /// `always-approve`); kept across generations (see `host/grok.rs`).
+    pub grok_permission: GrokPermission,
     /// Current phase.
     pub phase: Phase,
     /// Negotiation result of the running generation.
@@ -279,6 +376,7 @@ impl State {
             "type": "host_state",
             "phase": self.phase,
             "authRequired": self.auth_required,
+            "commands": self.negotiated.as_ref().map(|n| &n.commands),
         });
         self.event(body);
     }
@@ -331,6 +429,9 @@ impl State {
             pending,
             releasing: false,
             release_owners: Vec::new(),
+            native_running: None,
+            native_stream: None,
+            held_supplements: Vec::new(),
             replaying,
             touched,
         });
@@ -344,7 +445,18 @@ impl State {
             Some(session) if session.pending && !session.releasing => {
                 session.pending = false;
                 session.replaying = false;
-                session.settings = settings;
+                // Commands come only in updates, which may arrive before
+                // the reopen's answer.
+                let commands = std::mem::take(&mut session.settings.commands);
+                session.settings = SessionSettings {
+                    commands,
+                    ..settings
+                };
+                if let (Some((used, 0)), Some(size)) =
+                    (session.usage, session.settings.context_window())
+                {
+                    session.usage = Some((used, size));
+                }
                 true
             },
             _ => false,
@@ -514,6 +626,10 @@ impl State {
         }
         if let Some(entry) = self.sessions.get_mut(session) {
             entry.active = None;
+            entry.native_stream = None;
+            // Never merged into this turn: Grok runs a stranded one as a
+            // turn of its own (opened with its text), and a stop drops it.
+            entry.held_supplements.retain(|held| held.turn != turn);
         }
         if let Some(transcript) = self.transcript_mut(session) {
             transcript.end_turn(turn, outcome.clone());
@@ -616,14 +732,33 @@ impl State {
             "cwd": session.cwd,
             "pending": session.pending,
             "releasing": session.releasing,
-            "configOptions": session.settings.config_options,
+            "configOptions": self.offered_options(session),
             "modes": session.settings.modes,
+            "commands": session.settings.commands,
             "title": session.title,
-            "usage": session.usage.map(|(used, size)| json!({"used": used, "size": size})),
+            "usage": session
+                .usage
+                .filter(|(_, size)| *size > 0)
+                .map(|(used, size)| json!({"used": used, "size": size})),
             "runningTurnId": session.active.as_ref().map(|t| t.id.clone()),
+            "runningAgentStarted": session.active.as_ref().is_some_and(|t| t.agent_started),
             "turnDispatched": session.active.as_ref().is_some_and(|t| t.dispatched),
             "cancelRequested": session.active.as_ref().is_some_and(|t| t.cancel_requested),
         })
+    }
+
+    /// The options a controller is offered for `session`: the agent's, plus
+    /// Grok's permission mode, which this host sets for it.
+    fn offered_options(&self, session: &Session) -> Vec<Value> {
+        let mut options = session.settings.config_options.clone();
+        if self
+            .negotiated
+            .as_ref()
+            .is_some_and(|negotiated| negotiated.capabilities.grok)
+        {
+            options.push(crate::acp::host::grok_permission_option(self.grok_permission));
+        }
+        options
     }
 
     /// Emit the state of session `id`.
@@ -641,6 +776,10 @@ impl State {
             "turnId": permission.turn,
             "toolCall": permission.tool_call,
             "options": permission.options,
+            "questions": match &permission.kind {
+                RequestKind::Question(questions) => Some(questions),
+                _ => None,
+            },
         })
     }
 
@@ -709,6 +848,7 @@ mod tests {
             acp_id: RequestId::Number(4),
             options: Vec::new(),
             tool_call: json!({}),
+            kind: RequestKind::Permission,
         });
         let stop = TurnOutcome::Stopped {
             stop_reason: "end_turn".into(),

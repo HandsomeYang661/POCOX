@@ -89,11 +89,13 @@ use super::{
     peer::{CallError, CloseReason, Inbound, Peer},
     schema::{self, AgentCapabilities, SessionSettings, TurnOutcome},
     spec::AgentSpec,
-    state::{ActiveTurn, LogEntry, Permission, Phase, State, MAX_PERMISSIONS},
+    state::{ActiveTurn, LogEntry, Permission, Phase, RequestKind, State, MAX_PERMISSIONS},
     store::{Change, Pending, SessionStore},
 };
 use crate::process::{self, AgentProcess};
 
+mod grok;
+pub(crate) use self::grok::grok_permission_option;
 mod handoff;
 mod inbound;
 mod lifecycle;
@@ -521,10 +523,6 @@ impl AgentHost {
     }
 }
 
-fn cancelled_outcome() -> Value {
-    json!({"outcome": {"outcome": "cancelled"}})
-}
-
 fn info_of(host_id: &str, spec: &AgentSpec, state: &State) -> Value {
     let negotiated = state.negotiated.as_ref();
     json!({
@@ -539,8 +537,11 @@ fn info_of(host_id: &str, spec: &AgentSpec, state: &State) -> Value {
         "agent": negotiated.map(|n| &n.agent),
         "capabilities": negotiated.map(|n| &n.capabilities),
         "authMethods": negotiated.map(|n| &n.auth_methods),
+        "commands": negotiated.map(|n| &n.commands),
     })
 }
 
+#[cfg(all(test, unix))]
+mod grok_tests;
 #[cfg(all(test, unix))]
 mod tests;
