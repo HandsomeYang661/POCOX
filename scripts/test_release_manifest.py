@@ -14,14 +14,14 @@ class ReleaseManifestTests(unittest.TestCase):
             work = Path(work)
             assets = work / 'assets'
             assets.mkdir()
-            (assets / 'pocket-codex-app-v1.2.3-macos-arm64.dmg').write_bytes(b'dmg')
+            (assets / 'pocox-app-v1.2.3-macos-arm64.dmg').write_bytes(b'dmg')
             (assets / 'SHA256SUMS').write_text('stale')
             with mock.patch.object(release_manifest, 'versions', return_value=('1.2.3', 40)):
                 manifest = release_manifest.collect(assets, 'v1.2.3', 'abc')
                 with self.assertRaises(ValueError):
                     release_manifest.collect(assets, 'v1.2.4', 'abc')
             self.assertEqual([a['name'] for a in manifest['assets']],
-                             ['pocket-codex-app-v1.2.3-macos-arm64.dmg'])
+                             ['pocox-app-v1.2.3-macos-arm64.dmg'])
             path = work / 'release-manifest.json'
             path.write_text(json.dumps(manifest))
             key, public = work / 'key.pem', work / 'public.pem'
@@ -38,12 +38,26 @@ class ReleaseManifestTests(unittest.TestCase):
         self.assertRegex(version, r'^\d+\.\d+\.\d+$')
         self.assertGreater(build, 0)
 
+    def test_refresh_refuses_a_different_release_or_mixed_naming(self):
+        with tempfile.TemporaryDirectory() as work:
+            path = Path(work) / 'manifest.json'
+            data = {'tag': 'v1.2.3', 'assets': [{'name': 'pocox-app-v1.2.3-macos-arm64.dmg'}]}
+            path.write_text(json.dumps(data))
+            release_manifest.require_baseline(path, 'v1.2.3')
+            with self.assertRaises(ValueError):
+                release_manifest.require_baseline(path, 'v1.2.4')
+            data['assets'].append({'name': 'legacy-app-v1.2.3-linux.zip'})
+            path.write_text(json.dumps(data))
+            with self.assertRaises(ValueError):
+                release_manifest.require_baseline(path, 'v1.2.3')
+            self.assertEqual(json.loads(path.read_text()), data)
+
     def test_repackaging_keeps_other_assets_and_source_identity(self):
         with tempfile.TemporaryDirectory() as work:
             work = Path(work)
-            image = work / 'pocket-codex-app-v1.2.3-linux-x86_64.AppImage'
+            image = work / 'pocox-app-v1.2.3-linux-x86_64.AppImage'
             image.write_bytes(b'old')
-            other = work / 'pocket-codex-app-v1.2.3-macos-arm64.dmg'
+            other = work / 'pocox-app-v1.2.3-macos-arm64.dmg'
             other.write_bytes(b'unchanged')
             with mock.patch.object(release_manifest, 'versions', return_value=('1.2.3', 40)):
                 original = release_manifest.collect(work, 'v1.2.3', 'source-commit')

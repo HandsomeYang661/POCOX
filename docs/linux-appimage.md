@@ -21,6 +21,9 @@ unprivileged user in a clean Ubuntu 22.04 desktop container, with no network,
 FUSE, WebKit packages or build dependencies. It checks the executable/plugins
 with `ldd`, then requires a visible POCOX window that stays running. The main
 release job will not upload its Linux packages if this check fails.
+Pull requests build their own Linux bundle before packaging, so changes to
+native library names and executable names are checked against the same commit.
+Manual repair requires an explicit release tag with `pocox-app-*` assets.
 
 For a packaging-only repair of an existing release, run **AppImage packaging**
 with the release tag. By default it produces only a tested workflow artifact.
@@ -31,7 +34,7 @@ manifest again and retains the release version, build, source commit and other
 artifacts. The launcher icon comes from that signed source commit as well,
 instead of the current checkout. The signing key remains in GitHub Actions secrets.
 
-Keep `pocket-codex-app-<tag>-linux-x86_64.AppImage`: existing installed updaters
+Keep `pocox-app-<tag>-linux-x86_64.AppImage`: existing installed updaters
 select that suffix. AppImageHub's filename suggestions are advisory, so they do
 not justify breaking the update contract. Once a repaired artifact is public,
 the upstream repository owner can request `/retest` on the catalog PR.

@@ -4,7 +4,7 @@
 The app's updater downloads `release-manifest.json` and its signature
 `release-manifest.json.sig` from the newest release and installs nothing the
 signature does not cover, and no file whose size or SHA-256 differs from what
-the manifest lists (`crates/pocket-codex-bridge/src/engine/updates`).
+the manifest lists (`crates/pocox-bridge/src/engine/updates`).
 
     collect: release_manifest.py collect <assets-dir> <tag> <commit>
     sign:    release_manifest.py sign release-manifest.json --key private.pem
@@ -101,6 +101,15 @@ def verify(manifest, public_key):
                         '-in', str(manifest), '-sigfile', str(raw)], check=True)
 
 
+def require_baseline(manifest, tag):
+    """Refuse to modify a release outside the fresh-install naming baseline."""
+    data = json.loads(manifest.read_text())
+    if data['tag'] != tag:
+        raise ValueError('the signed manifest belongs to another release')
+    if not data['assets'] or any(not a['name'].startswith('pocox-') for a in data['assets']):
+        raise ValueError('only pocox-named releases can be refreshed; publish a new release')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -116,6 +125,10 @@ def main():
     checking = commands.add_parser('verify')
     checking.add_argument('manifest', type=Path)
     checking.add_argument('--public', type=Path, required=True)
+    baseline = commands.add_parser('require-baseline')
+    baseline.add_argument('manifest', type=Path)
+    baseline.add_argument('tag')
+    baseline.add_argument('--public', type=Path, required=True)
     refresh = commands.add_parser('refresh-asset')
     refresh.add_argument('manifest', type=Path)
     refresh.add_argument('asset', type=Path)
@@ -132,6 +145,9 @@ def main():
     elif args.command == 'refresh-asset':
         verify(args.manifest, args.public)
         refresh_asset(args.manifest, args.asset)
+    elif args.command == 'require-baseline':
+        verify(args.manifest, args.public)
+        require_baseline(args.manifest, args.tag)
     else:
         verify(args.manifest, args.public)
 
