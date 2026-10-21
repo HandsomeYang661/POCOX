@@ -88,7 +88,13 @@ void _registerAttachments() {
       await t.pumpAndSettle();
 
       // The turn carried the processed image as a data URL…
-      expect(api.lastTurnText, 'what is this?');
+      expect(
+        api.lastTurnText,
+        appendAttachmentRefs(
+          'what is this?',
+          imagePaths: ['/host/uploads/123/image.png'],
+        ),
+      );
       expect(api.lastTurnImages, hasLength(1));
       expect(api.lastTurnImages.single, startsWith('data:image/png;base64,'));
       // …the optimistic bubble shows the thumbnail, and the composer strip
@@ -143,7 +149,10 @@ void _registerAttachments() {
       await t.tap(find.byKey(const Key('send-btn')));
       await t.pumpAndSettle();
 
-      expect(api.lastTurnText, '');
+      expect(
+        api.lastTurnText,
+        appendAttachmentRefs('', imagePaths: ['/host/uploads/123/image.png']),
+      );
       expect(api.lastTurnImages, hasLength(1));
       expect(find.byKey(const Key('msg-image-0')), findsOneWidget);
     });
@@ -496,8 +505,11 @@ void _registerAttachments() {
 
       expect(api.lastTurnImages, hasLength(1));
       expect(api.lastTurnImages.single, startsWith('data:image/png;base64,'));
-      expect(api.lastUploadName, isNull, reason: 'images are not uploaded');
-      expect(api.lastTurnText, isEmpty);
+      expect(api.lastUploadName, 'shot.png');
+      expect(
+        api.lastTurnText,
+        appendAttachmentRefs('', imagePaths: ['/host/uploads/123/shot.png']),
+      );
     });
 
     testWidgets('history restores document chips from the reference block', (

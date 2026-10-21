@@ -161,23 +161,20 @@ pub(super) struct UploadResponse {
     pub(super) size: u64,
 }
 
-/// Store an uploaded attachment under `$CODEX_HOME/pocox-uploads/` and
-/// return its absolute host path. The controller then references that path in
-/// the turn text, and the agent reads it with its own tools — codex's native
-/// host-file workflow (its input protocol has no document slot). Only the
-/// authenticated account owner can reach this tunnel; the filename is
-/// sanitized to a single path component regardless.
+/// Store an uploaded attachment and return its absolute host path. Images land
+/// in the active project's `.pocket-attachments` directory (see
+/// [`upload_dir`]); everything else keeps the configured uploads directory. The
+/// controller then references that path in the turn text, and the agent reads
+/// it with its own tools — codex's native host-file workflow (its input
+/// protocol has no document slot for files, and a text-only model cannot
+/// consume inline images). Only the authenticated account owner can reach this
+/// tunnel; the filename is sanitized to a single path component regardless.
 pub(super) async fn upload_file(
     State(state): State<Arc<AppState>>,
     Path(name): Path<String>,
     body: axum::body::Bytes,
 ) -> Result<Json<UploadResponse>, ApiError> {
-    let dir = match &state.uploads_dir {
-        Some(dir) => dir.clone(),
-        None => pocox_codex::rollout::codex_home()
-            .context("resolving CODEX_HOME")?
-            .join("pocox-uploads"),
-    };
+    let dir = upload_dir(&state, &name).await?;
     tokio::fs::create_dir_all(&dir)
         .await
         .with_context(|| format!("creating uploads dir {}", dir.display()))?;
@@ -186,6 +183,51 @@ pub(super) async fn upload_file(
         path: path.display().to_string(),
         size: body.len() as u64,
     }))
+}
+
+/// Image suffixes this host stores inside the project for agent inspection.
+/// Mirrors `codex_routes::IMAGE_SUFFIXES`.
+const IMAGE_SUFFIXES: [&str; 6] = ["png", "jpg", "jpeg", "gif", "webp", "bmp"];
+
+/// Whether an uploaded attachment's name marks it as an image. The meta upload
+/// carries no content type, so the host routes by extension.
+fn is_image_upload(name: &str) -> bool {
+    std::path::Path::new(name)
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(str::to_ascii_lowercase)
+        .is_some_and(|ext| IMAGE_SUFFIXES.contains(&ext.as_str()))
+}
+
+/// Where an uploaded attachment lands on this host.
+///
+/// Images go to `<effective default project>/.pocket-attachments` so an agent
+/// whose model cannot accept inline image input can still reach the bytes from
+/// the workspace with its own tools. Every other attachment keeps the
+/// configured uploads directory. Without a project default, images fall back to
+/// the uploads directory rather than failing the send.
+async fn upload_dir(state: &AppState, name: &str) -> Result<PathBuf, ApiError> {
+    let fallback = |state: &AppState| -> Result<PathBuf, ApiError> {
+        Ok(match &state.uploads_dir {
+            Some(dir) => dir.clone(),
+            None => pocox_codex::rollout::codex_home()
+                .context("resolving CODEX_HOME")?
+                .join("pocox-uploads"),
+        })
+    };
+    if !is_image_upload(name) {
+        return fallback(state);
+    }
+    match state.host.view().await {
+        Ok(view) => Ok(PathBuf::from(view.effective_default.path).join(".pocket-attachments")),
+        Err(error) => {
+            tracing::warn!(
+                error = %error,
+                "image upload: no project default; using the uploads directory"
+            );
+            fallback(state)
+        },
+    }
 }
 
 /// Write `bytes` into a fresh per-upload subdirectory of `dir` under the
@@ -392,5 +434,55 @@ mod tests {
         // prompt and rendered as a chip.
         assert_eq!(a.file_name().and_then(|n| n.to_str()), Some("notes.txt"));
         assert_eq!(b.file_name().and_then(|n| n.to_str()), Some("notes.txt"));
+    }
+
+    #[test]
+    fn image_names_are_routed_by_extension() {
+        for name in ["shot.PNG", "a.jpg", "b.jpeg", "c.gif", "d.webp", "e.bmp"] {
+            assert!(is_image_upload(name), "{name} must count as an image");
+        }
+        for name in ["report.pdf", "notes.md", "archive.zip", "noext"] {
+            assert!(!is_image_upload(name), "{name} must stay a document");
+        }
+    }
+
+    #[tokio::test]
+    async fn image_uploads_land_in_the_effective_project() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let root = dir.path().join("proj");
+        std::fs::create_dir(&root).expect("mkdir");
+        let host = HostStore::open(dir.path().join("host.json"))
+            .await
+            .expect("host store");
+        host.put(HostConfig {
+            project_roots: vec![root.display().to_string()],
+            default_project: Some(root.display().to_string()),
+        })
+        .await
+        .expect("host config");
+        let state = AppState {
+            codex: Arc::new(crate::app_server::CodexReader::new(
+                "127.0.0.1:1".parse().expect("unused address"),
+            )),
+            store: Arc::new(
+                ConfigStore::open(dir.path().join("threads.json"))
+                    .await
+                    .expect("config store"),
+            ),
+            host: Arc::new(host),
+            uploads_dir: None,
+            session_dirs: None,
+        };
+
+        let image_dir = upload_dir(&state, "shot.png")
+            .await
+            .map_err(|error| error.0)
+            .expect("image dir");
+        assert_eq!(image_dir, root.join(".pocket-attachments"));
+        let document_dir = upload_dir(&state, "report.pdf")
+            .await
+            .map_err(|error| error.0)
+            .expect("document dir");
+        assert!(document_dir.ends_with("pocox-uploads"));
     }
 }
