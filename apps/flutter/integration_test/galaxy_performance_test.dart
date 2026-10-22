@@ -32,6 +32,8 @@ import 'package:pocox/src/bridge_api.dart';
 import 'package:pocox/src/providers.dart';
 import 'package:pocox/src/theme.dart';
 import 'package:pocox/src/tools/galaxy/galaxy_frame.dart';
+import 'package:pocox/src/tools/galaxy/galaxy_model.dart';
+import 'package:pocox/src/tools/galaxy/galaxy_backdrop.dart';
 import 'package:pocox/src/tools/galaxy/galaxy_screen.dart';
 import 'package:pocox/src/tools/galaxy/galaxy_sprites.dart';
 import 'package:window_manager/window_manager.dart';
@@ -119,6 +121,7 @@ Map<String, num> _stats(List<int> micros) {
   return {
     'avg': (micros.reduce((a, b) => a + b) / micros.length).round(),
     'p50': at(0.5),
+    'p95': at(0.95),
     'p90': at(0.9),
     'p99': at(0.99),
     'max': sorted.last,
@@ -134,6 +137,8 @@ void main() {
       await windowManager.ensureInitialized();
       await windowManager.setPosition(const Offset(80, 80));
       await windowManager.setAlwaysOnTop(true);
+      await windowManager.show();
+      await windowManager.focus();
     });
   }
 
@@ -149,6 +154,41 @@ void main() {
           ..toolsOverviewValue = _overview(devices, ports);
         await tester.pumpWidget(_app(api, dark: dark));
         await tester.pump(_warmUp);
+        final bodies = GalaxyBodies(buildScene(api.toolsOverviewValue));
+        final encoded = encodeScene(
+          bodies,
+          stars: Starfield().data,
+          deviceLabel: (system) => Size(system.device.name.length * 7.0, 15),
+          planetLabel: (planet, {required strong}) =>
+              Size(planet.id.length * (strong ? 6.5 : 6.0), 15),
+          appeared: {},
+          rippled: {},
+        );
+        final buffer = GalaxyFrameBuffer();
+        final geometry = <int>[];
+        var outputBytes = 0;
+        for (var i = 0; i < 1100; i++) {
+          encodeFrame(
+            buffer.frame,
+            size: const Size(1440, 900),
+            yaw: .6,
+            tilt: .52,
+            distance: 12,
+            target: Vec3.zero,
+            time: 10 + i / 60,
+            still: false,
+            selected: -1,
+            hovered: -1,
+            focused: -1,
+          );
+          final watch = Stopwatch()..start();
+          final output = buffer.compute(encoded);
+          final elapsed = watch.elapsedMicroseconds;
+          expect(output, isNotNull);
+          if (i >= 100) geometry.add(elapsed);
+          outputBytes = output!.lengthInBytes;
+        }
+        buffer.dispose();
         final timings = <FrameTiming>[];
         void collect(List<FrameTiming> batch) => timings.addAll(batch);
         SchedulerBinding.instance.addTimingsCallback(collect);
@@ -168,6 +208,9 @@ void main() {
           'frames': timings.length,
           // Whether the frame geometry came from Rust or the Dart port.
           'native': GalaxyNative.available,
+          'geometry_us': _stats(geometry),
+          'scene_bytes': encoded.lengthInBytes,
+          'frame_output_bytes': outputBytes,
           'build_us': _stats([
             for (final t in timings) t.buildDuration.inMicroseconds,
           ]),
@@ -180,6 +223,11 @@ void main() {
         };
         debugPrint('GALAXY_PERF ${jsonEncode(result)}');
         expect(timings, isNotEmpty);
+        expect(
+          timings.any((t) => t.rasterDuration.inMicroseconds > 100),
+          isTrue,
+          reason: 'The profile window must actually draw frames',
+        );
         await tester.pumpWidget(const SizedBox());
       });
     }

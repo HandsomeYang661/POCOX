@@ -46,5 +46,7 @@ pub mod session_engine;
 pub mod session_projection;
 pub mod session_sync;
 pub mod sessions;
+#[cfg(feature = "flutter")]
+pub mod syntax;
 pub mod transport;
 pub mod updates;
