@@ -10,8 +10,13 @@ class AppEvent {
     this.itemType,
     this.title,
     this.text,
+    this.diff,
     this.images = const [],
     this.requestId,
+    this.turnId,
+    this.sender,
+    this.textIsSnapshot = false,
+    this.running,
     required this.raw,
   });
 
@@ -36,6 +41,9 @@ class AppEvent {
   /// Text payload (a streaming delta or an item's body/detail).
   final String? text;
 
+  /// File changes parsed by the native projection.
+  final DiffModel? diff;
+
   /// Image URLs attached to a `userMessage` item: `data:image/...` URLs
   /// render inline; a host-local path renders as a filename chip. Empty for
   /// every other event.
@@ -46,6 +54,42 @@ class AppEvent {
 
   /// Full params JSON for fields not modelled above.
   final String raw;
+
+  /// Metadata decoded by the native event projection.
+  final String? turnId;
+  final String? sender;
+  final bool textIsSnapshot;
+  final bool? running;
+}
+
+/// Which events of its conversation a live feed carries.
+enum EventTopic {
+  /// Everything.
+  all,
+
+  /// Turn starts, ends and thread status: what the session list shows.
+  activity,
+
+  /// Realtime voice signalling, plus turn starts a dictation must refuse.
+  realtime,
+}
+
+/// A live event stream whose conversation can move in place.
+abstract interface class AppEventFeed {
+  /// The feed's events; listen once.
+  Stream<AppEvent> get events;
+
+  /// Narrow the running stream to [threadId] (null: every conversation)
+  /// without resubscribing, so no event falls between two subscriptions.
+  void follow(String? threadId);
+}
+
+/// A bounded log view queried from Rust, with native retention statistics.
+class LogView {
+  const LogView({required this.lines, required this.total, this.diskLost = 0});
+  final List<LogLine> lines;
+  final int total;
+  final int diskLost;
 }
 
 /// One captured runtime log line for the in-app log viewer.
@@ -401,6 +445,7 @@ class ThreadItem {
     required this.itemType,
     required this.title,
     required this.text,
+    this.diff,
     this.images = const [],
     this.turnId = '',
     this.turnCompletedAt,
@@ -423,6 +468,9 @@ class ThreadItem {
 
   /// Body / detail text.
   final String text;
+
+  /// Numbered native file changes.
+  final DiffModel? diff;
 
   /// Image URLs attached to a `userMessage`: `data:image/...` URLs render
   /// inline; a host-local path renders as a filename chip. Empty for every

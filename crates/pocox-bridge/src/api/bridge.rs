@@ -22,12 +22,16 @@ use crate::{
 };
 
 pub mod agent_tools;
+pub mod attachments;
 pub mod codex_setup;
+pub mod composer;
 pub mod connection;
 pub mod device_management;
 pub mod device_metadata;
+pub mod diff;
 pub mod events;
 pub mod grok;
+pub mod history_projection;
 pub mod host_config;
 pub mod host_sessions;
 pub mod hosted_account;
@@ -69,7 +73,8 @@ pub use self::{
     },
     device_metadata::{local_device_metadata, service_device_metadata, DeviceMetadataDto},
     events::{
-        app_events, log_events, meta_retry_events, AppEventDto, LogLineDto, RetryProgressDto,
+        app_projected_events, event_feed_create, event_feed_follow, meta_retry_events, AppEventDto,
+        EventFeed, EventTopic, LogLineDto, RetryProgressDto,
     },
     grok::{
         grok_account_status, grok_sign_in_cancel, grok_sign_in_start, grok_sign_in_state,
@@ -170,6 +175,7 @@ pub fn init_bridge(support_dir: String) -> Result<()> {
     // after the fact instead of only in a viewer that was open at the time.
     logging::init_file(&support_dir);
     runtime::init(support_dir)?;
+    let _ = crate::engine::updates::updater();
     // Before anything can host or publish: an app started while another one
     // runs on the same hosting state hosts nothing for its whole run.
     crate::engine::host_owner::claim_desktop();

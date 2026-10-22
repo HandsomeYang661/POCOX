@@ -1,6 +1,17 @@
 part of '../app_session_screen.dart';
 
 extension _SessionRecovery on _AppSessionState {
+  String? get _threadId => _selectedThreadId;
+
+  /// The running feed follows the shown conversation in place: replacing the
+  /// subscription would drop whatever the host sent in between, such as an
+  /// approval that history cannot reconstruct.
+  set _threadId(String? value) {
+    if (_selectedThreadId == value) return;
+    _selectedThreadId = value;
+    _feed?.follow(value);
+  }
+
   void _subscribe() {
     final epoch = ++_subscriptionEpoch;
     _sub?.cancel();
@@ -9,9 +20,11 @@ extension _SessionRecovery on _AppSessionState {
     // time reads as the app being slow. From here on `account/rateLimits/
     // updated` keeps it fresh, so this fetch happens once per connection.
     _loadQuota();
-    _sub = ref
+    final feed = ref
         .read(bridgeApiProvider)
-        .appEvents(widget.serviceKey)
+        .appEventFeed(widget.serviceKey, threadId: _threadId);
+    _feed = feed;
+    _sub = feed.events
         // onError as well as onDone: the bridge errors the stream (rather than
         // closing it) when the service isn't connected yet, so treat both as a
         // dropped connection and auto-reconnect instead of waiting for the
@@ -104,11 +117,18 @@ extension _SessionRecovery on _AppSessionState {
         final cached = await api.appHistoryCached(widget.serviceKey, startTid);
         if (!current()) return;
         if (cached != null) {
+          final projected = await _projectHistory(
+            cached,
+            liveItems,
+            partialItems,
+            current,
+          );
+          if (projected == null || !current()) return;
           final liveQuestions = Map.of(_asyncQuestions);
           _updateState(() {
-            _replaceTranscriptItems(cached.items);
+            _restoreHistoryQuestions(cached.items);
+            _installHistory(projected);
             _turnSummaries = cached.turns;
-            _mergeHistoryLiveItems(liveItems, partialItems);
             _asyncQuestions.addAll(liveQuestions);
             _hasOlder = cached.hasOlder;
             _firstTurnId = cached.firstTurnId;
@@ -116,7 +136,6 @@ extension _SessionRecovery on _AppSessionState {
             for (final page in cached.turnPages) {
               _turnWindows[page.turnId] = page;
               _fetchedTurns.add(page.turnId);
-              _spliceTranscriptItems(page.items, atStart: true);
             }
             _cwd ??= cached.cwd;
             _loading = false;
@@ -164,6 +183,13 @@ extension _SessionRecovery on _AppSessionState {
       final persistedFuture = _loadPersistedConfig(startTid);
       final history = await historyFuture;
       if (!current()) return;
+      final projected = await _projectHistory(
+        history,
+        liveItems,
+        partialItems,
+        current,
+      );
+      if (projected == null || !current()) return;
       final liveTurnChanged = turnStateRevision != _turnStateRevision;
       final activeTurnId = liveTurnChanged ? _turnId : history.activeTurnId;
       final liveQuestions = _asyncQuestions.entries
@@ -178,7 +204,8 @@ extension _SessionRecovery on _AppSessionState {
         _showingCachedHistory = false;
         _historyEpoch = history.historyEpoch;
         _loading = false;
-        _replaceTranscriptItems(history.items, activeTurnId: activeTurnId);
+        _restoreHistoryQuestions(history.items);
+        _installHistory(projected);
         _turnSummaries = history.turns;
         _hasOlder = history.hasOlder;
         _historyError = false;
@@ -191,13 +218,7 @@ extension _SessionRecovery on _AppSessionState {
         for (final page in history.turnPages) {
           _turnWindows[page.turnId] = page;
           _fetchedTurns.add(page.turnId);
-          _spliceTranscriptItems(
-            page.items,
-            atStart: true,
-            activeTurnId: activeTurnId,
-          );
         }
-        _mergeHistoryLiveItems(liveItems, partialItems);
         _asyncQuestions.addEntries(liveQuestions);
         _cachedRows = null;
         _historyLoad = null;

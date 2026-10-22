@@ -4,17 +4,36 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../../frb_generated.dart';
+import 'diff.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `forward_app_events`, `forward_retained_requests`, `to_log_dto`
+// These functions are ignored because they are not marked as `pub`: `accepts`, `admits`, `forward_projected_events`, `forward_retained_requests`, `send_pending`, `send_projected`, `to_log_dto`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`
 
-/// Stream captured `tracing` events for the in-app log viewer: the retained
-/// recent history (oldest first) followed by every new event live, until the
-/// Dart side drops the stream. Subscribes before replaying history so nothing
-/// is missed in between (a line captured right at that boundary may appear
-/// twice — harmless for a log tail).
-Stream<LogLineDto> logEvents() =>
-    RustLib.instance.api.crateApiBridgeEventsLogEvents();
+/// Read logs only when a viewer needs them. Filtering runs off the UI thread.
+Future<LogViewDto> logQuery({String? level, required String keyword}) => RustLib
+    .instance
+    .api
+    .crateApiBridgeEventsLogQuery(level: level, keyword: keyword);
+
+/// Coalesced invalidations, never a backlog of log payloads. Query the latest
+/// view at most once at a time; intermediate revisions need no replay.
+Stream<int> logChanges() =>
+    RustLib.instance.api.crateApiBridgeEventsLogChanges();
+
+/// Add a bounded controller diagnostic without performing disk I/O.
+void logRecord({
+  required String level,
+  required String target,
+  required String message,
+}) => RustLib.instance.api.crateApiBridgeEventsLogRecord(
+  level: level,
+  target: target,
+  message: message,
+);
+
+/// Clear the shared in-memory history; persisted logs remain available.
+void logClear() => RustLib.instance.api.crateApiBridgeEventsLogClear();
 
 /// Stream retry progress for host meta requests, so the UI can show "retrying
 /// 2/10" instead of appearing frozen through the backoff.
@@ -25,15 +44,43 @@ Stream<LogLineDto> logEvents() =>
 Stream<RetryProgressDto> metaRetryEvents() =>
     RustLib.instance.api.crateApiBridgeEventsMetaRetryEvents();
 
-/// Stream live app-server events (turn/item notifications) for `service_key`.
-/// The Dart side receives one [`AppEventDto`] per notification until the
-/// session is disconnected or the feed lags and requires history recovery.
-Stream<AppEventDto> appEvents({required String serviceKey}) =>
-    RustLib.instance.api.crateApiBridgeEventsAppEvents(serviceKey: serviceKey);
+/// A feed narrowed to `thread_id`; `None` follows every conversation.
+EventFeed eventFeedCreate({String? threadId}) => RustLib.instance.api
+    .crateApiBridgeEventsEventFeedCreate(threadId: threadId);
+
+/// Retarget every stream of `feed` at once, without resubscribing.
+void eventFeedFollow({required EventFeed feed, String? threadId}) => RustLib
+    .instance
+    .api
+    .crateApiBridgeEventsEventFeedFollow(feed: feed, threadId: threadId);
+
+/// Stream live app-server events of `service_key` through a native
+/// projection narrowed by `feed` and `topic`. Service-wide events (inventory,
+/// resolved requests, other conversations' turn ends) still pass the thread
+/// filter. The stream closes when the session disconnects or the feed lags and
+/// requires history recovery.
+Stream<AppEventDto> appProjectedEvents({
+  required String serviceKey,
+  required EventFeed feed,
+  required EventTopic topic,
+}) => RustLib.instance.api.crateApiBridgeEventsAppProjectedEvents(
+  serviceKey: serviceKey,
+  feed: feed,
+  topic: topic,
+);
+
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<EventFeed>>
+abstract class EventFeed implements RustOpaqueInterface {}
 
 /// One app-server event mirrored for Dart. `kind` is the JSON-RPC method
 /// (e.g. `turn/started`, `item/agentMessage/delta`, `turn/completed`).
 class AppEventDto {
+  /// Thread activity decoded by the native projection.
+  final bool? running;
+
+  /// Parsed file changes, with numbered rows and totals.
+  final DiffDto? diff;
+
   /// JSON-RPC method name of the originating notification.
   final String kind;
 
@@ -64,7 +111,18 @@ class AppEventDto {
   /// Full params JSON for fields not modelled above.
   final String raw;
 
+  /// Native-decoded turn identity, without an item-id fallback.
+  final String? turnId;
+
+  /// Host-declared sending client; empty is distinct from absent.
+  final String? sender;
+
+  /// Delta text carries a complete prefix and replaces the displayed text.
+  final bool textIsSnapshot;
+
   const AppEventDto({
+    this.running,
+    this.diff,
     required this.kind,
     this.threadId,
     this.itemId,
@@ -74,10 +132,15 @@ class AppEventDto {
     required this.images,
     this.requestId,
     required this.raw,
+    this.turnId,
+    this.sender,
+    required this.textIsSnapshot,
   });
 
   @override
   int get hashCode =>
+      running.hashCode ^
+      diff.hashCode ^
       kind.hashCode ^
       threadId.hashCode ^
       itemId.hashCode ^
@@ -86,13 +149,18 @@ class AppEventDto {
       text.hashCode ^
       images.hashCode ^
       requestId.hashCode ^
-      raw.hashCode;
+      raw.hashCode ^
+      turnId.hashCode ^
+      sender.hashCode ^
+      textIsSnapshot.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is AppEventDto &&
           runtimeType == other.runtimeType &&
+          running == other.running &&
+          diff == other.diff &&
           kind == other.kind &&
           threadId == other.threadId &&
           itemId == other.itemId &&
@@ -101,7 +169,22 @@ class AppEventDto {
           text == other.text &&
           images == other.images &&
           requestId == other.requestId &&
-          raw == other.raw;
+          raw == other.raw &&
+          turnId == other.turnId &&
+          sender == other.sender &&
+          textIsSnapshot == other.textIsSnapshot;
+}
+
+/// Which events of its conversation a projected feed carries.
+enum EventTopic {
+  /// Everything.
+  all,
+
+  /// Turn starts, ends and thread status: what the session list shows.
+  activity,
+
+  /// Realtime voice signalling, plus turn starts a dictation must refuse.
+  realtime,
 }
 
 /// One captured runtime log line for the in-app log viewer.
@@ -141,6 +224,36 @@ class LogLineDto {
           target == other.target &&
           message == other.message &&
           timestampMs == other.timestampMs;
+}
+
+/// A filtered view of the single native log ring.
+class LogViewDto {
+  /// Matched lines, oldest first.
+  final List<LogLineDto> lines;
+
+  /// Number of retained lines before filtering.
+  final int total;
+
+  /// Disk records lost to queue saturation or write failure.
+  final BigInt diskLost;
+
+  const LogViewDto({
+    required this.lines,
+    required this.total,
+    required this.diskLost,
+  });
+
+  @override
+  int get hashCode => lines.hashCode ^ total.hashCode ^ diskLost.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LogViewDto &&
+          runtimeType == other.runtimeType &&
+          lines == other.lines &&
+          total == other.total &&
+          diskLost == other.diskLost;
 }
 
 /// One in-flight retry of a host meta request, mirrored for Dart.

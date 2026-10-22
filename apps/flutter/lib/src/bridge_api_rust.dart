@@ -2,27 +2,31 @@ import 'dart:typed_data';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart'
     show PlatformInt64Util;
-
 import 'package:pocox/src/bridge_api.dart';
+import 'package:pocox/src/git_diff.dart';
 import 'package:pocox/src/rust/api/bridge.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/agent_tools.dart' as frb;
+import 'package:pocox/src/rust/api/bridge/attachments.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/codex_setup.dart' as frb;
+import 'package:pocox/src/rust/api/bridge/composer.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/connection.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/device_management.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/device_metadata.dart' as frb;
+import 'package:pocox/src/rust/api/bridge/diff.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/events.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/grok.dart' as frb;
+import 'package:pocox/src/rust/api/bridge/history_projection.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/host_config.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/host_sessions.dart' as frb;
-import 'package:pocox/src/rust/api/bridge/native_sessions.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/hosted_account.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/hosting.dart' as frb;
+import 'package:pocox/src/rust/api/bridge/native_sessions.dart' as frb;
+import 'package:pocox/src/rust/api/bridge/network.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/services.dart' as frb;
-import 'package:pocox/src/rust/api/bridge/session_config.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/session_access.dart' as frb;
+import 'package:pocox/src/rust/api/bridge/session_config.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/threads.dart' as frb;
 import 'package:pocox/src/rust/api/bridge/updates.dart' as frb;
-import 'package:pocox/src/rust/api/bridge/network.dart' as frb;
 import 'package:pocox/src/updates/update_api.dart';
 
 part 'bridge/rust_hosting.dart';
@@ -32,6 +36,8 @@ part 'bridge/rust_management.dart';
 part 'bridge/rust_tools.dart';
 part 'bridge/rust_grok.dart';
 part 'bridge/rust_updates.dart';
+part 'bridge/rust_composer.dart';
+part 'bridge/rust_events.dart';
 
 /// Real [BridgeApi] backed by generated Rust bindings.
 class RustBridgeApi
@@ -46,6 +52,32 @@ class RustBridgeApi
     implements BridgeApi {
   /// Creates the real bridge.
   const RustBridgeApi();
+
+  @override
+  ComposerControl composerCreate() => _NativeComposerControl();
+
+  @override
+  void attachmentReleaseFile(Object file) {
+    final handle = file as frb.PreparedFile;
+    if (!handle.isDisposed) handle.dispose();
+  }
+
+  @override
+  Future<Object> attachmentReadFile(String path) =>
+      frb.attachmentReadFile(path: path);
+
+  @override
+  Future<String> metaUploadPreparedFile(
+    String serviceKey,
+    String fileName,
+    Object file,
+    String expectedContext,
+  ) => frb.metaUploadPreparedFile(
+    serviceKey: serviceKey,
+    fileName: fileName,
+    file: file as frb.PreparedFile,
+    expectedContext: expectedContext,
+  );
 
   @override
   Future<String?> networkProxy() => frb.networkProxy();
@@ -265,31 +297,44 @@ class RustBridgeApi
       frb.apiProbeLocal(localAddr: localAddr);
 
   @override
-  Stream<AppEvent> appEvents(String serviceKey) => frb
-      .appEvents(serviceKey: serviceKey)
-      .map(
-        (e) => AppEvent(
-          kind: e.kind,
-          threadId: e.threadId,
-          itemId: e.itemId,
-          itemType: e.itemType,
-          title: e.title,
-          text: e.text,
-          images: e.images,
-          requestId: e.requestId,
-          raw: e.raw,
-        ),
-      );
+  Stream<AppEvent> appEvents(
+    String serviceKey, {
+    String? threadId,
+    EventTopic topic = EventTopic.all,
+  }) => _NativeEventFeed(serviceKey, threadId, topic).events;
 
   @override
-  Stream<LogLine> logEvents() => frb.logEvents().map(
-    (l) => LogLine(
-      level: l.level,
-      target: l.target,
-      message: l.message,
-      timestampMs: l.timestampMs,
-    ),
-  );
+  AppEventFeed appEventFeed(String serviceKey, {String? threadId}) =>
+      _NativeEventFeed(serviceKey, threadId, EventTopic.all);
+
+  @override
+  Stream<void> logChanges() => frb.logChanges().map((_) {});
+
+  @override
+  Future<LogView> logQuery({String? level, String keyword = ''}) async {
+    final view = await frb.logQuery(level: level, keyword: keyword);
+    return LogView(
+      lines: view.lines
+          .map(
+            (l) => LogLine(
+              level: l.level,
+              target: l.target,
+              message: l.message,
+              timestampMs: l.timestampMs,
+            ),
+          )
+          .toList(growable: false),
+      total: view.total,
+      diskLost: view.diskLost.toInt(),
+    );
+  }
+
+  @override
+  void logRecord(String target, String message, {String level = 'INFO'}) =>
+      frb.logRecord(level: level, target: target, message: message);
+
+  @override
+  void logClear() => frb.logClear();
 
   @override
   Stream<RetryProgress> metaRetryEvents() => frb.metaRetryEvents().map(

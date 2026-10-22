@@ -317,14 +317,110 @@ mixin _FakeConnection on _FakeBridgeState {
   Future<bool> apiProbeLocal(String localAddr) async =>
       reachableLocal[localAddr] ?? true;
 
-  @override
-  Stream<AppEvent> appEvents(String serviceKey) => _appEvents
-      .putIfAbsent(serviceKey, StreamController<AppEvent>.broadcast)
-      .stream;
+  /// Conversations each [appEventFeed] was moved to, in order.
+  final List<String?> followedThreads = [];
 
   @override
-  Stream<LogLine> logEvents() => _logEvents.stream;
+  AppEventFeed appEventFeed(String serviceKey, {String? threadId}) =>
+      _FakeEventFeed(
+        appEvents(serviceKey, threadId: threadId),
+        followedThreads,
+      );
+
+  @override
+  Stream<AppEvent> appEvents(
+    String serviceKey, {
+    String? threadId,
+    EventTopic topic = EventTopic.all,
+  }) => _appEvents
+      .putIfAbsent(serviceKey, StreamController<AppEvent>.broadcast)
+      .stream
+      .map((e) {
+        Map<dynamic, dynamic> data = const {};
+        try {
+          final parsed = jsonDecode(e.raw);
+          if (parsed is Map) data = parsed;
+        } catch (_) {}
+        final turn =
+            data['turnId'] ??
+            (!e.kind.startsWith('item/')
+                ? data['id'] ??
+                      (data['turn'] is Map ? data['turn']['id'] : null)
+                : null);
+        return AppEvent(
+          kind: e.kind,
+          threadId: e.threadId,
+          itemId: e.itemId,
+          itemType: e.itemType,
+          title: e.title,
+          text: e.text,
+          images: e.images,
+          requestId: e.requestId,
+          raw: e.raw,
+          turnId: e.turnId ?? (turn is String ? turn : null),
+          sender:
+              e.sender ??
+              (data.containsKey('clientId')
+                  ? data['clientId'] as String? ?? ''
+                  : null),
+          textIsSnapshot: e.textIsSnapshot,
+          running:
+              e.running ??
+              switch (e.kind) {
+                'turn/started' => true,
+                'turn/completed' || 'turn/failed' => false,
+                'thread/status/changed' =>
+                  data['status'] is Map && data['status']['type'] is String
+                      ? data['status']['type'] == 'active'
+                      : null,
+                _ => null,
+              },
+          diff: e.diff,
+        );
+      });
+
+  final StreamController<void> _logChanges = StreamController<void>.broadcast();
+  final List<LogLine> logs = [];
+
+  /// Inject a log line into the live stream (test helper).
+  void pushLog(LogLine line) {
+    logs.add(line);
+    _logChanges.add(null);
+  }
+
+  @override
+  Stream<void> logChanges() => _logChanges.stream;
+
+  @override
+  Future<LogView> logQuery({String? level, String keyword = ''}) async =>
+      LogView(lines: List.of(logs), total: logs.length);
+
+  @override
+  void logRecord(String target, String message, {String level = 'INFO'}) =>
+      pushLog(
+        LogLine(
+          level: level,
+          target: target,
+          message: message,
+          timestampMs: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+
+  @override
+  void logClear() {
+    logs.clear();
+    _logChanges.add(null);
+  }
 
   @override
   Stream<RetryProgress> metaRetryEvents() => _retryEvents.stream;
+}
+
+class _FakeEventFeed implements AppEventFeed {
+  _FakeEventFeed(this.events, this._followed);
+  final List<String?> _followed;
+  @override
+  final Stream<AppEvent> events;
+  @override
+  void follow(String? threadId) => _followed.add(threadId);
 }
