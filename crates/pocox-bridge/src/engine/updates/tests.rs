@@ -1,23 +1,15 @@
-use std::{
-    collections::HashMap,
-    path::PathBuf,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
-};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
 use base64::Engine as _;
-use ring::{
-    rand::SystemRandom,
-    signature::{Ed25519KeyPair, KeyPair},
-};
+use ring::rand::SystemRandom;
+use ring::signature::{Ed25519KeyPair, KeyPair};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-use super::{
-    manifest::{self, Host, Install, Method},
-    Config, Kind, Phase, Updater,
-};
+use super::manifest::{self, Host, Install, Method};
+use super::{Config, Kind, Phase, Updater};
 
 struct Key {
     pair: Ed25519KeyPair,

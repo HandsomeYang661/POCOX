@@ -4,21 +4,17 @@
 //! A token reaches a harness only through its environment, its ACP session
 //! request or its inline configuration; never through a command line.
 
-use std::{
-    ffi::{OsStr, OsString},
-    sync::Arc,
-};
+use std::ffi::{OsStr, OsString};
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use pocox_core::provider::Secret;
 use pocox_host_svc::acp::{McpGrant, SessionMcp};
 use serde_json::{json, Map, Value};
 
-use super::{
-    builtin::MCP_TOOLS,
-    state::{self, OwnerKey, State},
-    tokens::{Kind, Principal},
-};
+use super::builtin::MCP_TOOLS;
+use super::state::{self, OwnerKey, State};
+use super::tokens::{Kind, Principal};
 
 /// The environment variable that carries a hosted Codex's token.
 pub const TOKEN_VAR: &str = "POCOX_TOOLS_TOKEN";

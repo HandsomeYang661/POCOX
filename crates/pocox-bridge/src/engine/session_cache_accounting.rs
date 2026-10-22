@@ -2,14 +2,12 @@
 //! The lock-file revision invalidates other writers' counters before mutation;
 //! directory changes also detect crash leftovers and external additions.
 
-use std::{
-    collections::VecDeque,
-    fs::{self, File},
-    io::{Read, Seek, SeekFrom, Write},
-    path::{Path, PathBuf},
-    sync::{Mutex, OnceLock},
-    time::SystemTime,
-};
+use std::collections::VecDeque;
+use std::fs::{self, File};
+use std::io::{Read, Seek, SeekFrom, Write};
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
+use std::time::SystemTime;
 
 use anyhow::Result;
 

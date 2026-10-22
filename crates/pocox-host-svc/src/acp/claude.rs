@@ -32,11 +32,9 @@
 //! child inherits); nothing here reads credentials, and status shows only
 //! paths and versions.
 
-use std::{
-    ffi::{OsStr, OsString},
-    path::{Path, PathBuf},
-    time::Duration,
-};
+use std::ffi::{OsStr, OsString};
+use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use serde_json::Value;
 

@@ -16,8 +16,8 @@ import 'package:flutter/foundation.dart';
 ///
 /// Desktop bundling is done by swapping `pubspec-desktop.yaml` (which adds a
 /// `fonts:` entry for the family below) over `pubspec.yaml` before the build —
-/// see the desktop jobs in .github/workflows/release.yml and the note in
-/// AGENTS.md. The default `pubspec.yaml` omits it, so mobile/test never bundle
+/// see the desktop jobs in .github/workflows/release.yml and the Fonts
+/// section of docs/app-ui.md. The default `pubspec.yaml` omits it, so mobile/test never bundle
 /// it — which is why [cjkFontFallback] can't name it unconditionally.
 
 /// The design system's prose face, bundled on every platform. Latin only.

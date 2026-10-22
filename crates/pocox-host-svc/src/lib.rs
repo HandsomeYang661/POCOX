@@ -32,32 +32,33 @@ mod codex_inventory;
 mod codex_routes;
 mod file_routes;
 
-use std::{convert::Infallible, net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
+use std::convert::Infallible;
+use std::net::SocketAddr;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::{anyhow, Context, Result};
-use axum::{
-    extract::{DefaultBodyLimit, Path, Query, State},
-    http::StatusCode,
-    response::{
-        sse::{Event, KeepAlive, Sse},
-        IntoResponse, Response,
-    },
-    routing::{get, post},
-    Json, Router,
-};
+use axum::extract::{DefaultBodyLimit, Path, Query, State};
+use axum::http::StatusCode;
+use axum::response::sse::{Event, KeepAlive, Sse};
+use axum::response::{IntoResponse, Response};
+use axum::routing::{get, post};
+use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
-use tokio::{net::TcpListener, sync::mpsc};
+use tokio::net::TcpListener;
+use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 
-use crate::{
-    codex_routes::{
-        list_sessions, read_thread_image, session_follow, session_liveness, session_resume,
-        session_transcript,
-    },
-    file_routes::{list_dir, list_files_in, read_file, upload_file, write_file, UPLOAD_BODY_LIMIT},
-    projects::{EnsuredProject, ProjectError, ProjectsUpdate, ProjectsView},
-    store::{ConfigStore, HostStore, ThreadConfig},
+use crate::codex_routes::{
+    list_sessions, read_thread_image, session_follow, session_liveness, session_resume,
+    session_transcript,
 };
+use crate::file_routes::{
+    list_dir, list_files_in, read_file, upload_file, write_file, UPLOAD_BODY_LIMIT,
+};
+use crate::projects::{EnsuredProject, ProjectError, ProjectsUpdate, ProjectsView};
+use crate::store::{ConfigStore, HostStore, ThreadConfig};
 
 /// Shared handler state.
 struct AppState {

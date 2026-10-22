@@ -23,6 +23,7 @@ existing file selector. Staging files are removed after success, cancellation,
 failure, or completion of a request whose dialog has been dismissed. An active
 transfer finishes in the background if its dialog is dismissed.
 
+A Local sessions viewer of this device's own sessions reads the file directly.
 An in-process host can be accessed directly. A separately running host on the
 same machine must first prove access to a short-lived local filesystem
 challenge: only the random filename is sent over the tunnel, while the token
@@ -35,8 +36,9 @@ wildcard bind address displays pb-mapper mapping guidance. Register the web
 service's port on the host and subscribe to that service on the controller,
 then open the mapped local port with the original URL path/query. POCOX
 does not create that port mapping automatically. For a verified same-device
-host, the original web address opens directly in the system browser. Loopback
-links never trigger an automatic favicon request.
+host, the original web address opens directly in the system browser. A remote
+session's loopback link never opens the controller's own loopback address.
+Loopback links never trigger an automatic favicon request.
 
 ## Additive meta API
 

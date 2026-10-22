@@ -10,19 +10,15 @@
 use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, bail, Context, Result};
-use pocox_account_proto::{
-    http::{
-        session_token_exp, DevicePollResponse, DevicePollStatus, DeviceStartRequest,
-        DeviceStartResponse, LogoutRequest, MeResponse, RefreshRequest, RefreshResponse,
-        RelayCredentialResponse, WebExchangeRequest, WebExchangeResponse, WebStartRequest,
-        WebStartResponse,
-    },
-    pkce,
+use pocox_account_proto::http::{
+    session_token_exp, DevicePollResponse, DevicePollStatus, DeviceStartRequest,
+    DeviceStartResponse, LogoutRequest, MeResponse, RefreshRequest, RefreshResponse,
+    RelayCredentialResponse, WebExchangeRequest, WebExchangeResponse, WebStartRequest,
+    WebStartResponse,
 };
-use pocox_core::{
-    config::{Config, Mode},
-    service::default_device_id,
-};
+use pocox_account_proto::pkce;
+use pocox_core::config::{Config, Mode};
+use pocox_core::service::default_device_id;
 
 use crate::commands::ui;
 

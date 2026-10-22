@@ -9,10 +9,8 @@
 
 use std::collections::HashSet;
 
-use super::{
-    super::session_cache::{DiskCache, MAX_ENTRY_BYTES},
-    *,
-};
+use super::super::session_cache::{DiskCache, MAX_ENTRY_BYTES};
+use super::*;
 
 #[derive(Serialize, Deserialize)]
 struct LiveView {

@@ -53,21 +53,15 @@
 //! `probe:clean`); `deaf` asks for a permission and then never reads its
 //! input again (the process stays alive), so the client's writes stall.
 
-use std::{
-    collections::{HashMap, HashSet},
-    io::Write,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc, Mutex,
-    },
-    time::Duration,
-};
+use std::collections::{HashMap, HashSet};
+use std::io::Write;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use serde_json::{json, Value};
-use tokio::{
-    io::{AsyncBufReadExt, BufReader},
-    sync::{oneshot, Notify},
-};
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::sync::{oneshot, Notify};
 
 #[derive(Clone)]
 struct Agent {

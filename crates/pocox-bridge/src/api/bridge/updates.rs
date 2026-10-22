@@ -5,14 +5,10 @@
 use anyhow::Result;
 use flutter_rust_bridge::frb;
 
-use crate::{
-    engine::{
-        execution::{self, Lane},
-        runtime,
-        updates::{self, Kind, Snapshot},
-    },
-    frb_generated::StreamSink,
-};
+use crate::engine::execution::{self, Lane};
+use crate::engine::runtime;
+use crate::engine::updates::{self, Kind, Snapshot};
+use crate::frb_generated::StreamSink;
 
 /// Everything the UI shows about updates.
 pub struct UpdateStateDto {

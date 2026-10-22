@@ -2,21 +2,17 @@
 
 use std::sync::{Arc, Mutex};
 
-use axum::{
-    extract::{Path, State},
-    http::StatusCode,
-    routing::post,
-    Json, Router,
-};
+use axum::extract::{Path, State};
+use axum::http::StatusCode;
+use axum::routing::post;
+use axum::{Json, Router};
 use serde_json::{json, Value};
 
 use super::{events, shape};
-use crate::opencode::{
-    client::{Client, ClientError},
-    public,
-    schema::{Model, Prompt},
-    wire::Dialect,
-};
+use crate::opencode::client::{Client, ClientError};
+use crate::opencode::public;
+use crate::opencode::schema::{Model, Prompt};
+use crate::opencode::wire::Dialect;
 
 fn decode(frame: Value) -> Option<(String, Value)> {
     events::decode(frame.to_string().as_bytes())

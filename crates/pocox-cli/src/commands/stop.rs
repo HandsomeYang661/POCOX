@@ -3,14 +3,10 @@
 use anyhow::Result;
 use pocox_codex::{stop as stop_codex, StopOutcome as CodexStopOutcome};
 
-use crate::{
-    cli::StopArgs,
-    commands::{
-        managed_api::{self, StopOutcome as ApiStopOutcome},
-        managed_pb::{self, StopFilter, StopOutcome as PbStopOutcome},
-        ui,
-    },
-};
+use crate::cli::StopArgs;
+use crate::commands::managed_api::{self, StopOutcome as ApiStopOutcome};
+use crate::commands::managed_pb::{self, StopFilter, StopOutcome as PbStopOutcome};
+use crate::commands::ui;
 
 /// Stop POCOX managed sessions.
 pub fn run(args: StopArgs) -> Result<()> {

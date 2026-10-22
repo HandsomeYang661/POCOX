@@ -3,28 +3,27 @@
 //! that hands a client its own relay credential so the backend leaves the data
 //! path entirely.
 
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
+use std::time::Duration;
 
-use axum::{
-    extract::{Path, Query, State},
-    http::{header::AUTHORIZATION, HeaderMap, StatusCode},
-    response::{Html, IntoResponse, Redirect, Response},
-    routing::{delete, get, post},
-    Json, Router,
+use axum::extract::{Path, Query, State};
+use axum::http::header::AUTHORIZATION;
+use axum::http::{HeaderMap, StatusCode};
+use axum::response::{Html, IntoResponse, Redirect, Response};
+use axum::routing::{delete, get, post};
+use axum::{Json, Router};
+use pocox_account_proto::http::{
+    DevicePollRequest, DevicePollResponse, DeviceStartRequest, DeviceStartResponse, LogoutRequest,
+    MeResponse, RefreshRequest, RefreshResponse, RelayCredentialResponse, ServiceEntry,
+    ServicesResponse, WebExchangeRequest, WebExchangeResponse, WebStartRequest, WebStartResponse,
 };
-use pocox_account_proto::{
-    http::{
-        DevicePollRequest, DevicePollResponse, DeviceStartRequest, DeviceStartResponse,
-        LogoutRequest, MeResponse, RefreshRequest, RefreshResponse, RelayCredentialResponse,
-        ServiceEntry, ServicesResponse, WebExchangeRequest, WebExchangeResponse, WebStartRequest,
-        WebStartResponse,
-    },
-    key::NamespacedServiceId,
-};
+use pocox_account_proto::key::NamespacedServiceId;
 use pocox_auth::{Auth, AuthError, Claims};
 use pocox_core::service::{ServiceId, ServiceKind};
 use serde::Deserialize;
-use tower_http::{limit::RequestBodyLimitLayer, timeout::TimeoutLayer, trace::TraceLayer};
+use tower_http::limit::RequestBodyLimitLayer;
+use tower_http::timeout::TimeoutLayer;
+use tower_http::trace::TraceLayer;
 
 /// Shared state for the HTTP handlers.
 #[derive(Clone)]

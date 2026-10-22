@@ -5,14 +5,12 @@
 use pocox_core::provider::Secret;
 use serde_json::Value;
 
-use super::{
-    catalog::Catalog,
-    events::EventStream,
-    http::{Http, Native, MAX_BODY},
-    public,
-    schema::{CommandInput, MessagePage, Prompt, Session, Statuses},
-    wire::{dispatch, Dialect, Health, Reply},
-};
+use super::catalog::Catalog;
+use super::events::EventStream;
+use super::http::{Http, Native, MAX_BODY};
+use super::public;
+use super::schema::{CommandInput, MessagePage, Prompt, Session, Statuses};
+use super::wire::{dispatch, Dialect, Health, Reply};
 
 /// A failure talking to the native server, without echoed secrets or URLs.
 #[derive(Debug, thiserror::Error)]

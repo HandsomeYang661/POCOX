@@ -12,17 +12,17 @@
 //! owner's sharing, or connecting, and settle its other waiting requests for
 //! it at once.
 
-use std::{collections::BTreeSet, sync::Arc, time::Duration};
+use std::collections::BTreeSet;
+use std::sync::Arc;
+use std::time::Duration;
 
 use tokio::sync::Notify;
 
-use super::{
-    builtin::{CONNECT, SHARE},
-    error::{Pending, ToolError},
-    model::{ConsentView, Decision},
-    shares::Caller,
-    state::{self, now_ms, Consent, OwnerKey, State},
-};
+use super::builtin::{CONNECT, SHARE};
+use super::error::{Pending, ToolError};
+use super::model::{ConsentView, Decision};
+use super::shares::Caller;
+use super::state::{self, now_ms, Consent, OwnerKey, State};
 
 /// How long a request waits for an answer before it lapses.
 const REQUEST_TTL_MS: i64 = 10 * 60 * 1000;
@@ -354,7 +354,8 @@ pub fn prune(state: &mut State) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::engine::agent_tools::{state::Granted, tokens::Kind};
+    use crate::engine::agent_tools::state::Granted;
+    use crate::engine::agent_tools::tokens::Kind;
 
     const API: &str = "pcx:devbox:api:main";
 

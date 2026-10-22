@@ -15,14 +15,13 @@ mod tokens;
 mod users;
 mod web;
 
-use std::{str::FromStr, time::Duration};
+use std::str::FromStr;
+use std::time::Duration;
 
 pub use error::{Result, StoreError};
 pub use models::{DeviceFlow, RefreshToken, User, WebAuthFlow, WebExchangeCode};
-use sqlx::{
-    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions},
-    SqlitePool,
-};
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
+use sqlx::SqlitePool;
 
 /// Embedded migrations under `migrations/`, applied on [`Store::connect`].
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!();

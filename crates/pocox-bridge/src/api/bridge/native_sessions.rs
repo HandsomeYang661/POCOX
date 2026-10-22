@@ -2,15 +2,11 @@
 use anyhow::{Context, Result};
 use pocox_host_svc::native_history::NativeFollow;
 
-use super::{
-    host_sessions::{meta_liveness_dto, LocalSessionDto, SessionLivenessDto},
-    threads::{item_dto, ThreadItemDto},
-    StreamSink,
-};
-use crate::engine::{
-    execution::{self, Lane},
-    native_sessions, runtime,
-};
+use super::host_sessions::{meta_liveness_dto, LocalSessionDto, SessionLivenessDto};
+use super::threads::{item_dto, ThreadItemDto};
+use super::StreamSink;
+use crate::engine::execution::{self, Lane};
+use crate::engine::{native_sessions, runtime};
 
 /// How often a followed view's revision is re-read without a live change.
 const FOLLOW_POLL: std::time::Duration = std::time::Duration::from_secs(3);

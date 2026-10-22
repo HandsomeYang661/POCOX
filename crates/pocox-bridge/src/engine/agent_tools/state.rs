@@ -3,29 +3,25 @@
 //! One lock guards it; nothing awaits while holding it. Every change moves
 //! the revision, which wakes the catalog's event streams.
 
-use std::{
-    collections::HashSet,
-    net::SocketAddr,
-    path::PathBuf,
-    sync::{Arc, Mutex, MutexGuard},
-};
+use std::collections::HashSet;
+use std::net::SocketAddr;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use once_cell::sync::Lazy;
 use pocox_pb::Published;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{watch, Notify};
 
-use super::{
-    builtin::{CONNECT, SHARE},
-    error::ToolError,
-    model::{
-        ConnectionView, ConsentView, Decision, HostedView, OwnerKind, OwnerView, PortStatus,
-        PortView, ShareView,
-    },
-    settings::Settings,
-    shares::Caller,
-    tokens::Tokens,
+use super::builtin::{CONNECT, SHARE};
+use super::error::ToolError;
+use super::model::{
+    ConnectionView, ConsentView, Decision, HostedView, OwnerKind, OwnerView, PortStatus, PortView,
+    ShareView,
 };
+use super::settings::Settings;
+use super::shares::Caller;
+use super::tokens::Tokens;
 
 /// Who keeps something alive: a token, and the conversation it named.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

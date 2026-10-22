@@ -1,10 +1,8 @@
 //! Device management and durable local restore choices.
 
 use super::*;
-use crate::engine::{
-    execution::{self, Lane},
-    management, management_client as remote,
-};
+use crate::engine::execution::{self, Lane};
+use crate::engine::{management, management_client as remote};
 
 /// Whether other authorized controllers can manage this computer.
 pub struct DeviceManagementDto {

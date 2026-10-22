@@ -21,13 +21,10 @@ pub use error::{AuthError, Result};
 use github::{GitHub, PollResult};
 pub use jwt::Claims;
 use jwt::Jwt;
-use pocox_account_proto::{
-    http::{
-        DevicePollResponse, DevicePollStatus, DeviceStartResponse, SessionCredential,
-        WebStartResponse,
-    },
-    key::SERVICE_NS_PREFIX,
+use pocox_account_proto::http::{
+    DevicePollResponse, DevicePollStatus, DeviceStartResponse, SessionCredential, WebStartResponse,
 };
+use pocox_account_proto::key::SERVICE_NS_PREFIX;
 use pocox_store::{Store, User};
 use rand::RngCore as _;
 use sha2::{Digest as _, Sha256};

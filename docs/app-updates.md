@@ -5,6 +5,8 @@ asks, installs the newer release in one step. The design follows the updater
 of the sibling project proxy-everything (a signed release manifest, per-platform
 installers), with the logic in Rust (`crates/pocox-bridge/src/engine/updates`)
 and only the app's own part in Flutter (`apps/flutter/lib/src/updates`).
+Flutter renders the engine's state and does only what the app must: quit, the
+Android installer channel, opening the release page.
 
 ## What the user sees
 
@@ -31,7 +33,8 @@ running on a computer needs that computer's reachable address instead.
 
 The private `[network].proxy` setting in the app's `config.toml` applies to
 release manifests, signatures and package downloads (including redirects),
-POCOX account/backend requests, GitHub avatars and site favicons. SOCKS5
+POCOX account/backend requests, GitHub avatars and site favicons; every such
+client is built by `engine::network`. SOCKS5
 resolves destination names through the proxy. Explicit proxies take precedence
 over environment variables and bypass loopback destinations. An unavailable
 proxy fails the request; it never falls back to a direct connection.
@@ -90,6 +93,10 @@ certificate.
 | Linux portable | `…-linux-x64.zip` | Saved to Downloads and shown. |
 | Android | `…-android-<abi>.apk` (this build's ABI) | Handed to the system installer, which asks the user. The first time, Android asks to allow POCOX to install apps. |
 | iOS (sideloaded) | none | An app cannot install itself: **Release page** opens the release. |
+
+Android release packages are signed with a persistent release key since
+v0.2.4. An older debug-signed installation cannot be updated to them: save its
+settings, remove it, then install.
 
 A release without a file for this installation (a platform's job failed, an
 architecture not built) is offered through its release page.

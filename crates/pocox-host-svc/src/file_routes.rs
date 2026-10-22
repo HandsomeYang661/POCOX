@@ -263,10 +263,8 @@ mod tests {
 
     #[test]
     fn file_upload_waits_for_background_write_before_success() {
-        use std::{
-            future::Future,
-            task::{Context as TaskContext, Waker},
-        };
+        use std::future::Future;
+        use std::task::{Context as TaskContext, Waker};
 
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()

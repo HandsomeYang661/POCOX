@@ -1,7 +1,9 @@
 //! Controller-side client of the `/acp/v1` gateway (loopback when this
 //! process hosts the agent, otherwise the local end of a relay tunnel).
 
-use std::{collections::VecDeque, pin::Pin, time::Duration};
+use std::collections::VecDeque;
+use std::pin::Pin;
+use std::time::Duration;
 
 use bytes::Bytes;
 use futures::{Stream, StreamExt};
@@ -9,7 +11,8 @@ use reqwest::{Method, RequestBuilder};
 use serde_json::{json, Value};
 use url::Url;
 
-use super::{host::Identity, schema::SteerOutcome};
+use super::host::Identity;
+use super::schema::SteerOutcome;
 
 /// `body` plus the identity fields a mutation carries (see the gateway
 /// docs): the host incarnation and generation the caller acted on.

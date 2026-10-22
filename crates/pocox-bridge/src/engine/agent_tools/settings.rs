@@ -9,10 +9,8 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::engine::host_profiles::{
-    self,
-    files::{write_private, Committed, FileLock},
-};
+use crate::engine::host_profiles::files::{write_private, Committed, FileLock};
+use crate::engine::host_profiles::{self};
 
 /// What the user chose; every field has the shipped default when absent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

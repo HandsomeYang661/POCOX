@@ -1,6 +1,7 @@
 //! Read-only identity checks for external session owners.
 
-use std::{ffi::OsString, path::PathBuf};
+use std::ffi::OsString;
+use std::path::PathBuf;
 
 use sysinfo::{Pid, ProcessRefreshKind, ProcessStatus, ProcessesToUpdate, System, UpdateKind};
 

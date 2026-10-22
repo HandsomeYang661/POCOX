@@ -6,10 +6,12 @@
 
 use std::borrow::Cow;
 
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use serde_json::{json, Value};
 
-use crate::opencode::{client::ClientError, events::Event};
+use crate::opencode::client::ClientError;
+use crate::opencode::events::Event;
 
 /// Kinds that end a visible step or change pending requests, each carrying
 /// `data.sessionID`.

@@ -1,16 +1,15 @@
 //! Bounded local attachment reads and native image preparation.
-use std::{
-    fs::File,
-    io::{Cursor, Read},
-    path::Path,
-};
+use std::fs::File;
+use std::io::{Cursor, Read};
+use std::path::Path;
 
 use anyhow::{ensure, Context, Result};
-use base64::{engine::general_purpose::STANDARD, Engine};
-use image::{
-    codecs::jpeg::JpegEncoder, imageops::FilterType, metadata::Orientation, DynamicImage,
-    ImageDecoder, ImageFormat, ImageReader, Limits,
-};
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
+use image::codecs::jpeg::JpegEncoder;
+use image::imageops::FilterType;
+use image::metadata::Orientation;
+use image::{DynamicImage, ImageDecoder, ImageFormat, ImageReader, Limits};
 
 const MAX_INPUT: u64 = 32 << 20;
 const MAX_PIXELS: u64 = 32_000_000;

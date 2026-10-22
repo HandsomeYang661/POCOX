@@ -1,8 +1,6 @@
-use std::{
-    io::{BufRead, Write},
-    process::{Child, Command, Stdio},
-    time::{Duration, Instant},
-};
+use std::io::{BufRead, Write};
+use std::process::{Child, Command, Stdio};
+use std::time::{Duration, Instant};
 
 use super::*;
 

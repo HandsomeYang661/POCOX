@@ -61,6 +61,7 @@ macOS resources. See [Apple notarization documentation](https://developer.apple.
 ## Release-only theme regression
 
 The theme animation must not read RenderObject debug getters outside debug mode.
+Its snapshot capture is optional: a failed capture still applies the chosen theme.
 The native Profile test exercises the actual toggle and snapshot host with assertions
 disabled (as in Release; Flutter Driver cannot attach to Release), without starting the bridge, a Codex host or network connections.
 CI does not run it; run it before a release that touches the theme animation:
@@ -73,3 +74,10 @@ fvm flutter drive --profile -d macos \
 ```
 
 This builds a test harness. Rebuild the normal app before packaging a release.
+
+## Rules to preserve
+
+- The Dock icon is the bundle's blue AppIcon and stays fixed across themes.
+- The menu bar shows the mark as a one-colour template glyph
+  (`apps/flutter/assets/tray/tray_template.png`) that AppKit paints in the
+  bar's own colour; never the colour tile or the transparent splash glyph.

@@ -3,7 +3,7 @@
 # release jobs (.github/workflows/release.yml: app-windows / app-linux /
 # app-macos) copy this over pubspec.yaml before building, so only desktop
 # artifacts carry the ~17 MB font; mobile (Android/iOS) builds use the default
-# pubspec.yaml and the OS CJK fonts instead. See AGENTS.md › Fonts.
+# pubspec.yaml and the OS CJK fonts instead. See docs/app-ui.md › Fonts.
 #
 # KEEP IN SYNC: when you edit dependencies in pubspec.yaml, mirror the change
 # here (everything except the trailing `fonts:` block must match pubspec.yaml).

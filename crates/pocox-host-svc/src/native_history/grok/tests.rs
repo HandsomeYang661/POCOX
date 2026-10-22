@@ -1,14 +1,13 @@
-use std::{
-    fs,
-    io::Write,
-    path::{Path, PathBuf},
-};
+use std::fs;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 use tempfile::TempDir;
 
 use super::*;
-use crate::acp::{fold::ItemKind, schema::TurnOutcome};
+use crate::acp::fold::ItemKind;
+use crate::acp::schema::TurnOutcome;
 
 pub(super) const ID: &str = "01a15501-b678-7db0-b062-a1f5b1edc8d1";
 

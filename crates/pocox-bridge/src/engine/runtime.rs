@@ -7,15 +7,15 @@
 //! mode used to need its own broker-tunnel implementation here; now the caller
 //! resolves a session (via `transport::resolve`) and everything below is
 //! shared.
-use std::{collections::HashMap, path::PathBuf, sync::Mutex};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::Mutex;
 
 use anyhow::{anyhow, Context, Result};
 use once_cell::sync::OnceCell;
 use pocox_pb::{subscribe, Connection, RelaySession, SubscribeOptions};
-use tokio::{
-    runtime::{Builder, Runtime},
-    task::JoinHandle,
-};
+use tokio::runtime::{Builder, Runtime};
+use tokio::task::JoinHandle;
 
 use crate::engine::transport::Transport;
 
@@ -462,10 +462,8 @@ mod tests {
     /// winner too: no created tunnel survives detached.
     #[test]
     fn concurrent_creations_register_one_tunnel_and_stop_every_other() {
-        use std::sync::{
-            atomic::{AtomicBool, Ordering},
-            Arc, Barrier,
-        };
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::{Arc, Barrier};
         init(std::env::temp_dir()).expect("init");
         let family = "race-test\u{1f}";
         let key = format!("{family}ctx\u{1f}pcx:d:meta:n");
@@ -516,10 +514,8 @@ mod tests {
     /// is stopped, not registered.
     #[test]
     fn a_tunnel_created_for_a_stale_owner_is_stopped() {
-        use std::sync::{
-            atomic::{AtomicBool, Ordering},
-            Arc,
-        };
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::Arc;
         init(std::env::temp_dir()).expect("init");
         let key = "stale-test\u{1f}ctx\u{1f}pcx:d:meta:n".to_string();
         let current = AtomicBool::new(true);

@@ -9,6 +9,16 @@ available through the card's existing details and copy controls.
 These cards are display-only. They never answer an approval or execute the
 reviewed action. Ordinary manual approval prompts keep their existing controls.
 
+Review history in a transcript is display-only too
+(`apps/flutter/lib/src/screens/app_session/approval_review.dart`). A request is
+recognized only inside Codex's explicit `>>> APPROVAL REQUEST START` / `END`
+envelope, and an assessment only when it matches the complete schema (format:
+`deps/codex/codex-rs/core/src/guardian/prompt.rs`). It shows outcome, risk,
+authorization and rationale, keeps the exact original for copy and expands
+details lazily. A historical assessment never becomes an interactive approval,
+and command text extracted for display is never executed. Unknown formats keep
+normal rendering.
+
 Both the conversation sidebar and the session inventory use explicit parent
 links. Parents have an expand control; children remain below their parent across
 activity and project groups. Search and status filters retain matching children's

@@ -3,13 +3,11 @@
 //! and run this test with --ignored. Sessions, configuration and listeners are
 //! temporary; no model turn is started and no existing host is contacted.
 
-use std::{
-    io::Write,
-    path::{Path, PathBuf},
-    process::Stdio,
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::process::Stdio;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use anyhow::{ensure, Context, Result};
 use pocox_codex::client::AppClient;

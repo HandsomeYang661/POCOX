@@ -29,10 +29,8 @@ use std::path::PathBuf;
 
 use directories::{ProjectDirs, UserDirs};
 
-use crate::{
-    error::{Error, Result},
-    state::PbRole,
-};
+use crate::error::{Error, Result};
+use crate::state::PbRole;
 
 const QUALIFIER: &str = "io.github";
 const ORG: &str = "acking-you";

@@ -3,20 +3,17 @@
 use std::time::Duration;
 
 use anyhow::{bail, Result};
-use pocox_core::{
-    config::{Config, Mode},
-    paths,
-    state::{PbRole, PbSessionInfo},
-};
+use pocox_core::config::{Config, Mode};
+use pocox_core::paths;
+use pocox_core::state::{PbRole, PbSessionInfo};
 use pocox_pb::{
     register_background as pb_register, subscribe_background as pb_subscribe, RegisterOptions,
     RelaySession, SubscribeOptions, TunnelStatus,
 };
 
-use crate::{
-    cli::WorkerCmd,
-    commands::{account, api_proxy, worker_health::Reporter},
-};
+use crate::cli::WorkerCmd;
+use crate::commands::worker_health::Reporter;
+use crate::commands::{account, api_proxy};
 
 /// Run an internal worker command.
 pub async fn run(cmd: WorkerCmd) -> Result<()> {

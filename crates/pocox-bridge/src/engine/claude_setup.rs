@@ -10,18 +10,14 @@
 //! ([`Snapshot::started`]), and [`prepare_cancel_run`] stops that run only,
 //! never one another caller started later.
 
-use std::{
-    ffi::OsString,
-    path::PathBuf,
-    sync::{Mutex, MutexGuard},
-    time::Instant,
-};
+use std::ffi::OsString;
+use std::path::PathBuf;
+use std::sync::{Mutex, MutexGuard};
+use std::time::Instant;
 
 use anyhow::{Context, Result};
-use pocox_host_svc::acp::{
-    claude::{self, Environment, Lookup, Status, CLI_ENV},
-    claude_setup::{self, Prepare, SetupError, Stage, PREPARE_TIMEOUT},
-};
+use pocox_host_svc::acp::claude::{self, Environment, Lookup, Status, CLI_ENV};
+use pocox_host_svc::acp::claude_setup::{self, Prepare, SetupError, Stage, PREPARE_TIMEOUT};
 use tokio::sync::watch;
 
 use super::runtime;

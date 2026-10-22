@@ -31,20 +31,17 @@
 //! without record collisions. [`stop_matching`] takes a [`StopFilter`]
 //! that narrows by `role`/`key`; an empty filter sweeps every entry.
 
-use std::{
-    path::PathBuf,
-    process::{Command, Stdio},
-};
+use std::path::PathBuf;
+use std::process::{Command, Stdio};
 
 use anyhow::{bail, Context, Result};
 use chrono::Utc;
-use pocox_core::{
-    paths,
-    process::{pid_alive, send_sigterm},
-    state::{PbRole, PbSessionInfo, RuntimeState},
-};
+use pocox_core::paths;
+use pocox_core::process::{pid_alive, send_sigterm};
+use pocox_core::state::{PbRole, PbSessionInfo, RuntimeState};
 
-use crate::commands::{relay::CREDENTIAL_ENV, ui};
+use crate::commands::relay::CREDENTIAL_ENV;
+use crate::commands::ui;
 
 /// A pb-mapper worker process POCOX should supervise.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -147,10 +144,8 @@ pub(crate) async fn ensure(spec: PbWorkerSpec) -> Result<EnsureOutcome> {
 pub(crate) async fn restart(role: PbRole, key: &str) -> Result<PbSessionInfo> {
     use std::time::Duration;
 
-    use pocox_core::{
-        config::{Config, Mode},
-        process::{pb_worker_identity, pid_running},
-    };
+    use pocox_core::config::{Config, Mode};
+    use pocox_core::process::{pb_worker_identity, pid_running};
     let existing = RuntimeState::load()?
         .find_pb(role, key)
         .cloned()

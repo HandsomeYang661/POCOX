@@ -1,13 +1,9 @@
 use std::os::unix::fs::PermissionsExt;
 
 use super::*;
-use crate::{
-    acp::{
-        host::tests::{eventually, mock_binary},
-        SourceId,
-    },
-    native_history::{ClaimError, ClaudeHistory, SessionClaim},
-};
+use crate::acp::host::tests::{eventually, mock_binary};
+use crate::acp::SourceId;
+use crate::native_history::{ClaimError, ClaudeHistory, SessionClaim};
 
 const SESSION: &str = "00000000-0000-4000-8000-000000000001";
 const SOURCE: &str = "original-source";

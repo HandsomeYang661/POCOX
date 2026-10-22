@@ -7,15 +7,11 @@
 
 use anyhow::{bail, Result};
 
-use super::{
-    host_lease::{self, Op},
-    host_names,
-    host_profiles::{self, Change, Runtime, RuntimeChange},
-    runtime,
-    serve::{self, Binary, CodexStart, ServeReport},
-    serve_acp::{self, AcpServeReport},
-    serve_opencode,
-};
+use super::host_lease::{self, Op};
+use super::host_profiles::{self, Change, Runtime, RuntimeChange};
+use super::serve::{self, Binary, CodexStart, ServeReport};
+use super::serve_acp::{self, AcpServeReport};
+use super::{host_names, runtime, serve_opencode};
 
 /// A started host.
 #[derive(Debug, Clone)]
@@ -207,10 +203,8 @@ mod tests {
     use pocox_core::provider::{ApiProtocol, Secret};
 
     use super::*;
-    use crate::engine::{
-        host_lifecycle,
-        host_profiles::{Engine, KeyChange, ProfileInput, Resolved, Source, Staged},
-    };
+    use crate::engine::host_lifecycle;
+    use crate::engine::host_profiles::{Engine, KeyChange, ProfileInput, Resolved, Source, Staged};
 
     type Hook = Box<dyn FnOnce()>;
 

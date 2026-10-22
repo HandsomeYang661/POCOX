@@ -1,15 +1,11 @@
 //! Syntax scopes projected to compact, theme-independent UTF-16 runs.
-use std::{
-    sync::LazyLock,
-    time::{Duration, Instant},
-};
+use std::sync::LazyLock;
+use std::time::{Duration, Instant};
 
-use syntect::{
-    easy::HighlightLines,
-    highlighting::{Color, FontStyle, StyleModifier, Theme, ThemeItem},
-    parsing::SyntaxSet,
-    util::LinesWithEndings,
-};
+use syntect::easy::HighlightLines;
+use syntect::highlighting::{Color, FontStyle, StyleModifier, Theme, ThemeItem};
+use syntect::parsing::SyntaxSet;
+use syntect::util::LinesWithEndings;
 
 struct Configuration {
     syntax: SyntaxSet,

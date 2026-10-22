@@ -20,6 +20,11 @@ mode. It publishes the management-only `host:pocox` entry plus the initial
 Codex host's `app`, `api` (Responses API) and `meta` services. The management
 routes, installed-runtime discovery, revision/incarnation checks, write-only
 secrets and process ownership are the desktop engine's existing implementation.
+The CLI reaches it through `pocox_bridge::headless`
+(`crates/pocox-bridge/src/engine/daemon.rs`); CLI builds disable the bridge's
+Flutter bindings. One `--device` names every managed engine and entry, set once
+in the engine (`runtime::configure_host`), never by changing the process
+environment.
 All services bind loopback; relay traffic is encrypted. The transport is chosen
 as for ordinary `serve`: an explicit `--relay`, or any self-host setup, resolves
 its credential from the flag, saved configuration or `PB_MAPPER_SERVER` /
@@ -46,9 +51,7 @@ supervisor holds that lock, from the private report it rewrites whenever its
 state changes. Failing to save that report is logged and never stops a service.
 An enabled but offline management registration is `pending`. For systemd,
 append `--allow-remote-management` to `ExecStart`; keep the service in the
-foreground and allow enough stop time for its owned agents to exit. A unit
-written for the former `pocox` name keeps working through the alias the
-installer leaves; new units can name `pocox`.
+foreground and allow enough stop time for its owned agents to exit.
 
 ## Management entry
 
@@ -64,6 +67,8 @@ does and a systemd unit does not, else the Linux distribution), optional stable
 also includes this metadata, so managing a computer needs no extra request.
 The OS comes from the publisher executable; WSL is Linux, independently of
 the Windows controller. Metadata contains no credentials or filesystem paths.
+OS, architecture and WSL detection live in `pocox-core`
+(`crates/pocox-core/src/device.rs`).
 
 This uses existing service registrations rather than extending
 pb-mapper's key-only discovery protocol: no relay upgrade, additional public
@@ -75,7 +80,8 @@ flight, and "Platform unknown" once there is nothing more to wait for; an older
 management view can still supply its existing `os` field. An older host's
 404/405 (and an older standalone API proxy's 403) mean no metadata; other
 connection errors are not interpreted as proof of an old host or a local
-computer.
+computer. An answer is dropped on an account or relay change and on leaving the
+device; missing metadata is never filled in with the controller's own platform.
 
 The local device is always an independent UI target, even before its first
 host starts or with management disabled. Only exact service keys owned by the
@@ -95,6 +101,9 @@ even if they share an identity directory. Independently running hosts still
 require separate hosting/profile state directories. CLI publishers share `<state-dir>/identity`;
 the desktop app uses `<app-support-dir>/identity`. Different data directories
 are independent installations. Neither identity contains a hardware fingerprint.
+Identity persistence and default naming live in `pocox-core`
+(`crates/pocox-core/src/device/identity.rs`), shared by desktop and CLI
+publishers.
 
 The generated device segment is `<source>.<hostname>.<host-id-without-hyphens>`;
 source includes OS/environment and the distribution when available. Neither
@@ -104,7 +113,9 @@ All services from that installation share it. The saved device segment and
 only `instanceId` changes on restart. Routing always keeps the full key; people
 see `studio (WSL Ubuntu)` in the device list, host switcher, composer and page
 titles, and the device list adds a short stable ID only where two installations
-would otherwise read the same. The selected device's header shows its reported
+would otherwise read the same. Every place that names a device uses
+`deviceLabel` (`apps/flutter/lib/src/service_key.dart`).
+The selected device's header shows its reported
 platform and short ID. It never merges Windows and WSL by hostname. Explicit
 `--device` names and older hostname-only names are shown as they are. Old
 metadata without `hostId` remains supported.
@@ -141,6 +152,10 @@ disabled. So it never adopts, stops or re-registers the first app's services,
 and the first app is unaffected. It does not take over when the first app
 quits: quit it and open POCOX again. The CLI supervisor keeps its own lock
 under `managed-host/` (see [CLI host](#cli-host)).
+
+Code: `crates/pocox-bridge/src/engine/host_owner.rs`; Flutter reads the state
+as `hostingOwnedElsewhere`. Any new hosting service calls
+`host_owner::require()` before it binds, publishes or writes hosting state.
 
 ### Discovery and permissions
 

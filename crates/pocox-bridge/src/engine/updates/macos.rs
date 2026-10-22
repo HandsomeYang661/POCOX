@@ -1,10 +1,8 @@
 //! macOS: the new bundle comes out of the release's signed, notarized disk
 //! image, proves to be POCOX from the release team, and replaces the running
 //! bundle once the app has quit through its normal path.
-use std::{
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use super::{Failure, Kind};
 

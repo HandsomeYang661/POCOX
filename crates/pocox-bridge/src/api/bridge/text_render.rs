@@ -1,10 +1,8 @@
 //! Bounded syntax highlighting; Flutter owns styles and widget layout.
 use anyhow::Result;
 
-use crate::engine::{
-    execution::{self, Lane},
-    syntax,
-};
+use crate::engine::execution::{self, Lane};
+use crate::engine::syntax;
 
 /// One source and its explicitly selected grammar; no language guessing.
 pub struct HighlightInputDto {

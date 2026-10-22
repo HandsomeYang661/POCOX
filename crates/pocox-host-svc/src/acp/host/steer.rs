@@ -12,12 +12,9 @@
 //! the outcome unknown: it is reported, never retried and never turned into
 //! a prompt.
 
-use super::{
-    grok,
-    schema::{steering_params, SteerOutcome, STEERING_METHOD},
-    turns::{check_message, content_blocks},
-    *,
-};
+use super::schema::{steering_params, SteerOutcome, STEERING_METHOD};
+use super::turns::{check_message, content_blocks};
+use super::{grok, *};
 use crate::acp::state::HeldSupplement;
 
 impl AgentHost {

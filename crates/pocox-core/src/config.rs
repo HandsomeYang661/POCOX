@@ -30,11 +30,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    error::Result,
-    paths,
-    service::{sanitize_component, ServiceKind},
-};
+use crate::error::Result;
+use crate::paths;
+use crate::service::{sanitize_component, ServiceKind};
 
 /// Top-level POCOX configuration.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -240,10 +238,8 @@ impl Config {
 
         #[cfg(unix)]
         {
-            use std::{
-                io::Write as _,
-                os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _},
-            };
+            use std::io::Write as _;
+            use std::os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _};
             // `mode(0o600)` covers the create case. For a pre-existing file
             // `open` keeps its old (possibly world-readable) mode, so tighten
             // the open handle to 0o600 *before* writing — the secret is never

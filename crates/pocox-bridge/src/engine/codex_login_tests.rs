@@ -1,7 +1,5 @@
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    mpsc,
-};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc;
 
 use super::*;
 

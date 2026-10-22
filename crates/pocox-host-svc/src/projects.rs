@@ -4,11 +4,9 @@
 //! and replace under a cross-process lock; a legacy writer that does not take
 //! that lock retains its existing last-writer-wins behaviour.
 
-use std::{
-    fs::{File, OpenOptions},
-    io::Write,
-    path::{Path, PathBuf},
-};
+use std::fs::{File, OpenOptions};
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};

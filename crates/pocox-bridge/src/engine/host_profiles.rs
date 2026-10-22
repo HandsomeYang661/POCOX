@@ -53,11 +53,9 @@
 //! An instance without a record inherits its agent's configuration, exactly
 //! as every host did before, so old restore records keep working unchanged.
 
-use std::{
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-    sync::{Mutex, MutexGuard},
-};
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, MutexGuard};
 
 use anyhow::{anyhow, bail, Context, Result};
 use pocox_codex::provider_launch::{codex_launch, CodexLaunch, CodexProviderMode};

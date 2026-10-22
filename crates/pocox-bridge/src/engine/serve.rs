@@ -31,12 +31,10 @@
 //! [`pocox_api_proxy`] crate run in-process (the CLI runs it as a
 //! detached `__worker api-proxy` subprocess instead).
 
-use std::{
-    collections::HashMap,
-    net::SocketAddr,
-    sync::{Arc, Mutex},
-    time::{Duration, Instant},
-};
+use std::collections::HashMap;
+use std::net::SocketAddr;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, bail, Context, Result};
 use once_cell::sync::OnceCell;
@@ -44,20 +42,15 @@ use pocox_codex::{
     locate_binary, spawn_ready_redacted, ListenSpec, SpawnOptions, SpawnReadyError, StartupFailure,
     READY_TIMEOUT,
 };
-use pocox_core::{
-    process::tcp_port_open,
-    service::{ServiceId, ServiceKind},
-};
+use pocox_core::process::tcp_port_open;
+use pocox_core::service::{ServiceId, ServiceKind};
 use pocox_pb::Published;
 use tokio::task::JoinHandle;
 
-use crate::engine::{
-    config::{load_config, update_config},
-    host_lease::{self, Lease, Op},
-    host_names, host_profiles, logging,
-    owned_child::{OwnedChild, EXIT_WAIT},
-    runtime, transport,
-};
+use crate::engine::config::{load_config, update_config};
+use crate::engine::host_lease::{self, Lease, Op};
+use crate::engine::owned_child::{OwnedChild, EXIT_WAIT};
+use crate::engine::{host_names, host_profiles, logging, runtime, transport};
 
 #[path = "serve_codex.rs"]
 mod codex;
@@ -66,22 +59,20 @@ mod lifecycle;
 #[path = "serve_registration.rs"]
 mod registration;
 
+use self::codex::{
+    health_watchdog, per_host_log_file, startup_failure_error, tail_codex_log, Watched,
+};
 #[cfg(test)]
 use self::codex::{over_log_cap, truncate_host_log, MAX_HOST_LOG_BYTES};
 #[cfg(test)]
 pub use self::lifecycle::serve_stop;
+use self::lifecycle::{
+    commit_host, not_exited, quitting, settle_retained, stop_host_tasks, NATIVE, NOT_EXITED,
+};
+pub use self::lifecycle::{serve_stop_all, serve_stop_remembered};
 pub(super) use self::lifecycle::{serve_stop_locked, serve_stop_remembered_checked};
-use self::{
-    codex::{health_watchdog, per_host_log_file, startup_failure_error, tail_codex_log, Watched},
-    lifecycle::{
-        commit_host, not_exited, quitting, settle_retained, stop_host_tasks, NATIVE, NOT_EXITED,
-    },
-    registration::{republish_dropped, republish_refused},
-};
-pub use self::{
-    lifecycle::{serve_stop_all, serve_stop_remembered},
-    registration::{serve_deregister, serve_reregister},
-};
+use self::registration::{republish_dropped, republish_refused};
+pub use self::registration::{serve_deregister, serve_reregister};
 use super::host_services::{
     bind_loopback, config_store, host_store, is_published, needs_publishing, register_service,
     supervise, MAX_RESTART_BACKOFF,

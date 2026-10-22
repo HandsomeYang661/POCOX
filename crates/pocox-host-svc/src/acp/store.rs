@@ -46,15 +46,11 @@
 //! [`Change`], so their order cannot lose the title. See [`Pending`] and
 //! [`SessionStore::apply`].
 
-use std::{
-    collections::HashMap,
-    io::Write as _,
-    path::{Path, PathBuf},
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Mutex, MutexGuard,
-    },
-};
+use std::collections::HashMap;
+use std::io::Write as _;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Mutex, MutexGuard};
 
 use serde::{Deserialize, Serialize};
 

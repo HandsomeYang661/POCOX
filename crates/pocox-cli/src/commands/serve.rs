@@ -33,26 +33,21 @@
 //! sockets) are rejected because pb-mapper needs a relayable TCP
 //! endpoint.
 
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::net::SocketAddr;
+use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::{Context, Result};
 use pocox_codex::{spawn_ready, ListenSpec, SpawnOptions, SpawnReadyError, READY_TIMEOUT};
-use pocox_core::{
-    config::Config,
-    process::{find_codex_app_server, force_kill, send_sigterm, wait_for_port_closed},
-    service::{ServiceId, ServiceKind},
-    state::PbRole,
-};
+use pocox_core::config::Config;
+use pocox_core::process::{find_codex_app_server, force_kill, send_sigterm, wait_for_port_closed};
+use pocox_core::service::{ServiceId, ServiceKind};
+use pocox_core::state::PbRole;
 
-use crate::{
-    cli::ServeArgs,
-    commands::{
-        api_proxy, codex,
-        managed_pb::{self, EnsureOutcome, PbWorkerSpec},
-        transport::{self, Transport},
-        ui,
-    },
-};
+use crate::cli::ServeArgs;
+use crate::commands::managed_pb::{self, EnsureOutcome, PbWorkerSpec};
+use crate::commands::transport::{self, Transport};
+use crate::commands::{api_proxy, codex, ui};
 
 /// How often the watchdog probes the codex app-server's health endpoint.
 const HEALTH_INTERVAL: Duration = Duration::from_secs(15);
@@ -457,12 +452,10 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn watchdog_restart_is_scoped_to_its_listener() {
-        use std::{
-            fs,
-            net::TcpListener,
-            process::{Child, Command},
-            time::Instant,
-        };
+        use std::fs;
+        use std::net::TcpListener;
+        use std::process::{Child, Command};
+        use std::time::Instant;
 
         use pocox_core::state::{CodexProcessInfo, RuntimeState};
         const CHILD: &str = "POCOX_WATCHDOG_TEST_CHILD";

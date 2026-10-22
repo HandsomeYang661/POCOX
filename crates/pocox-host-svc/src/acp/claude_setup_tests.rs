@@ -1,9 +1,7 @@
 use std::os::unix::fs::PermissionsExt;
 
-use super::{
-    super::claude::{prepared_entry, ADAPTER_INTEGRITY},
-    *,
-};
+use super::super::claude::{prepared_entry, ADAPTER_INTEGRITY};
+use super::*;
 
 /// A stand-in `node` that behaves like `node --require hook npm-cli.js install
 /// --prefix <stage> …`: `$6` is the staging directory. `body` runs after it

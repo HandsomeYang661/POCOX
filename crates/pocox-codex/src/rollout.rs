@@ -29,16 +29,15 @@
 //! both representations ([`open_rollout`]); when both exist the plain file is
 //! the current one.
 
-use std::{
-    path::{Path, PathBuf},
-    time::UNIX_EPOCH,
-};
+use std::path::{Path, PathBuf};
+use std::time::UNIX_EPOCH;
 
 use pocox_core::{Error, Result};
 use serde_json::Value;
 use tracing::debug;
 
-use self::{message::extract_preview, meta::parse_session_meta};
+use self::message::extract_preview;
+use self::meta::parse_session_meta;
 
 mod inline_image;
 mod message;

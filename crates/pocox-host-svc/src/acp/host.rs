@@ -67,31 +67,25 @@
 //!
 //! [`MAX_TRANSCRIPTS`]: super::state::MAX_TRANSCRIPTS
 
-use std::{
-    collections::{HashMap, VecDeque},
-    ffi::OsString,
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex, MutexGuard, Weak},
-    time::Duration,
-};
+use std::collections::{HashMap, VecDeque};
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, MutexGuard, Weak};
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tokio::{
-    sync::{broadcast, mpsc, oneshot, watch},
-    task::JoinHandle,
-    time::Instant,
-};
+use tokio::sync::{broadcast, mpsc, oneshot, watch};
+use tokio::task::JoinHandle;
+use tokio::time::Instant;
 
-use super::{
-    fold::{session_signal, SessionSignal},
-    jsonrpc::{RequestId, RpcError},
-    peer::{CallError, CloseReason, Inbound, Peer},
-    schema::{self, AgentCapabilities, SessionSettings, TurnOutcome},
-    spec::AgentSpec,
-    state::{ActiveTurn, LogEntry, Permission, Phase, RequestKind, State, MAX_PERMISSIONS},
-    store::{Change, Pending, SessionStore},
-};
+use super::fold::{session_signal, SessionSignal};
+use super::jsonrpc::{RequestId, RpcError};
+use super::peer::{CallError, CloseReason, Inbound, Peer};
+use super::schema::{self, AgentCapabilities, SessionSettings, TurnOutcome};
+use super::spec::AgentSpec;
+use super::state::{ActiveTurn, LogEntry, Permission, Phase, RequestKind, State, MAX_PERMISSIONS};
+use super::store::{Change, Pending, SessionStore};
 use crate::process::{self, AgentProcess};
 
 mod grok;
@@ -105,10 +99,8 @@ mod sessions;
 mod steer;
 mod turns;
 
-use self::{
-    inbound::AgentInbound,
-    persist::{Apply, Persist},
-};
+use self::inbound::AgentInbound;
+use self::persist::{Apply, Persist};
 
 const INIT_TIMEOUT: Duration = Duration::from_secs(20);
 const SESSION_TIMEOUT: Duration = Duration::from_secs(60);

@@ -4,12 +4,10 @@
 //! immutable (Codex decompresses it to a new plain file before appending), so
 //! it is decoded from its start whenever a range is needed.
 
-use std::{
-    collections::{BTreeMap, HashSet},
-    fs::{self, File, Metadata, OpenOptions},
-    io::{self, BufRead, BufReader, Read, Seek, SeekFrom, Write},
-    path::Path,
-};
+use std::collections::{BTreeMap, HashSet};
+use std::fs::{self, File, Metadata, OpenOptions};
+use std::io::{self, BufRead, BufReader, Read, Seek, SeekFrom, Write};
+use std::path::Path;
 
 use anyhow::{ensure, Result};
 use pocox_codex::rollout;

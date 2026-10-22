@@ -6,11 +6,9 @@
     reason = "integration-test failures should fail at the observed boundary"
 )]
 
-use std::{
-    path::PathBuf,
-    process::{Child, Command, Stdio},
-    time::{Duration, Instant},
-};
+use std::path::PathBuf;
+use std::process::{Child, Command, Stdio};
+use std::time::{Duration, Instant};
 
 use pocox_core::state::{PbRole, PbSessionInfo, RuntimeState};
 

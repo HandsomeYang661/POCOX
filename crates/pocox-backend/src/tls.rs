@@ -7,10 +7,8 @@
 use std::sync::Arc;
 
 use anyhow::Context as _;
-use rustls::{
-    pki_types::{CertificateDer, PrivateKeyDer},
-    ServerConfig,
-};
+use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+use rustls::ServerConfig;
 use tokio_rustls::TlsAcceptor;
 
 use crate::config::{ServerConfig as Cfg, TlsMode};

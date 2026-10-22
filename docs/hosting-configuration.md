@@ -1,7 +1,8 @@
 # Hosting configuration
 
 The hosting editor (`apps/flutter/lib/src/hosting/host_editor_page.dart`) is one
-page for creating a local host and for editing a running one. Each host has a
+page for creating a local host and for editing a running one
+(`LocalHostDialog` remains as a typedef for it). Each host has a
 saved configuration for its instance name on this device: a **model service**
 (where its agent sends model requests) and, optionally, a **desired runtime**
 (Codex executable, port and proxy, an OpenCode executable and history, or
@@ -264,7 +265,11 @@ host's runtime was filled replace it, and asks before leaving with unsaved
 runtime, provider or key edits (back, Close, the page menu, breadcrumbs and
 shortcuts). A host that stopped or was replaced is not operated on by its old
 name. Cancel on Claude's adapter preparation stops only the run this page
-started; a run joined from another caller is not cancelled by it.
+started; a run joined from another caller is not cancelled by it. A page
+that joined a run may stop waiting for it, and a run replaced meanwhile is
+never reported as its result. A new ACP agent's unchanged state is its
+agent, save toggle and typed instance name, so changing any of them counts
+as an unsaved edit.
 
 ## Evidence gaps
 
@@ -350,6 +355,11 @@ open do nothing, and a read answered after that page was covered by
 another, left or closed opens nothing; cancelling, a failed read and
 leaving the editor all release it. Hosting stays desktop-only; elsewhere
 Codex setup says so.
+
+The new-host picker's sections (built-in presets, then saved configurations
+and Custom), several hosts side by side (a second Codex host on an automatic
+port), and per-name restore records with their limits and startup replay are
+in [ACP agents › Setting up an agent](acp-agents.md#setting-up-an-agent).
 
 Codex setup now configures Codex itself (`CODEX_HOME`): its ChatGPT sign-in
 (the shared sign-in panel) and the prompt option, used by hosts on

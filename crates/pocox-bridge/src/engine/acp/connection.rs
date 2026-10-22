@@ -301,11 +301,9 @@ fn read_info(origin: Origin, epoch: u64) -> Result<Value> {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        io::{BufRead, BufReader, Write},
-        net::TcpListener,
-        thread,
-    };
+    use std::io::{BufRead, BufReader, Write};
+    use std::net::TcpListener;
+    use std::thread;
 
     use super::*;
 

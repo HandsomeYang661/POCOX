@@ -1,7 +1,8 @@
 //! One read-only loopback connection to the colocated Codex app-server,
 //! shared by the session inventory and the history routes.
 
-use std::{net::SocketAddr, sync::Arc};
+use std::net::SocketAddr;
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use pocox_codex::client::AppClient;

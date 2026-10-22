@@ -2,11 +2,9 @@
 #![cfg(target_os = "linux")]
 #![allow(clippy::expect_used, clippy::unwrap_used, reason = "integration-test assertions")]
 
-use std::{
-    path::PathBuf,
-    process::{Child, Command, Stdio},
-    time::{Duration, Instant},
-};
+use std::path::PathBuf;
+use std::process::{Child, Command, Stdio};
+use std::time::{Duration, Instant};
 
 static NEXT_FIXTURE: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 

@@ -66,6 +66,11 @@ asks that host for the session's access (`app_session_open`). There is no
 separate dialog and no Take Over step: the host decides from fresh evidence,
 and the view follows its answer.
 
+That evidence is fresh ownership, source and native-child checks. A Claude
+owner matches only on native session ID, PID, start time, executable and cwd;
+unavailable evidence stays unknown. Hosts also hold a POCOX cross-process
+claim, retained through uncertain cleanup, which native clients do not honour.
+
 - **Write.** The host admitted the session for this host (`owned`): the
   composer is live at once. When the host had to load it first, that happens
   in the same open, and only from a fresh check that found no other writer.

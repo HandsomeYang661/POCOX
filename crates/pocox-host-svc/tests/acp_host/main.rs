@@ -4,23 +4,21 @@
 //! controller-side replica over loopback.
 #![cfg(unix)]
 
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-    time::Duration,
-};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::Duration;
 
 use futures::StreamExt;
+use pocox_host_svc::acp::fold::Turn;
+use pocox_host_svc::acp::spec::{self, AgentSpec};
+use pocox_host_svc::acp::state::LogEntry;
 use pocox_host_svc::acp::{
-    api,
-    fold::Turn,
-    spec::{self, AgentSpec},
-    state::LogEntry,
-    AgentHost, ClientError, GatewayClient, HostError, HostOptions, Identity, Replica, SessionStore,
-    SourceId,
+    api, AgentHost, ClientError, GatewayClient, HostError, HostOptions, Identity, Replica,
+    SessionStore, SourceId,
 };
 use serde_json::{json, Value};
-use tokio::sync::broadcast::{self, error::RecvError};
+use tokio::sync::broadcast::error::RecvError;
+use tokio::sync::broadcast::{self};
 
 mod gateway;
 mod sessions;

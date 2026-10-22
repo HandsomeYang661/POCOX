@@ -17,7 +17,8 @@
 //!   releases the holder before resuming and refuses a failed release.
 
 use anyhow::{anyhow, Result};
-use pocox_codex::{liveness::Holder, rollout, takeover};
+use pocox_codex::liveness::Holder;
+use pocox_codex::{rollout, takeover};
 use pocox_core::state::RuntimeState;
 pub use pocox_host_svc::sessions::{list as list_local_sessions, LocalSession};
 

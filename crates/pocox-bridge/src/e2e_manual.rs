@@ -16,7 +16,8 @@
 
 use std::time::{Duration, Instant};
 
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use base64::engine::general_purpose::STANDARD as BASE64;
+use base64::Engine as _;
 
 /// 1×1 red PNG, pre-encoded.
 const TINY_PNG_DATA_URL: &str = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";

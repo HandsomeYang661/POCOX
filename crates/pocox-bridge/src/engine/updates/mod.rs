@@ -17,22 +17,18 @@ pub mod manifest;
 #[cfg(test)]
 mod tests;
 
-use std::{
-    path::{Path, PathBuf},
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Mutex, MutexGuard,
-    },
-    time::{Duration, Instant},
-};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-use self::{
-    apply::Handoff,
-    fetch::{Fetcher, Stop},
-    manifest::{Manifest, Method, Plan, MANIFEST_NAME, PUBLIC_KEY, REPOSITORY, SIGNATURE_NAME},
+use self::apply::Handoff;
+use self::fetch::{Fetcher, Stop};
+use self::manifest::{
+    Manifest, Method, Plan, MANIFEST_NAME, PUBLIC_KEY, REPOSITORY, SIGNATURE_NAME,
 };
 
 /// How often the background check asks GitHub, across restarts.

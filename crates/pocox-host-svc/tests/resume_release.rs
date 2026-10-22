@@ -1,7 +1,9 @@
 //! A failed release must not reach the app-server's resume path.
 #![cfg(unix)]
 
-use std::{fs::File, io::Write, process::Command};
+use std::fs::File;
+use std::io::Write;
+use std::process::Command;
 
 use anyhow::{ensure, Context, Result};
 

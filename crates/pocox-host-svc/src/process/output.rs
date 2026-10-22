@@ -1,8 +1,11 @@
 //! Bounded output from a short owned helper, including descendant cleanup.
 
-use std::{ffi::OsString, path::Path, time::Duration};
+use std::ffi::OsString;
+use std::path::Path;
+use std::time::Duration;
 
-use tokio::{io::AsyncReadExt, process::ChildStdout};
+use tokio::io::AsyncReadExt;
+use tokio::process::ChildStdout;
 
 use super::{leader_exited, spawn, SpawnError, Spawned};
 

@@ -2,14 +2,13 @@
 //!
 //! Titles and labels another device wrote are quoted as data.
 
-use std::{collections::HashSet, fmt::Write as _};
+use std::collections::HashSet;
+use std::fmt::Write as _;
 
 use pocox_core::service::sanitize_component;
 
-use super::{
-    model::{ConnectionView, Overview, Shared},
-    state,
-};
+use super::model::{ConnectionView, Overview, Shared};
+use super::state;
 
 /// What `services` narrows to.
 #[derive(Debug, Default, Clone)]

@@ -1,17 +1,18 @@
 //! OpenCode 1.19+ native wire: the routes and shapes the host reads as is.
 
 use reqwest::Method;
-use serde::{de::IgnoredAny, Deserialize, Serialize};
+use serde::de::IgnoredAny;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::{Health, Reply, Wire};
-use crate::opencode::{
-    catalog::{Catalog, Providers},
-    client::ClientError,
-    events::Event,
-    http::{decode, Http, Native, MAX_BODY, MAX_NATIVE_HISTORY_BODY, REQUEST_TIMEOUT},
-    schema::{CommandInput, Message, MessagePage, Prompt, Session, Statuses},
+use crate::opencode::catalog::{Catalog, Providers};
+use crate::opencode::client::ClientError;
+use crate::opencode::events::Event;
+use crate::opencode::http::{
+    decode, Http, Native, MAX_BODY, MAX_NATIVE_HISTORY_BODY, REQUEST_TIMEOUT,
 };
+use crate::opencode::schema::{CommandInput, Message, MessagePage, Prompt, Session, Statuses};
 
 /// OpenCode 1.19 and later 1.x releases.
 pub(crate) enum V1 {}

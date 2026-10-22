@@ -2,11 +2,9 @@
 
 use std::sync::Arc;
 
-use pocox_host_svc::{
-    file_links::SessionDirResolver,
-    serve_generic,
-    store::{ConfigStore, HostStore},
-};
+use pocox_host_svc::file_links::SessionDirResolver;
+use pocox_host_svc::serve_generic;
+use pocox_host_svc::store::{ConfigStore, HostStore};
 use reqwest::StatusCode as Status;
 use tokio::net::TcpListener;
 

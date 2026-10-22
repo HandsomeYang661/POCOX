@@ -149,10 +149,8 @@ fn write_document(home: &Path, doc: &DocumentMut) -> Result<()> {
 fn write_secret_file(path: &Path, bytes: &[u8]) -> Result<()> {
     #[cfg(unix)]
     {
-        use std::{
-            io::Write as _,
-            os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _},
-        };
+        use std::io::Write as _;
+        use std::os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _};
         let mut f = std::fs::OpenOptions::new()
             .write(true)
             .create(true)

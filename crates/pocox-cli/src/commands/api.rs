@@ -24,23 +24,16 @@
 //! use.
 
 use anyhow::Result;
-use pocox_core::{
-    config::Config,
-    service::{ServiceId, ServiceKind},
-    state::PbRole,
-};
+use pocox_core::config::Config;
+use pocox_core::service::{ServiceId, ServiceKind};
+use pocox_core::state::PbRole;
 
-use crate::{
-    cli::{ApiCmd, ApiConnectArgs, ApiServeArgs},
-    commands::{
-        api_proxy, connect,
-        managed_api::{self, ApiWorkerSpec, EnsureOutcome as ApiEnsureOutcome},
-        managed_pb::{self, EnsureOutcome as PbEnsureOutcome, PbWorkerSpec},
-        service_target::TargetRequest,
-        transport::{self, Transport},
-        ui,
-    },
-};
+use crate::cli::{ApiCmd, ApiConnectArgs, ApiServeArgs};
+use crate::commands::managed_api::{self, ApiWorkerSpec, EnsureOutcome as ApiEnsureOutcome};
+use crate::commands::managed_pb::{self, EnsureOutcome as PbEnsureOutcome, PbWorkerSpec};
+use crate::commands::service_target::TargetRequest;
+use crate::commands::transport::{self, Transport};
+use crate::commands::{api_proxy, connect, ui};
 
 /// Dispatch the `api` subcommand group.
 pub async fn run(cmd: ApiCmd) -> Result<()> {

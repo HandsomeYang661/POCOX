@@ -1,7 +1,8 @@
 //! Coalesced invalidations refresh complete host-merged windows. Native text
 //! deltas never reach this controller, including after a reconnect.
 
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
+use std::time::Duration;
 
 use pocox_host_svc::opencode::events::EventStream;
 use serde_json::{json, Value};

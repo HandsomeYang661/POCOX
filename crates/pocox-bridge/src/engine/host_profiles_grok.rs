@@ -5,11 +5,12 @@
 use std::path::PathBuf;
 
 use anyhow::{anyhow, bail, Context, Result};
-use pocox_host_svc::acp::{
-    grok, grok_control::GrokControl, provider::AcpProviderLaunch, AgentSpec,
-};
+use pocox_host_svc::acp::grok_control::GrokControl;
+use pocox_host_svc::acp::provider::AcpProviderLaunch;
+use pocox_host_svc::acp::{grok, AgentSpec};
 
-use super::{host_names, opencode::models, Engine, Resolved, Source};
+use super::opencode::models;
+use super::{host_names, Engine, Resolved, Source};
 
 /// The Grok home of the custom-provider host `name`. It keeps that host's
 /// sessions across provider changes and is never removed by POCOX.

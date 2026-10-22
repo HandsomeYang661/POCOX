@@ -1,11 +1,9 @@
 use serde_json::{json, Value};
 
-use super::{
-    message::{extract_preview, split_message_content, truncate_chars},
-    meta::parse_session_meta,
-    turn_state::classify_lines,
-    *,
-};
+use super::message::{extract_preview, split_message_content, truncate_chars};
+use super::meta::parse_session_meta;
+use super::turn_state::classify_lines;
+use super::*;
 
 /// The transcript of a rollout made of `lines`.
 pub(super) fn transcript_of(lines: &[impl AsRef<str>]) -> Vec<TranscriptItem> {

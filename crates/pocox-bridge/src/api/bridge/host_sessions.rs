@@ -10,7 +10,8 @@
 //! app, the meta service is reached over loopback; otherwise by subscribing to
 //! it on the relay.
 
-use super::{threads::ThreadItemDto, *};
+use super::threads::ThreadItemDto;
+use super::*;
 use crate::engine::execution::{self, Lane};
 
 /// A process holding a session's rollout open (a would-be takeover

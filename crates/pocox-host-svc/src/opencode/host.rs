@@ -1,23 +1,22 @@
 //! Owned native service and original-session admission. Native clients do not
 //! honor the POCOX source claim; every mutation checks fresh holder evidence.
 
-use std::{collections::BTreeMap, sync::Arc};
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
-use super::{
-    catalog::Catalog,
-    client::{Client, ClientError},
-    fold::Window,
-    live::Live,
-    ownership::{Evidence, Role, Source},
-    public,
-    runtime::Server,
-    schema::{Session, Status},
-};
+use super::catalog::Catalog;
+use super::client::{Client, ClientError};
+use super::fold::Window;
+use super::live::Live;
+use super::ownership::{Evidence, Role, Source};
+use super::public;
+use super::runtime::Server;
+use super::schema::{Session, Status};
 use crate::session_access::{AccessHolder, SessionAccess};
 
 mod operations;

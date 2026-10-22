@@ -11,13 +11,11 @@ use serde_json::Value;
 pub(crate) use v1::V1;
 pub(crate) use v2::V2;
 
-use super::{
-    catalog::Catalog,
-    client::ClientError,
-    events::Event,
-    http::{Http, Native},
-    schema::{CommandInput, MessagePage, Prompt, Session, Statuses},
-};
+use super::catalog::Catalog;
+use super::client::ClientError;
+use super::events::Event;
+use super::http::{Http, Native};
+use super::schema::{CommandInput, MessagePage, Prompt, Session, Statuses};
 
 /// Run `$body` with `$wire` naming the dialect's implementation.
 macro_rules! dispatch {

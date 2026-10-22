@@ -3,10 +3,8 @@
 //! never calls open/resume or changes writer admission.
 use std::time::Duration;
 
-use pocox_host_svc::{
-    session_access::SessionAccess,
-    sessions::{SessionFollowUpdate, SessionLiveness},
-};
+use pocox_host_svc::session_access::SessionAccess;
+use pocox_host_svc::sessions::{SessionFollowUpdate, SessionLiveness};
 
 use super::*;
 

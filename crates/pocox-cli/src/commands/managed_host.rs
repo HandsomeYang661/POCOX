@@ -1,13 +1,12 @@
 //! Foreground computer management using the desktop's native hosting engine.
 
-use std::{sync::mpsc, time::Duration};
+use std::sync::mpsc;
+use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use pocox_bridge::headless::{Manager, Options};
-use pocox_core::{
-    config::{Config, Mode},
-    paths,
-};
+use pocox_core::config::{Config, Mode};
+use pocox_core::paths;
 
 use super::{api_proxy, relay, ui};
 use crate::cli::ServeArgs;

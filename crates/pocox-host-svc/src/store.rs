@@ -8,7 +8,8 @@
 //! restarts and is the single source of truth shared across every device that
 //! reaches this host.
 
-use std::{collections::BTreeMap, path::PathBuf};
+use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Result};
 use pocox_codex::rollout;

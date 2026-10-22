@@ -16,6 +16,17 @@ the crates that implement them (`xai-grok-shell`) pull in over a hundred
 runtime dependencies. File references below are relative to
 `deps/grok-build/crates/codegen`.
 
+- Keep `pocox` for POCOX's maintenance; bring upstream syncs in by merging
+  `upstream` into it, never by rebasing published history.
+- The submodule is excluded from the Cargo workspace and nothing links its
+  crates.
+- First-party mirrors (`crates/pocox-host-svc/src/native_history/grok/` for
+  the session store and replay, `acp/grok.rs` for the model configuration)
+  cite the upstream files they follow. When the pin moves, re-read those
+  files and the ACP surface (`xai-grok-shell/src/agent/mvp_agent/acp_agent.rs`),
+  then run the opt-in `grok_live` tests ([Verification](#verification)).
+- Never run formatting or lint rewrites inside `deps/grok-build`.
+
 ## The preset
 
 | | |

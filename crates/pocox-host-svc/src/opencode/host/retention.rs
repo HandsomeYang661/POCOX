@@ -131,7 +131,8 @@ mod tests {
 
     #[tokio::test]
     async fn the_257th_session_evicts_only_confirmed_inactive_state() {
-        use axum::{routing::get, Json, Router};
+        use axum::routing::get;
+        use axum::{Json, Router};
         use serde_json::json;
         let router = Router::new()
             .route("/session/status", get(|| async { Json(json!({"000":{"type":"busy"}})) }))
@@ -192,9 +193,11 @@ mod tests {
 
     #[tokio::test]
     async fn an_unverifiable_directory_does_not_block_other_safe_candidates() {
-        use axum::{
-            extract::Query, http::StatusCode, response::IntoResponse, routing::get, Json, Router,
-        };
+        use axum::extract::Query;
+        use axum::http::StatusCode;
+        use axum::response::IntoResponse;
+        use axum::routing::get;
+        use axum::{Json, Router};
         use serde_json::json;
         for malformed in [false, true] {
             let router = Router::new()

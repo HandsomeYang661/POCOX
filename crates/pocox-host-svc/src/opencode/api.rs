@@ -1,30 +1,26 @@
 //! Closed `/opencode/v1` gateway. There is deliberately no raw native proxy,
 //! configuration, credentials, filesystem, shell or administrative endpoint.
 
-use std::{convert::Infallible, sync::Arc};
+use std::convert::Infallible;
+use std::sync::Arc;
 
-use axum::{
-    extract::{DefaultBodyLimit, Query, State},
-    http::StatusCode,
-    response::{
-        sse::{Event, KeepAlive, Sse},
-        IntoResponse, Response,
-    },
-    routing::{get, post},
-    Json, Router,
-};
+use axum::extract::{DefaultBodyLimit, Query, State};
+use axum::http::StatusCode;
+use axum::response::sse::{Event, KeepAlive, Sse};
+use axum::response::{IntoResponse, Response};
+use axum::routing::{get, post};
+use axum::{Json, Router};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use tokio::sync::{broadcast::error::RecvError, mpsc, Semaphore};
+use tokio::sync::broadcast::error::RecvError;
+use tokio::sync::{mpsc, Semaphore};
 use tokio_stream::wrappers::ReceiverStream;
 
-use super::{
-    catalog::Catalog,
-    client::ClientError,
-    host::{Answer, Error, Host, Identity, Info, Input, Options, ReadResult, Snapshot},
-    live::Change,
-    schema::Session,
-};
+use super::catalog::Catalog;
+use super::client::ClientError;
+use super::host::{Answer, Error, Host, Identity, Info, Input, Options, ReadResult, Snapshot};
+use super::live::Change;
+use super::schema::Session;
 use crate::session_access::SessionAccess;
 
 #[derive(Clone)]

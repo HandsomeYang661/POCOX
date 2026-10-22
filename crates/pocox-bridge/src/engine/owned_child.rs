@@ -3,10 +3,8 @@
 //! child's port) is never signalled; and [`Retained`], which keeps an owned
 //! child whose exit was not seen until a later stop or quit sees it exit.
 
-use std::{
-    sync::{Mutex, MutexGuard},
-    time::{Duration, Instant},
-};
+use std::sync::{Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use pocox_codex::{ProcessIdentity, SpawnReport};
 use pocox_core::process::{force_kill, process_start_time, send_sigterm};

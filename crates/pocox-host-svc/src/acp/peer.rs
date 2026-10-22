@@ -31,22 +31,16 @@
 //! deadline (or indefinitely without one). Closing the connection wakes
 //! every waiter at once.
 
-use std::{
-    collections::HashMap,
-    sync::{
-        atomic::{AtomicI64, AtomicU64, Ordering},
-        Arc, Mutex, MutexGuard, Weak,
-    },
-    time::Duration,
-};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, MutexGuard, Weak};
+use std::time::Duration;
 
 use serde_json::Value;
-use tokio::{
-    io::{AsyncBufRead, AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader},
-    sync::{mpsc, oneshot, watch, Notify, OwnedSemaphorePermit, Semaphore},
-    task::JoinHandle,
-    time::Instant,
-};
+use tokio::io::{AsyncBufRead, AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader};
+use tokio::sync::{mpsc, oneshot, watch, Notify, OwnedSemaphorePermit, Semaphore};
+use tokio::task::JoinHandle;
+use tokio::time::Instant;
 
 use super::jsonrpc::{self, Frame, RequestId, RpcError};
 

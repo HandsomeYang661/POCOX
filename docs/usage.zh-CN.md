@@ -6,7 +6,7 @@
 Codex，其它所有设备登录**同一个**账号后即可驱动它。无需配置中转地址（relay）
 或共享密钥——后端会替你代理这些服务。
 
-> 想自建中转（relay）？见 [README](../README.md) 的 *Self-host (advanced)* 一节。
+> 想自建中转（relay）？见 [CLI › Self-host](cli.md#self-host)。
 > 想自己部署后端？见 [`deploy/README.md`](../deploy/README.md)。
 
 ---

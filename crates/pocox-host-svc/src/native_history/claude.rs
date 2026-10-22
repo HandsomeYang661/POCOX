@@ -1,6 +1,8 @@
 //! Canonical Claude history via the installed SDK's read-only API.
 
-use std::{collections::VecDeque, ffi::OsString, path::PathBuf};
+use std::collections::VecDeque;
+use std::ffi::OsString;
+use std::path::PathBuf;
 
 use anyhow::{ensure, Context, Result};
 use serde_json::{json, Value};

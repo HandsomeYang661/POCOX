@@ -23,10 +23,8 @@
 //! * **Unix** — opening never reports a sharing violation, so liveness is
 //!   derived from `lsof`, which also yields the exact holder PIDs.
 
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-};
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 use sysinfo::{ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 

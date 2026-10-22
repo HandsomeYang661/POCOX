@@ -246,13 +246,9 @@ fn session_follow_parser_handles_chunked_events_and_keepalives() {
 /// the failure this whole path exists for.
 #[tokio::test]
 async fn idempotent_request_survives_a_dropped_connection() {
-    use std::{
-        io::{Read, Write},
-        sync::{
-            atomic::{AtomicU32, Ordering},
-            Arc,
-        },
-    };
+    use std::io::{Read, Write};
+    use std::sync::atomic::{AtomicU32, Ordering};
+    use std::sync::Arc;
 
     let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
     let addr = listener.local_addr().expect("addr");
@@ -299,13 +295,9 @@ async fn idempotent_request_survives_a_dropped_connection() {
 /// escape entirely, and it is the likeliest shape on a large transcript.
 #[tokio::test]
 async fn a_truncated_body_is_retried_like_a_dropped_send() {
-    use std::{
-        io::{Read, Write},
-        sync::{
-            atomic::{AtomicU32, Ordering},
-            Arc,
-        },
-    };
+    use std::io::{Read, Write};
+    use std::sync::atomic::{AtomicU32, Ordering};
+    use std::sync::Arc;
 
     let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
     let addr = listener.local_addr().expect("addr");

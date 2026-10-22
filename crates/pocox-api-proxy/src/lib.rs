@@ -36,35 +36,32 @@
 
 #![forbid(unsafe_code)]
 
-use std::{env, net::SocketAddr, path::PathBuf, sync::Arc};
+use std::env;
+use std::net::SocketAddr;
+use std::path::PathBuf;
+use std::sync::Arc;
 
 use anyhow::{bail, Context, Result};
-use axum::{
-    body::Body,
-    extract::{
-        ws::{Message as AxumMessage, WebSocket, WebSocketUpgrade},
-        State,
-    },
-    http::{HeaderMap, Method, StatusCode},
-    response::{IntoResponse, Response},
-    routing::post,
-    Router,
-};
+use axum::body::Body;
+use axum::extract::ws::{Message as AxumMessage, WebSocket, WebSocketUpgrade};
+use axum::extract::State;
+use axum::http::{HeaderMap, Method, StatusCode};
+use axum::response::{IntoResponse, Response};
+use axum::routing::post;
+use axum::Router;
 use base64::Engine as _;
 use bytes::Bytes;
 use futures::{SinkExt, StreamExt};
 use http::header::{HeaderName, HeaderValue, AUTHORIZATION};
 use reqwest::Client;
 use serde::Deserialize;
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpStream},
-};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::{TcpListener, TcpStream};
 use tokio_socks::tcp::Socks5Stream;
+use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+use tokio_tungstenite::tungstenite::Message as TungsteniteMessage;
 use tokio_tungstenite::{
-    client_async_tls_with_config, connect_async,
-    tungstenite::{client::IntoClientRequest, Message as TungsteniteMessage},
-    MaybeTlsStream, WebSocketStream,
+    client_async_tls_with_config, connect_async, MaybeTlsStream, WebSocketStream,
 };
 use url::Url;
 

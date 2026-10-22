@@ -1,15 +1,20 @@
 //! Bounded loopback HTTP shared by the native client and the Pocox gateway.
 //! Credentials never enter URLs or errors.
 
-use std::{borrow::Cow, marker::PhantomData, time::Duration};
+use std::borrow::Cow;
+use std::marker::PhantomData;
+use std::time::Duration;
 
 use pocox_core::provider::Secret;
 use reqwest::{Method, RequestBuilder, Response};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 
-use super::{client::ClientError, events::EventStream, wire::Dialect};
+use super::client::ClientError;
+use super::events::EventStream;
+use super::wire::Dialect;
 
 pub(super) const MAX_BODY: usize = 8 * 1024 * 1024;
 // One accepted image prompt can persist 40 MiB of inline images. Read it

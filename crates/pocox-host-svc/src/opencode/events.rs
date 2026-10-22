@@ -1,12 +1,14 @@
 //! Bounded SSE framing, independent of network chunk and UTF-8 boundaries.
 
-use std::{collections::VecDeque, pin::Pin};
+use std::collections::VecDeque;
+use std::pin::Pin;
 
 use futures::{Stream, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::{client::ClientError, wire::Dialect};
+use super::client::ClientError;
+use super::wire::Dialect;
 
 const MAX_EVENT_BYTES: usize = 2 * 1024 * 1024;
 

@@ -5,17 +5,18 @@
 //! viewer queries filtered snapshots after coalesced revision notifications.
 mod disk;
 
-use std::{
-    collections::VecDeque,
-    path::Path,
-    sync::Mutex,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::collections::VecDeque;
+use std::path::Path;
+use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use disk::DiskLog;
 use once_cell::sync::OnceCell;
 use tracing::{Event, Level, Subscriber};
-use tracing_subscriber::{layer::Context, prelude::*, registry::LookupSpan, EnvFilter, Layer};
+use tracing_subscriber::layer::Context;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::registry::LookupSpan;
+use tracing_subscriber::{EnvFilter, Layer};
 
 /// One captured log event, mirrored to Dart as `LogLineDto`.
 #[derive(Clone, Debug)]

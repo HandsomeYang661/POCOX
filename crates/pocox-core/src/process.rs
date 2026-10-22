@@ -5,7 +5,8 @@
 //! checks and best-effort termination behaviour consistent across both
 //! supervisors.
 
-use std::{net::TcpStream, time::Duration};
+use std::net::TcpStream;
+use std::time::Duration;
 
 use sysinfo::{Pid, ProcessRefreshKind, ProcessStatus, ProcessesToUpdate, System, UpdateKind};
 use tracing::warn;
@@ -408,10 +409,8 @@ fn listen_host(listen_url: &str) -> Option<&str> {
 /// Send `SIGTERM` to a process id, logging but not surfacing errors.
 #[cfg(unix)]
 pub fn send_sigterm(pid: u32) {
-    use nix::{
-        sys::signal::{kill, Signal},
-        unistd::Pid as NixPid,
-    };
+    use nix::sys::signal::{kill, Signal};
+    use nix::unistd::Pid as NixPid;
 
     let nix_pid = NixPid::from_raw(pid as i32);
     if let Err(e) = kill(nix_pid, Signal::SIGTERM) {

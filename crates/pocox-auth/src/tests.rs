@@ -3,19 +3,13 @@
 //! Split out of `lib.rs` purely for size: the module had grown to 420 lines
 //! beside 620 of implementation. Nothing here is public API.
 
-use std::{
-    io::{Error, ErrorKind},
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::io::{Error, ErrorKind};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-use tokio::{
-    io::{AsyncReadExt as _, AsyncWriteExt as _},
-    net::{TcpListener, TcpStream},
-};
+use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+use tokio::net::{TcpListener, TcpStream};
 
 use super::*;
 

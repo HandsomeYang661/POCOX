@@ -5,18 +5,16 @@
 //! applied to that same connection only while it still shows them.
 
 use anyhow::{anyhow, Result};
-use pocox_host_svc::acp::{
-    fold::{ItemKind, Turn},
-    Identity, SteerOutcome,
-};
+use pocox_host_svc::acp::fold::{ItemKind, Turn};
+use pocox_host_svc::acp::{Identity, SteerOutcome};
 use serde::Deserialize as _;
 use serde_json::Value;
 
 use super::{block, conn, lock, translate, Link, Shared};
-use crate::engine::{
-    app_session::{OlderPage, ThreadHistory, ThreadItem, ThreadMeta, TurnItemsPage, TurnSummary},
-    session_engine::Supplement,
+use crate::engine::app_session::{
+    OlderPage, ThreadHistory, ThreadItem, ThreadMeta, TurnItemsPage, TurnSummary,
 };
+use crate::engine::session_engine::Supplement;
 
 /// Turns in the newest window and in each older page.
 const WINDOW_TURNS: usize = 20;

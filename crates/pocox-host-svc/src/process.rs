@@ -15,9 +15,11 @@
 //! before starting anything, because this crate has no ownership-safe way to
 //! clean up an agent's process tree there.
 
+use std::ffi::OsString;
+use std::path::Path;
 #[cfg(unix)]
 use std::process::Stdio;
-use std::{ffi::OsString, path::Path, time::Duration};
+use std::time::Duration;
 
 use tokio::process::{Child, ChildStdin, ChildStdout};
 #[cfg(unix)]

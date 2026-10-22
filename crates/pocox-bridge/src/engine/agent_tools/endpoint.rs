@@ -10,34 +10,30 @@
 //! harness keeps working across POCOX restarts, and refuses every call while
 //! the user has switched the tools off.
 
-use std::{net::SocketAddr, path::Path, sync::Arc};
+use std::net::SocketAddr;
+use std::path::Path;
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
-use axum::{
-    extract::{DefaultBodyLimit, Query, Request},
-    http::{header, HeaderValue, StatusCode},
-    middleware::{self, Next},
-    response::{IntoResponse, Response},
-    routing::{get, post},
-    Extension, Json, Router,
-};
+use axum::extract::{DefaultBodyLimit, Query, Request};
+use axum::http::{header, HeaderValue, StatusCode};
+use axum::middleware::{self, Next};
+use axum::response::{IntoResponse, Response};
+use axum::routing::{get, post};
+use axum::{Extension, Json, Router};
 use pocox_core::history_sync::digest_bytes;
-use rmcp::transport::streamable_http_server::{
-    session::never::NeverSessionManager, StreamableHttpServerConfig, StreamableHttpService,
-};
+use rmcp::transport::streamable_http_server::session::never::NeverSessionManager;
+use rmcp::transport::streamable_http_server::{StreamableHttpServerConfig, StreamableHttpService};
 use serde::{Deserialize, Serialize};
 
+use super::connections::ConnectRequest;
+use super::mcp::Tools;
+use super::model::PROTOCOL;
 pub use super::model::{APP_PORT, CLI_PORT};
-use super::{
-    catalog, connections,
-    connections::ConnectRequest,
-    mcp::Tools,
-    model::PROTOCOL,
-    routes::failure,
-    shares::{self, Caller, ShareRequest},
-    state,
-    tokens::{Kind, Principal},
-};
+use super::routes::failure;
+use super::shares::{self, Caller, ShareRequest};
+use super::tokens::{Kind, Principal};
+use super::{catalog, connections, state};
 
 /// Where a running endpoint says it is, for the local CLI.
 #[derive(Debug, Clone, Serialize, Deserialize)]

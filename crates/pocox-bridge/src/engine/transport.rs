@@ -42,23 +42,22 @@
 //! credential and namespace together), never from two separate reads that
 //! an account switch could interleave.
 
-use std::{
-    path::Path,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Mutex, MutexGuard,
-    },
-};
+use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Mutex, MutexGuard};
 
 use anyhow::{anyhow, Result};
-use pocox_account_proto::{http::RelayCredentialResponse, NamespacedServiceId};
-use pocox_core::{config::Mode, service::sanitize_component};
+use pocox_account_proto::http::RelayCredentialResponse;
+use pocox_account_proto::NamespacedServiceId;
+use pocox_core::config::Mode;
+use pocox_core::service::sanitize_component;
 use pocox_pb::RelaySession;
 // Re-exported so callers keep saying `engine::transport::Transport`: within the
 // engine, the resolver and the type it returns are one concept.
 pub use pocox_pb::Transport;
 
-use crate::engine::{account, config::load_config, runtime};
+use crate::engine::config::load_config;
+use crate::engine::{account, runtime};
 
 /// Which network a transport reaches (see the module docs). Never contains
 /// a credential.

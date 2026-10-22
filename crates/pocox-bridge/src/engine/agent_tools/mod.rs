@@ -33,20 +33,17 @@ pub mod endpoint;
 #[cfg(not(any(target_os = "ios", target_os = "android")))]
 mod mcp;
 
-use std::{
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Mutex,
-    },
-    time::Duration,
-};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
+use std::time::Duration;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
 
+use self::state::OwnerKey;
+use self::tokens::Principal;
 pub use self::tokens::TokenView;
-use self::{state::OwnerKey, tokens::Principal};
 use crate::engine::{host_owner, host_profiles, runtime};
 
 /// Whether this platform can serve the tools (desktops and the CLI host).

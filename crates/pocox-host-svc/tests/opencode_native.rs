@@ -1,16 +1,14 @@
 //! Opt-in tests against an installed native binary and disposable data only.
 #![cfg(unix)]
 
-use std::{ffi::OsString, path::PathBuf, time::Duration};
+use std::ffi::OsString;
+use std::path::PathBuf;
+use std::time::Duration;
 
-use pocox_host_svc::{
-    opencode::{
-        ownership::{Evidence, Source},
-        runtime::{Launch, Server},
-        schema::{Prompt, Session},
-    },
-    process,
-};
+use pocox_host_svc::opencode::ownership::{Evidence, Source};
+use pocox_host_svc::opencode::runtime::{Launch, Server};
+use pocox_host_svc::opencode::schema::{Prompt, Session};
+use pocox_host_svc::process;
 use serde_json::{json, Value};
 
 #[path = "opencode_fixture/model.rs"]
@@ -191,10 +189,8 @@ async fn native_lifecycle_original_session_and_external_database_holder() {
 #[tokio::test]
 #[ignore = "requires POCOX_OPENCODE_BIN pointing to installed OpenCode 1.19+ or 2.x"]
 async fn native_gateway_original_admission_and_closed_mutation_routes() {
-    use pocox_host_svc::opencode::{
-        api,
-        host::{Host, Snapshot},
-    };
+    use pocox_host_svc::opencode::api;
+    use pocox_host_svc::opencode::host::{Host, Snapshot};
     use tokio::io::AsyncBufReadExt;
 
     let root = tempfile::tempdir().expect("disposable source");
@@ -635,10 +631,8 @@ impl Drop for ServiceStop {
 #[tokio::test]
 #[ignore = "requires POCOX_OPENCODE_BIN pointing to installed OpenCode 1.19+ or 2.x"]
 async fn native_background_server_attach_client_admission_and_replacement() {
-    use pocox_host_svc::opencode::{
-        host::{Host, Input},
-        service::State,
-    };
+    use pocox_host_svc::opencode::host::{Host, Input};
+    use pocox_host_svc::opencode::service::State;
     async fn until<T>(what: &str, mut check: impl AsyncFnMut() -> Option<T>) -> T {
         for _ in 0..300 {
             if let Some(value) = check().await {

@@ -303,7 +303,9 @@ async fn rpc_errors_preserve_a_working_connection() {
 /// tracing caches callsite interest across threads: a scoped one misses events
 /// whose callsite another test thread registered first.
 fn warnings_here() -> usize {
-    use std::{collections::HashMap, sync::OnceLock, thread::ThreadId};
+    use std::collections::HashMap;
+    use std::sync::OnceLock;
+    use std::thread::ThreadId;
 
     use tracing_subscriber::layer::SubscriberExt as _;
 

@@ -1,10 +1,8 @@
 //! Installation identity shared by CLI publishers and their detached workers.
 
 use anyhow::Result;
-use pocox_core::{
-    device::{self, HostIdentity},
-    paths,
-};
+use pocox_core::device::{self, HostIdentity};
+use pocox_core::paths;
 
 /// Load this installation's identity, so published metadata carries it.
 fn initialize() -> Result<&'static HostIdentity> {

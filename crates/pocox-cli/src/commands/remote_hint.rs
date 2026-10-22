@@ -4,10 +4,9 @@
 
 use anyhow::Result;
 
-use crate::{
-    cli::RemoteHintArgs,
-    commands::{connect::codex_remote_command, ui},
-};
+use crate::cli::RemoteHintArgs;
+use crate::commands::connect::codex_remote_command;
+use crate::commands::ui;
 
 /// Print a copy-pasteable hint.
 pub fn run(args: RemoteHintArgs) -> Result<()> {

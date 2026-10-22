@@ -17,10 +17,8 @@
 //! Lock order: the claim table may be held while a provider's host table is
 //! read (in [`reserve`]), never the other way round.
 
-use std::{
-    collections::HashMap,
-    sync::{Mutex, MutexGuard},
-};
+use std::collections::HashMap;
+use std::sync::{Mutex, MutexGuard};
 
 use anyhow::{bail, Result};
 use once_cell::sync::OnceCell;

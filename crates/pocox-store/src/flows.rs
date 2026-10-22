@@ -1,6 +1,7 @@
 //! Pending GitHub device-flow queries.
 
-use crate::{models::DeviceFlow, Result, Store};
+use crate::models::DeviceFlow;
+use crate::{Result, Store};
 
 impl Store {
     /// Record a pending device flow keyed by its opaque handle, with an

@@ -3,23 +3,16 @@
 //! from stale controller preferences. Flutter reads these overrides before
 //! planning restores; a local start replaces its name's previous stop intent.
 
-use std::{
-    collections::BTreeMap,
-    path::{Path, PathBuf},
-    sync::{Mutex, OnceLock},
-};
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 
-use super::{
-    host_names,
-    host_profiles::{
-        self,
-        files::{write_private, Committed, FileLock},
-        Runtime,
-    },
-};
+use super::host_names;
+use super::host_profiles::files::{write_private, Committed, FileLock};
+use super::host_profiles::{self, Runtime};
 
 /// Last explicit lifecycle choice for one host (local persistence only).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

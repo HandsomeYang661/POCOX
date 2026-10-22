@@ -1,18 +1,16 @@
 //! Local deterministic model transport, never a real provider or account.
 
-use std::{convert::Infallible, sync::Arc};
+use std::convert::Infallible;
+use std::sync::Arc;
 
-use axum::{
-    extract::State,
-    response::{sse::Event, Sse},
-    routing::post,
-    Json, Router,
-};
+use axum::extract::State;
+use axum::response::sse::Event;
+use axum::response::Sse;
+use axum::routing::post;
+use axum::{Json, Router};
 use serde_json::{json, Value};
-use tokio::{
-    sync::{mpsc, Notify},
-    task::JoinHandle,
-};
+use tokio::sync::{mpsc, Notify};
+use tokio::task::JoinHandle;
 use tokio_stream::wrappers::ReceiverStream;
 
 pub struct Fixture {

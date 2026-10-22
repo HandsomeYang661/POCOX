@@ -3,13 +3,11 @@
 //! --ignored. All sessions, configuration, indices and listeners are temporary.
 //! No model turn is started and no existing host or session is contacted.
 
-use std::{
-    io::Write,
-    path::PathBuf,
-    process::Stdio,
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::io::Write;
+use std::path::PathBuf;
+use std::process::Stdio;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use anyhow::{ensure, Context, Result};
 use pocox_codex::client::AppClient;

@@ -10,28 +10,23 @@
 //! first checks that the entry is still admitted, so a stream ends by itself
 //! when management is withdrawn or the account changes.
 
-use std::{convert::Infallible, sync::Arc, time::Duration};
+use std::convert::Infallible;
+use std::sync::Arc;
+use std::time::Duration;
 
-use axum::{
-    extract::Path,
-    http::StatusCode,
-    response::{
-        sse::{Event, KeepAlive, Sse},
-        IntoResponse, Response,
-    },
-    routing::{get, post},
-    Json, Router,
-};
+use axum::extract::Path;
+use axum::http::StatusCode;
+use axum::response::sse::{Event, KeepAlive, Sse};
+use axum::response::{IntoResponse, Response};
+use axum::routing::{get, post};
+use axum::{Json, Router};
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
-use super::{
-    catalog, consent,
-    error::ToolError,
-    model::{Catalog, CatalogEvent, Decision},
-    shares, state,
-};
+use super::error::ToolError;
+use super::model::{Catalog, CatalogEvent, Decision};
+use super::{catalog, consent, shares, state};
 
 /// Whether the entry still admits requests.
 pub type Admitted = Arc<dyn Fn() -> bool + Send + Sync>;

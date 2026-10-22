@@ -1,13 +1,9 @@
 //! Controller history synchronization, independent of app-server connections.
 
-use std::{
-    collections::HashMap,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc, Mutex, OnceLock, Weak,
-    },
-    time::{Duration, Instant},
-};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, OnceLock, Weak};
+use std::time::{Duration, Instant};
 
 use anyhow::{bail, ensure, Context, Result};
 use pocox_codex::client::AppClient;
@@ -17,11 +13,9 @@ use pocox_core::history_sync::{
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use super::{
-    app_session::{ThreadHistory, ThreadItem},
-    meta, runtime,
-    session_cache::{application_cache, namespace},
-};
+use super::app_session::{ThreadHistory, ThreadItem};
+use super::session_cache::{application_cache, namespace};
+use super::{meta, runtime};
 
 #[derive(Serialize, Deserialize)]
 struct CachedView {

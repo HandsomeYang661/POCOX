@@ -33,16 +33,15 @@
 //! connects and views keep polling the log.
 #![cfg_attr(not(unix), allow(dead_code))]
 
-use std::{
-    collections::HashMap,
-    path::PathBuf,
-    sync::{Arc, Mutex, Weak},
-};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, Weak};
 
 use serde_json::Value;
 use tokio::sync::{oneshot, watch};
 
-use super::{owners::Probe, transcript::LiveTail};
+use super::owners::Probe;
+use super::transcript::LiveTail;
 
 #[cfg(unix)]
 mod connection;

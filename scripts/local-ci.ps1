@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
-Local CI gate — mirrors .github/workflows/ci.yml for the GitHub-outage
-local development mode (see CLAUDE.md "Local-only development mode").
+Local CI gate — mirrors .github/workflows/ci.yml for use while GitHub CI
+is unavailable.
 
 Runs the same four gates CI would: rust fmt, rust clippy, rust test, and
 flutter format/analyze/test. Must be GREEN before any merge to main.

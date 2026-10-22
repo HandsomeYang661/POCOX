@@ -1,9 +1,7 @@
 //! Native inventory is positive ownership evidence, never an exclusive lease.
 
-use std::{
-    path::PathBuf,
-    time::{Duration, Instant},
-};
+use std::path::PathBuf;
+use std::time::{Duration, Instant};
 
 use pocox_core::process::{process_identity, ProcessIdentity};
 use serde::Deserialize;

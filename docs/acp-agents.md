@@ -77,10 +77,11 @@ add an agent-specific HTTP client or another `SessionEngine` implementation.
 - Stopping a host is final and bounded: a launch still in its handshake is
   cut short (it does not wait out the 20 s handshake timeout), the process
   group is cleaned up as above, and pending session-record writes get 2 s.
-- **Quitting the app.** One ownership table holds every owned agent until
+- **Quitting the app.** One ownership table (`serve_acp::owners`, bridge
+  `engine/serve_acp.rs`) holds every owned agent until
   its cleanup has finished: an agent enters it before it is launched and
   leaves it only after it was stopped — also while an ordinary "stop
-  hosting" is still retiring it. Quit closes the table's barrier (no start
+  hosting" is still retiring it. Quit (`serve_acp::stop_all`) closes the table's barrier (no start
   begins afterwards, a start in flight can no longer enter the host table)
   and stops every agent still in it — starting, hosted or retiring — all at
   once. Stopping an agent joins a stop already in progress, so quit (and a
@@ -106,7 +107,7 @@ add an agent-specific HTTP client or another `SessionEngine` implementation.
   An explicit program path is never replaced; a bare name is searched on
   PATH and then in the preset's fallback directories.
 - **Windows is gated.** `acp_hosting_supported()` returns false and the
-  dialog explains why; a correct job-object implementation is future work.
+  editor explains why; a correct job-object implementation is future work.
 
 ## Protocol surface
 
@@ -124,7 +125,8 @@ as sent only once the writer has written and flushed all of it; one deadline
 covers waiting for queue room and that write. A frame whose deadline passes
 before it was queued was never sent, and the connection stays open; one whose
 deadline passes after it was queued may be half-written, so the connection is
-closed at once (nothing more is written) and the generation ends. Budgets:
+closed at once (nothing more is written, `CloseReason::Stalled`) and the
+generation ends. Budgets:
 
 - a prompt has 30 s from its admission — for the dispatch lane, queue room
   and the complete write. Only a prompt the agent received in full then waits
@@ -286,7 +288,7 @@ it cannot leave a consumed request unresolved on a live generation.
   to *failed* with a message.
 - The bridge sends every mutation (`sessions/new`, `open`, `prompt`,
   `cancel`, `config`, `mode`) with the host incarnation (`hostId`) and
-  generation its view shows. A replacement host behind the same relay key
+  generation its view shows (`acp::Identity`). A replacement host behind the same relay key
   restarts its generations and may hand out the same session ids, so a
   request naming another incarnation or generation is refused with
   `409 stale_host` (a cancel answers `{"cancelled": false}`) before anything
@@ -294,7 +296,7 @@ it cannot leave a consumed request unresolved on a live generation.
   without them is not checked: this keeps a stale *bridge* view from
   mutating a newer host; it is not an authentication or authorization
   mechanism for arbitrary `/acp/v1` callers. The bridge applies an answer
-  only to the connection that asked, and only while it still shows that host
+  only to the connection that asked (`acp::Link`), and only while it still shows that host
   and generation.
 - `session/cancel` names only a session, so every prompt dispatch and every
   cancel of a host is written under one dispatch lane, and each checks under
@@ -360,8 +362,9 @@ a different host incarnation (`hostId`) answers, the gateway sends `reset`.
 The bridge then reads the snapshot and recovers in a fixed order: turns that
 ended meanwhile are completed first (with their final text and recorded
 outcome), then turns it had not seen begin are announced, then each running
-turn's folded history — which carries the log position it reflects — is
-installed with the host's item ids, and only later events are applied. Every
+turn's folded history (`acp::Replica`) — which carries the log position it
+reflects — is installed with the host's item ids, and only later events are
+applied. Every
 item event names its turn, and the session screen ignores a terminal event
 for a turn other than the one it shows running, so a late completion never
 ends or regroups a newer turn.
@@ -453,10 +456,12 @@ stores (`sessions.json`) are not read.
    `default-2`, …; presets start from their id). Program and arguments of a
    preset or saved agent sit under **Advanced**; a custom agent shows them
    open: enter the program (name or full path) and one argument per row.
-4. The dialog locates the program before starting. Start hosting.
+4. The editor locates the program before starting. Start hosting.
 
-A device hosts several instances side by side — Codex hosts, one native
-OpenCode host, Claude and custom agents — each under its own name. A second
+A device hosts several instances side by side — Codex hosts, native
+OpenCode hosts (one per history source,
+[Native OpenCode](opencode-native.md#hosting)), Claude, Grok and custom
+agents — each under its own name. A second
 Codex host defaults to an automatic port (`0`); its port is under
 **Advanced**. A name or port another
 host owns is refused with guidance rather than taken over.
@@ -478,18 +483,23 @@ older build still restores one host.
 Agent marks are bundled vector glyphs (OpenAI and Claude from Simple Icons 15,
 CC0-1.0; OpenCode from its v1.18.35 favicon, MIT — full notices in
 `apps/flutter/lib/src/widgets/agent_icon.NOTICE.txt`). They are chosen by the
-host's engine (`codex`, `opencode`) or reported ACP profile id (`claude`),
+host's engine (`codex`, `opencode`) or reported ACP profile id
+(`Capabilities.profile_id`, e.g. `claude`),
 never by the instance name the user typed. Grok shows Grok's mark (profile
-`grok`; from lobe-icons, MIT). Any other agent shows a letter tile. A remote host's mark is
-known once connected (its profile is part of the host info).
+`grok`; from lobe-icons, MIT). Any other agent shows a letter tile. A remote
+ACP entry reads the host's existing `/acp/v1/info` profile before connecting,
+through a temporary tunnel closed after the read (bridge
+`engine/acp/connection.rs`, `host_info`). Such a discovery identity grants no
+capabilities; a refresh or transport change invalidates it, and an open phone
+host sheet updates as identities arrive.
 
 ### Claude
 
 The Claude preset (`claude-agent-acp`, profile `claude`) runs the ACP
 adapter, which needs Node.js 22 or newer and drives the native `claude` CLI
 itself; the native CLI never speaks ACP on stdio and is never launched as
-the agent. For the preset's own bare program the host looks, first match
-wins, for:
+the agent. For the preset's own bare program the host
+(`crates/pocox-host-svc/src/acp/claude.rs`) looks, first match wins, for:
 
 1. **The adapter**: the child `PATH`, `~/.npm-global/bin`, `~/.local/bin`,
    `~/.bun/bin`, `~/.volta/bin`, pnpm and Yarn global directories,
@@ -507,7 +517,9 @@ wins, for:
    compatible Node.js; when the first compatible one has none, a later one
    with npm runs it. An adapter installed as the
    package's script runs as `node <script> <argv…>`, so the user's default
-   Node.js is not changed; a wrapper or shim runs as found.
+   Node.js is not changed; a wrapper or shim runs as found. Such a launch goes
+   through the additive `AgentHost::create_launching`; `HostOptions`, the
+   spec and its argv stay as configured.
 3. **The native CLI**: an inherited `CLAUDE_CODE_EXECUTABLE` is kept;
    otherwise `claude` on the child `PATH`, in `~/.local/bin`,
    `~/.claude/local`, `/opt/homebrew/bin` or `/usr/local/bin` is passed in
@@ -518,10 +530,11 @@ An explicit program path, changed arguments under another profile, or any
 other program is launched exactly as configured. The session record stays
 keyed by the adapter executable and the spec's arguments. Authentication
 stays Claude's own (its login or environment, inherited by the child); the
-hosting dialog shows only paths and versions.
+hosting editor shows only paths and versions.
 
 When the adapter is missing and a Node.js 22+ with its npm was found, the
-editor offers **Prepare ACP environment** to install
+editor offers **Prepare ACP environment** (`acp/claude_setup.rs`, bridge
+`engine/claude_setup.rs`) to install
 `@agentclientprotocol/claude-agent-acp@0.89.1` before hosting. It shows download bytes and a measured recent transfer rate, with separate
 download/install and verification stages (no invented percentage or total),
 allows cancellation or retry, and refreshes readiness while preserving the
@@ -542,7 +555,7 @@ step. The same check guards reuse of a prepared copy. Cancellation is
 honoured before npm starts and again before publishing; a cancel after the
 rename is too late and the copy stays prepared. Detection and preparation
 run off the setup state's lock, so reading the state or cancelling never
-waits for a probe. Start prepares only from an open dialog, and only after
+waits for a probe. Start prepares only from an open editor, and only after
 it announced the download for the same agent and the environment found
 now; a changed environment is announced again first.
 Overlapping preparation requests join one preparation; an incomplete directory in the way
@@ -562,7 +575,7 @@ suites, including the tests for the 2026-10-12 corrections, pass. Other
 platforms and an interactive OAuth sign-in were not exercised.
 
 The argv is stored in plain text in the App's preferences and is visible in
-the dialog (the host's session store keeps only the keyed digest). **Do not
+the editor (the host's session store keeps only the keyed digest). **Do not
 put secrets in arguments**; configure credentials with the agent's own
 configuration. Each saved custom agent gets a random profile id, so two
 agents whose names slug the same way (for example non-Latin names) are kept
@@ -580,7 +593,10 @@ attachment. A result that arrives later — a picker, a clipboard read, a file
 read before its upload — is admitted again when it arrives, against the
 draft chosen when the user acted: nothing enters (or is uploaded) once that
 view turned read-only, its agent host was lost or replaced, or image support
-went away. A document still being read when its conversation is left stays
+went away. Picker, drop and paste share one admission boundary
+(`apps/flutter/lib/src/screens/app_session/attachment_gate.dart`); a late
+result is re-admitted through its `AttachmentTicket` against that draft's
+admission revision. A document still being read when its conversation is left stays
 in its original draft as a retryable attachment; no upload starts from a
 view whose ownership subscriptions have ended. Uploads already dispatched
 can finish in their original draft. Before uploading, the bridge checks the
@@ -674,7 +690,8 @@ macOS profile build also passed. These screenshots are Flutter-renderer
 previews; they do not claim a new native interaction check of the running app.
 
 A host may save a custom provider for the Claude preset (Anthropic Messages,
-with a required key, as `ANTHROPIC_*` environment and session settings). Other
+with a required key, as `ANTHROPIC_*` environment and session settings). Grok
+has its own model services ([Grok Build](grok-build.md#model-service)); other
 ACP agents launch with their own configuration only. The record's authority
 generation (never the key) joins the session source key, so a changed
 provider inherits no session history. A running agent's program and
@@ -698,7 +715,8 @@ its own name.
 On the controller, ACP connections, their relay subscriptions and the
 relay meta tunnels (host files, uploads, file links) belong to the transport
 context they were resolved in (signed-in account and relay, or self-host
-relay and key). One revision orders all of it: a resolution captures it
+relay and key). One revision (`transport::epoch`, bridge
+`engine/transport.rs`) orders all of it: a resolution captures it
 before reading the configuration and becomes current only if it is
 unchanged when it is observed (checked under the same lock a configuration
 change takes), so a resolution that read the previous configuration never

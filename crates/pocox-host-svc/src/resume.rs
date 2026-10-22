@@ -9,11 +9,14 @@
 use std::net::SocketAddr;
 
 use anyhow::{anyhow, Context, Result};
-use pocox_codex::{client::AppClient, rollout, takeover};
+use pocox_codex::client::AppClient;
+use pocox_codex::{rollout, takeover};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::{app_server::CodexReader, codex_inventory, sessions::Holder};
+use crate::app_server::CodexReader;
+use crate::codex_inventory;
+use crate::sessions::Holder;
 
 /// Outcome of a [`force_resume`], reporting exactly what the eviction + resume
 /// did.

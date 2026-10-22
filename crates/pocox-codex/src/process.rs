@@ -13,22 +13,18 @@
 //! waiting). This keeps things portable and avoids depending on
 //! platform-specific `daemon(3)` calls.
 
-use std::{
-    path::PathBuf,
-    process::{Command, Stdio},
-    thread,
-    time::{Duration, Instant},
-};
+use std::path::PathBuf;
+use std::process::{Command, Stdio};
+use std::thread;
+use std::time::{Duration, Instant};
 
 use chrono::Utc;
-use pocox_core::{
-    paths,
-    process::{
-        endpoint_owner_under, find_codex_app_server, pid_alive, pid_running, process_start_time,
-        send_sigterm, tcp_port_open, EndpointOwner,
-    },
-    state::{CodexProcessInfo, RuntimeState},
+use pocox_core::paths;
+use pocox_core::process::{
+    endpoint_owner_under, find_codex_app_server, pid_alive, pid_running, process_start_time,
+    send_sigterm, tcp_port_open, EndpointOwner,
 };
+use pocox_core::state::{CodexProcessInfo, RuntimeState};
 use tracing::{debug, info, warn};
 
 use crate::protocol::Message as _ProtocolMessage;

@@ -1,0 +1,7 @@
+The agent marks in this directory use the path data bundled in
+apps/flutter/lib/src/widgets/agent_icon.dart, with a fill that follows the
+reader's light or dark theme. Sources and licences (Simple Icons, CC0-1.0;
+OpenCode, MIT, Copyright (c) 2025 opencode; lobe-icons, MIT, Copyright (c)
+2023 LobeHub) are reproduced in full in
+apps/flutter/lib/src/widgets/agent_icon.NOTICE.txt. Brand names and marks
+belong to their owners and only identify the agent.

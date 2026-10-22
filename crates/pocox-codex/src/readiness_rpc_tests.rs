@@ -2,10 +2,9 @@ use futures::{SinkExt, StreamExt};
 use pocox_core::state::CodexProcessInfo;
 use serde_json::Value;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio_tungstenite::{
-    accept_async_with_config,
-    tungstenite::{protocol::WebSocketConfig, Message},
-};
+use tokio_tungstenite::accept_async_with_config;
+use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
+use tokio_tungstenite::tungstenite::Message;
 
 use super::*;
 

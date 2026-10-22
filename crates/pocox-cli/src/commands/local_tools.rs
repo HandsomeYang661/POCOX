@@ -7,12 +7,14 @@
 //! announced it. Shares and connections live in that process, so they
 //! outlive the command that asked.
 
-use std::{path::PathBuf, time::Duration};
+use std::path::PathBuf;
+use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use pocox_bridge::agent_tools::{endpoint, tokens};
 use pocox_core::paths;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 /// One installation that can host on this computer.
 #[derive(Debug, Clone)]

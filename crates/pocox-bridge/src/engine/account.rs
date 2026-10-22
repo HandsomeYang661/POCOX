@@ -11,24 +11,21 @@
 //! Pure async logic (no flutter_rust_bridge); the `api` layer drives it on the
 //! engine runtime.
 
-use std::{
-    path::{Path, PathBuf},
-    sync::Mutex,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{anyhow, bail, Context, Result};
 use once_cell::sync::OnceCell;
-use pocox_account_proto::{
-    http::{
-        session_token_exp, DevicePollRequest, DevicePollResponse, DevicePollStatus,
-        DeviceStartRequest, DeviceStartResponse, LogoutRequest, MeResponse, RefreshRequest,
-        RefreshResponse, RelayCredentialResponse, ServiceEntry, WebExchangeRequest,
-        WebExchangeResponse, WebStartRequest, WebStartResponse,
-    },
-    pkce,
+use pocox_account_proto::http::{
+    session_token_exp, DevicePollRequest, DevicePollResponse, DevicePollStatus, DeviceStartRequest,
+    DeviceStartResponse, LogoutRequest, MeResponse, RefreshRequest, RefreshResponse,
+    RelayCredentialResponse, ServiceEntry, WebExchangeRequest, WebExchangeResponse,
+    WebStartRequest, WebStartResponse,
 };
-use pocox_core::{config::Config, service::sanitize_component};
+use pocox_account_proto::pkce;
+use pocox_core::config::Config;
+use pocox_core::service::sanitize_component;
 
 #[cfg(test)]
 use crate::engine::config::save_config;

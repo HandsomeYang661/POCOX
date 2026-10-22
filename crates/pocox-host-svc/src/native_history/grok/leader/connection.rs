@@ -1,24 +1,20 @@
 //! One follower's connections to the leader, for as long as a view follows.
 
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-    time::Duration,
-};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use serde_json::{json, Value};
-use tokio::{
-    net::{unix::OwnedWriteHalf, UnixStream},
-    sync::oneshot,
-    time::{timeout, Instant},
-};
+use tokio::net::unix::OwnedWriteHalf;
+use tokio::net::UnixStream;
+use tokio::sync::oneshot;
+use tokio::time::{timeout, Instant};
 
-use super::{
-    super::{owners::Probe, transcript::event_seq},
-    wire::{self, Frames, Payload, Server},
-    State,
-};
+use super::super::owners::Probe;
+use super::super::transcript::event_seq;
+use super::wire::{self, Frames, Payload, Server};
+use super::State;
 
 /// Pause between attempts while the session is not followed live.
 const RETRY: Duration = Duration::from_millis(if cfg!(test) { 200 } else { 3000 });

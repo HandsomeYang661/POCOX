@@ -1,21 +1,20 @@
 //! This device's catalog, other devices' catalogs, and the overview of
 //! every device and service the caller can see.
 
-use std::{collections::BTreeMap, time::Duration};
+use std::collections::BTreeMap;
+use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use futures::{stream, StreamExt};
 use once_cell::sync::OnceCell;
 use pocox_core::service::{ServiceId, ServiceKind};
 
-use super::{
-    consent,
-    model::{
-        bounded, Catalog, DeviceView, HostedView, Overview, ServiceEntry, ShareView, ToolsState,
-        PROTOCOL,
-    },
-    state::{self, Share},
+use super::consent;
+use super::model::{
+    bounded, Catalog, DeviceView, HostedView, Overview, ServiceEntry, ShareView, ToolsState,
+    PROTOCOL,
 };
+use super::state::{self, Share};
 use crate::engine::{discovery, meta, runtime, serve, transport};
 
 /// The agent hosts and APIs this process serves, read again.

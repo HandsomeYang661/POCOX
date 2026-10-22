@@ -3,16 +3,16 @@
 use anyhow::{anyhow, bail, Result};
 use comfy_table::Cell;
 use pocox_bridge::agent_tools::model::{ConnectionView, Overview, ShareView, Shared};
-use pocox_core::{config::Config, service::ServiceKind};
+use pocox_core::config::Config;
+use pocox_core::service::ServiceKind;
 use serde::Serialize;
 
-use crate::{
-    cli::{
-        OpenArgs, ServicesCmd, ServicesConnectArgs, ServicesDefaultCmd, ServicesDefaultSetArgs,
-        ServicesListArgs, ServicesShareArgs, ServicesTargetArgs,
-    },
-    commands::{local_tools, service_target::discover_services, transport, ui},
+use crate::cli::{
+    OpenArgs, ServicesCmd, ServicesConnectArgs, ServicesDefaultCmd, ServicesDefaultSetArgs,
+    ServicesListArgs, ServicesShareArgs, ServicesTargetArgs,
 };
+use crate::commands::service_target::discover_services;
+use crate::commands::{local_tools, transport, ui};
 
 /// Dispatch the `services` subcommand group.
 pub async fn run(cmd: ServicesCmd) -> Result<()> {

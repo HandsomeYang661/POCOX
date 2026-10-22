@@ -1,16 +1,15 @@
 //! Fetching release files: a small one whole, a package to disk with its
 //! size and SHA-256 checked as it arrives.
-use std::{
-    path::Path,
-    sync::atomic::{AtomicBool, Ordering},
-    time::Duration,
-};
+use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use futures::StreamExt;
 use ring::digest::{Context as Digest, SHA256};
 use tokio::io::AsyncWriteExt;
 
-use super::{manifest::Asset, Failure, Kind};
+use super::manifest::Asset;
+use super::{Failure, Kind};
 
 const CONNECT: Duration = Duration::from_secs(15);
 /// A small file arrives whole within this.

@@ -11,27 +11,23 @@
 //! port has at most one publication in flight, and the supervisor only
 //! schedules them: it never waits for the relay itself.
 
-use std::{
-    collections::BTreeSet,
-    net::{Ipv6Addr, SocketAddr},
-    sync::atomic::{AtomicBool, Ordering},
-    time::Duration,
-};
+use std::collections::BTreeSet;
+use std::net::{Ipv6Addr, SocketAddr};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use pocox_core::service::{ServiceId, ServiceKind};
 use pocox_pb::{publish_pending, PublishError, Published, RegisterOptions};
 use tokio::net::TcpStream;
 
-use super::{
-    consent,
-    error::{Pending, ToolError},
-    model::{
-        bounded, clean_path, open_link, scheme, OwnerKind, OwnerView, ShareView, Shared,
-        AGENT_LEASE_MS, APP_PORT, CLI_PORT, MAX_PORTS_PER_SHARE, MAX_SHARED_PORTS,
-    },
-    state::{self, now_ms, OwnerKey, Share, SharedPort, State},
-    tokens::{Kind, Principal},
+use super::consent;
+use super::error::{Pending, ToolError};
+use super::model::{
+    bounded, clean_path, open_link, scheme, OwnerKind, OwnerView, ShareView, Shared,
+    AGENT_LEASE_MS, APP_PORT, CLI_PORT, MAX_PORTS_PER_SHARE, MAX_SHARED_PORTS,
 };
+use super::state::{self, now_ms, OwnerKey, Share, SharedPort, State};
+use super::tokens::{Kind, Principal};
 use crate::engine::{management, runtime, transport};
 
 /// Longest wait for a port to answer within one call.

@@ -7,21 +7,16 @@
 //! (including panic); the host also has a ten-minute deadline. Only the
 //! supplied fixture receives agent edits.
 
-use std::{
-    path::{Path, PathBuf},
-    time::{Duration, Instant},
-};
+use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use pocox_host_svc::acp::AgentSpec;
 use serde_json::{json, Value};
 use tokio::sync::broadcast::Receiver;
 
-use crate::engine::{
-    app_session::AppEvent,
-    meta, runtime, serve, serve_acp,
-    session_engine::{self, SessionEngine, StartOptions, TurnOptions},
-    transport,
-};
+use crate::engine::app_session::AppEvent;
+use crate::engine::session_engine::{self, SessionEngine, StartOptions, TurnOptions};
+use crate::engine::{meta, runtime, serve, serve_acp, transport};
 
 const WAIT: Duration = Duration::from_secs(120);
 

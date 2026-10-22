@@ -47,7 +47,8 @@ the export is always present. Where the library is not loaded (`flutter test`)
 `computeFrameInDart` (`galaxy_frame.dart`), a step-for-step port, fills the
 same buffer, and `test/galaxy_frame_parity_test.dart` compares the two on the
 built library (16 camera, clock and selection combinations over 18 devices,
-within 1e-3 relative).
+within 1e-3 relative). Change `engine::galaxy` and `computeFrameInDart`
+together and keep that test passing.
 
 ## Drawing from cached images
 
