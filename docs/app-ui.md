@@ -295,7 +295,10 @@ git checkout -- apps/flutter/pubspec.yaml   # restore before committing
 - `test/gen_poster_test.dart` composes the README poster at 2x from the mark,
   the POCOX wordmark and the app's own galaxy, Local sessions and chat screens
   rendered with fixture data (never a real session). Rerun it with
-  `REGEN_ICONS=1` when the mark, the galaxy or the chat design changes.
+  `REGEN_ICONS=1` when the mark, an agent mark (`widgets/agent_icon.dart`,
+  shown in its chips), the galaxy or the chat design changes.
+- The README's agent logos (`assets/readme/*.svg`) copy the path data of
+  `widgets/agent_icon.dart`; update them when an agent mark changes.
 
 ## UI tests
 
