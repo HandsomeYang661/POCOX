@@ -40,8 +40,8 @@ POCOX 把你的每一台设备都装进口袋。智能体照原厂的方式继�
 
 ## 能做什么
 
-- **这台机器上的每一个会话**：列出并实时跟进每个智能体运行的会话，包括在它自己的 App 或 CLI 里开启的（[原生历史](docs/native-agent-history.md)）。
-- **任意服务，所有设备**：把开发服务器、API 或智能体共享给你的其它设备，智能体也能借助 `pocox` 工具自己完成（[智能体工具](docs/agent-tools.md)）。
+- **这台机器上的每一个会话**：列出并实时跟进 Codex、Claude Code、Grok Build 与 OpenCode 运行的会话，包括在它们自己的 App 或 CLI 里开启的（[原生历史](docs/native-agent-history.md)，含平台限制）。
+- **任意服务，所有设备**：在其它设备上访问每台电脑的智能体，并共享开发服务器或 API；智能体也能借助 `pocox` 工具自己共享端口、连接端口或 API（[智能体工具](docs/agent-tools.md)）。
 - **任意桌面都能托管**：macOS、Windows 和 Linux 可同时托管多个智能体，各自配置模型服务（[托管](docs/hosting-configuration.md)）。
 - **随处触及**：iOS、Android、桌面 App 和 CLI 可以引导对话、处理审批、浏览历史、查看改动（[App](docs/app-ui.md)）。
 - **共享订阅**：把一台电脑的 Codex 登录发布成 OpenAI 兼容的 Responses API，没装 Codex 的设备也能用（[CLI](docs/cli.md)）。

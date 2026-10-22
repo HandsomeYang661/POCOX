@@ -9,14 +9,14 @@ here). Before changing a subsystem, also read its doc in
 POCOX (**PO**cket **CO**de**X**) puts every device a user owns in their pocket.
 It is a medium, not a harness: users keep the vendors' own apps and CLIs, and
 POCOX follows and takes over their sessions and exposes each machine's
-services to the user's other devices. Hosts (the desktop app or `pocox serve`)
-run the installed Codex (`codex app-server`), OpenCode (`opencode serve`) and
+services to the user's other devices. Hosts (the desktop app or
+`pocox serve --allow-remote-management`; plain `serve` hosts Codex only) run
+the installed Codex (`codex app-server`), OpenCode (`opencode serve`) and
 ACP agents (Claude Code adapter, Grok Build, custom). Devices meet on a
 pb-mapper relay, either self-hosted with a shared key (`pcx:<device>:<kind>:<name>`)
 or through a GitHub-signed account whose `pocox-backend` credential is scoped
 to `pcxu:<user>:…` and stays off the data path. Controllers are the Flutter
-apps (via `flutter_rust_bridge`) and the CLI. See
-[architecture](docs/architecture.md).
+apps (via `flutter_rust_bridge`) and the CLI ([architecture](docs/architecture.md)).
 
 ## Repository map
 
@@ -60,15 +60,15 @@ Contracts: changing one needs an explicit decision, never a side effect.
   option. The bridge `embedded` field stays: status reports false, an explicit
   true fails before side effects, legacy auto-host restores external Codex.
 - **Responses API proxy**: HTTP POST and WebSocket GET on `/v1/responses` both
-  forward requests, host auth, streaming events and upstream errors; verify
-  both when changing Codex dependencies or hosting.
+  forward requests, auth, streams and errors; verify both after Codex or hosting changes.
 - **Don't break userspace.** Documented CLI flags, on-disk layout and wire
   fields: add, don't mutate; version a break with a migration note. The
   `pocox` naming baseline is a deliberate fresh install: no legacy aliases or
   migrations. Prose says POCOX; identifiers say `pocox` (`POCOX_*`,
   `pocox://auth`, Linux launcher `pocox-app`); relay prefixes stay `pcx:`/`pcxu:`.
 - **Isolation.** The relay administrator key never reaches a client; an
-  account sees only its namespace; secrets never reach argv, logs or status.
+  account sees only its namespace; model keys and account tokens never reach
+  argv, logs or status (the relay key's `init --key` is the argv exception).
 - **One owner per hosting state.** Only the process holding
   `hosting/owner.lock` (CLI: `managed-host/owner.lock`) hosts or writes hosting
   state; new hosting services call `host_owner::require()` first.

@@ -44,12 +44,14 @@ Any other ACP agent can be hosted from a program and its arguments
 
 ## What it does
 
-- **Every session on the machine** — list and follow live what each agent runs,
-  including sessions started in its own app or CLI
-  ([native history](docs/native-agent-history.md)).
-- **Any service, on every device** — share a dev server, an API or an agent
-  with your other devices; agents can do it themselves through the `pocox`
-  tools ([agent tools](docs/agent-tools.md)).
+- **Every session on the machine** — list and follow live the sessions Codex,
+  Claude Code, Grok Build and OpenCode run, including ones started in their own
+  apps and CLIs ([native history](docs/native-agent-history.md), with its
+  platform limits).
+- **Any service, on every device** — reach each computer's agents from your
+  other devices and share a dev server or an API; agents can share ports and
+  connect ports or APIs themselves through the `pocox` tools
+  ([agent tools](docs/agent-tools.md)).
 - **Agents on any desktop** — macOS, Windows and Linux host several agents side
   by side, each with its own model service
   ([hosting](docs/hosting-configuration.md)).

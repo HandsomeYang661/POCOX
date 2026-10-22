@@ -10,7 +10,8 @@ moving parts; each subsystem's rules live in its own doc (see the
 
 ## Pieces
 
-- **Host** — the desktop app or `pocox serve`. It runs or attaches to the
+- **Host** — the desktop app, or the CLI's managed host
+  (`pocox serve --allow-remote-management`). It runs or attaches to the
   installed agents: Codex through `codex app-server` (JSON-RPC over
   WebSocket), OpenCode through `opencode serve` (HTTP + SSE), and Claude Code,
   Grok Build or any other agent through ACP over stdio. Beside them it serves a
@@ -18,14 +19,15 @@ moving parts; each subsystem's rules live in its own doc (see the
   loopback ports and, optionally, a Responses API proxy that reuses the host's
   `codex login`.
 - **Relay** — pb-mapper. Hosts register each service under a key; other
-  devices subscribe to it and get a local TCP endpoint. A device reaches its
-  own hosts over loopback, never through the relay.
+  devices subscribe to it and get a local TCP endpoint. The app reaches its
+  own in-app hosts over loopback, never through the relay; a CLI `connect`
+  subscribes through the relay even on the same computer.
 - **Controllers** — the Flutter apps (iOS, Android, macOS, Windows, Linux),
   which reach Rust through `flutter_rust_bridge`, and the CLI (for example
   `pocox connect` followed by `codex --remote`).
 - **Agent tools** — a local `pocox` MCP server that lets a harness list the
   user's devices and services, share a port and connect to another device's
-  service, with the user's consent ([agent tools](agent-tools.md)).
+  shared port or Responses API, with the user's consent ([agent tools](agent-tools.md)).
 - **Account backend (optional)** — `pocox-backend` signs devices in with GitHub
   and vends short-lived relay credentials. It is not on the data path
   ([deploy](../deploy/README.md)).

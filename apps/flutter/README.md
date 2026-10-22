@@ -14,6 +14,7 @@ Flutter **3.44.0** is pinned in `.fvmrc`, `pubspec.yaml`
 brew tap leoafarias/fvm && brew install fvm
 fvm install 3.44.0 --setup
 
+cd apps/flutter   # from the repository root
 fvm flutter pub get
 fvm flutter analyze
 fvm flutter test
