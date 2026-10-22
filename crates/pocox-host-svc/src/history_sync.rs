@@ -1,15 +1,17 @@
 //! Read-only history adapters and the provider-independent synchronization API.
 
-use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
+use std::collections::BTreeMap;
+use std::net::SocketAddr;
+use std::path::PathBuf;
+use std::sync::Arc;
+use std::time::Duration;
 
 use anyhow::{bail, ensure, Context, Result};
 use async_trait::async_trait;
-use axum::{
-    extract::{DefaultBodyLimit, State},
-    http::StatusCode,
-    routing::{get, post},
-    Json, Router,
-};
+use axum::extract::{DefaultBodyLimit, State};
+use axum::http::StatusCode;
+use axum::routing::{get, post};
+use axum::{Json, Router};
 use pocox_core::history_sync::{
     self as wire, HistoryWindow, SyncRequest, SyncResponse, WindowQuery,
 };

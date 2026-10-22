@@ -2,11 +2,9 @@
 //! (`session/storage/relocation` candidate scan and the recent-session list
 //! of `session/storage/jsonl`).
 
-use std::{
-    fs,
-    io::Read,
-    path::{Path, PathBuf},
-};
+use std::fs;
+use std::io::Read;
+use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Context, Result};
 use chrono::{DateTime, SecondsFormat, Utc};

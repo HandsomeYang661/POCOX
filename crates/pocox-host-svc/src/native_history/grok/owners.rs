@@ -5,11 +5,9 @@
 //! PIDs. `grok agent stdio` (editors, and POCOX's own host) never registers,
 //! so this is positive evidence only, never an exclusive lease.
 
-use std::{
-    io::Read,
-    path::PathBuf,
-    time::{Duration, Instant},
-};
+use std::io::Read;
+use std::path::PathBuf;
+use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, ensure, Result};
 use chrono::{DateTime, Utc};

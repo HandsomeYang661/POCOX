@@ -4,14 +4,10 @@
 use futures::FutureExt;
 
 use super::*;
-use crate::{
-    acp::{
-        host::tests::{eventually, outcome},
-        schema::TurnOutcome,
-        SourceId,
-    },
-    native_history::{ClaimError, ClaudeHistory, SessionClaim},
-};
+use crate::acp::host::tests::{eventually, outcome};
+use crate::acp::schema::TurnOutcome;
+use crate::acp::SourceId;
+use crate::native_history::{ClaimError, ClaudeHistory, SessionClaim};
 
 fn path(key: &str) -> PathBuf {
     let path = PathBuf::from(std::env::var_os(key).expect(key));

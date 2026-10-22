@@ -1,7 +1,8 @@
 //! Readiness attribution against real sockets and processes: what answered
 //! must be held by a process the launch started, whatever its arguments.
 
-use std::{net::TcpListener, path::PathBuf};
+use std::net::TcpListener;
+use std::path::PathBuf;
 
 use pocox_core::state::CodexProcessInfo;
 

@@ -1,10 +1,8 @@
 use futures::StreamExt;
 
 use super::*;
-use crate::{
-    acp::{api, ClientError, GatewayClient, SourceId},
-    native_history::ClaudeHistory,
-};
+use crate::acp::{api, ClientError, GatewayClient, SourceId};
+use crate::native_history::ClaudeHistory;
 
 const SESSION: &str = "00000000-0000-4000-8000-000000000001";
 

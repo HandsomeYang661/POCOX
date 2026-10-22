@@ -12,10 +12,10 @@ use pocox_pb::{
     SubscribeOptions,
 };
 
-use crate::{
-    cli::{PbCmd, PbRegisterArgs, PbStatusArgs, PbStatusKind, PbSubscribeArgs, PbWorkerArgs},
-    commands::ui,
+use crate::cli::{
+    PbCmd, PbRegisterArgs, PbStatusArgs, PbStatusKind, PbSubscribeArgs, PbWorkerArgs,
 };
+use crate::commands::ui;
 
 /// Dispatch the `pb` subcommand group.
 pub async fn run(cmd: PbCmd) -> Result<()> {

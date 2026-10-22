@@ -20,31 +20,25 @@
 //! none was given), so the sending controller recognizes its own message
 //! and every other one shows it. It is never an idempotency key.
 
-use std::{convert::Infallible, sync::Arc};
+use std::convert::Infallible;
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
-use axum::{
-    extract::{DefaultBodyLimit, Query, State},
-    http::StatusCode,
-    response::{
-        sse::{Event, KeepAlive, Sse},
-        IntoResponse, Response,
-    },
-    routing::{get, post},
-    Json, Router,
-};
+use axum::extract::{DefaultBodyLimit, Query, State};
+use axum::http::StatusCode;
+use axum::response::sse::{Event, KeepAlive, Sse};
+use axum::response::{IntoResponse, Response};
+use axum::routing::{get, post};
+use axum::{Json, Router};
 use serde::Deserialize;
 use serde_json::{json, Value};
-use tokio::{
-    net::TcpListener,
-    sync::{broadcast::error::RecvError, mpsc, Semaphore},
-};
+use tokio::net::TcpListener;
+use tokio::sync::broadcast::error::RecvError;
+use tokio::sync::{mpsc, Semaphore};
 use tokio_stream::wrappers::ReceiverStream;
 
-use super::{
-    host::{AgentHost, HostError, Identity},
-    state::LogEntry,
-};
+use super::host::{AgentHost, HostError, Identity};
+use super::state::LogEntry;
 
 mod native;
 

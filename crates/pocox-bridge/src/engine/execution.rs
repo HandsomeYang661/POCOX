@@ -5,7 +5,8 @@
 use std::sync::{Arc, LazyLock};
 
 use anyhow::{anyhow, Result};
-use tokio::{runtime::Handle, sync::Semaphore};
+use tokio::runtime::Handle;
+use tokio::sync::Semaphore;
 
 use super::{runtime, transport};
 

@@ -31,18 +31,14 @@
 //! `connect` / `api connect` when no explicit target and no
 //! `config.toml` default is set.
 
-use std::{
-    fmt,
-    path::{Path, PathBuf},
-};
+use std::fmt;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    error::Result,
-    paths,
-    service::{sanitize_component, ServiceKind},
-};
+use crate::error::Result;
+use crate::paths;
+use crate::service::{sanitize_component, ServiceKind};
 
 /// Top-level on-disk state.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

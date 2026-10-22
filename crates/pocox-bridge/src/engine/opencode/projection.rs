@@ -1,7 +1,9 @@
 //! Native messages become shared UI items without guessing missing prefixes or
 //! authorizing host file reads from attachment paths.
 
-use pocox_host_svc::opencode::{host::Snapshot, public, schema::Message};
+use pocox_host_svc::opencode::host::Snapshot;
+use pocox_host_svc::opencode::public;
+use pocox_host_svc::opencode::schema::Message;
 use serde_json::{json, Value};
 
 use super::super::app_session::{AppEvent, ThreadHistory, ThreadItem, TurnSummary};

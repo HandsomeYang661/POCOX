@@ -2,17 +2,17 @@
 //! both data and its synchronization manifest; eviction never leaves a cursor
 //! claiming bytes that are no longer present. No SQLite/mobile runtime added.
 
-use std::{
-    fs::{self, File, OpenOptions},
-    io::{BufRead, BufReader, Read, Write},
-    path::{Path, PathBuf},
-    sync::{Mutex, OnceLock},
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::fs::{self, File, OpenOptions};
+use std::io::{BufRead, BufReader, Read, Write};
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{ensure, Context, Result};
-use pocox_core::{config::Mode, history_sync::digest_bytes};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use pocox_core::config::Mode;
+use pocox_core::history_sync::digest_bytes;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 
 use super::{config, runtime};
 

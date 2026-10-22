@@ -1,14 +1,13 @@
 //! Config persistence + `pcx1:` share-string codec. Pure (no FRB, no
 //! runtime), so it unit-tests standalone.
-use std::{
-    path::{Path, PathBuf},
-    sync::Mutex,
-};
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 static CONFIG_WRITE: Mutex<()> = Mutex::new(());
 
 use anyhow::{anyhow, bail, Context, Result};
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::Engine as _;
 use pocox_core::config::Config;
 use serde::{Deserialize, Serialize};
 
@@ -110,10 +109,8 @@ fn save_unlocked(support_dir: &Path, config: &Config) -> Result<()> {
     let raw = toml::to_string_pretty(config)?;
     #[cfg(unix)]
     {
-        use std::{
-            io::Write as _,
-            os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _},
-        };
+        use std::io::Write as _;
+        use std::os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _};
         let mut f = std::fs::OpenOptions::new()
             .write(true)
             .create(true)

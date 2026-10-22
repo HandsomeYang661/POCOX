@@ -7,11 +7,8 @@
 //! installer (from Dart), and a portable archive to Downloads.
 use std::path::{Path, PathBuf};
 
-use super::{
-    macos,
-    manifest::{Host, Install, Method},
-    Failure, Kind,
-};
+use super::manifest::{Host, Install, Method};
+use super::{macos, Failure, Kind};
 
 /// This installation, as far as choosing an update goes.
 pub fn host() -> Host {

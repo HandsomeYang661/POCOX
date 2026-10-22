@@ -14,31 +14,21 @@
 //! request/response/notification envelopes. Higher layers (the bridge) drive
 //! `initialize` / `thread/*` / `turn/*` on top.
 
-use std::{
-    collections::HashMap,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc, Mutex as StdMutex,
-    },
-    time::Duration,
-};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex as StdMutex};
+use std::time::Duration;
 
 use anyhow::{anyhow, Context, Result};
-use futures::{
-    stream::{SplitSink, StreamExt},
-    SinkExt,
-};
+use futures::stream::{SplitSink, StreamExt};
+use futures::SinkExt;
 use serde_json::Value;
-use tokio::{
-    net::TcpStream,
-    sync::{mpsc, oneshot, Mutex},
-    task::JoinHandle,
-};
-use tokio_tungstenite::{
-    connect_async_with_config,
-    tungstenite::{protocol::WebSocketConfig, Message as WsMessage},
-    MaybeTlsStream, WebSocketStream,
-};
+use tokio::net::TcpStream;
+use tokio::sync::{mpsc, oneshot, Mutex};
+use tokio::task::JoinHandle;
+use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
+use tokio_tungstenite::tungstenite::Message as WsMessage;
+use tokio_tungstenite::{connect_async_with_config, MaybeTlsStream, WebSocketStream};
 use tokio_util::sync::CancellationToken;
 
 use crate::protocol::{Message, Notification, Request, RequestId, Response};

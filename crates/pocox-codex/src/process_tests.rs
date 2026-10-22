@@ -1,8 +1,6 @@
-use std::{
-    collections::HashMap,
-    ffi::{OsStr, OsString},
-    path::Path,
-};
+use std::collections::HashMap;
+use std::ffi::{OsStr, OsString};
+use std::path::Path;
 
 use super::*;
 

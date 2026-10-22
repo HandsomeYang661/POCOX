@@ -2,13 +2,12 @@
 //! installations.
 
 use anyhow::Result;
-use pocox_bridge::agent_tools::{harness, model::Overview, settings, Issued, Status};
+use pocox_bridge::agent_tools::model::Overview;
+use pocox_bridge::agent_tools::{harness, settings, Issued, Status};
 use serde::Serialize;
 
-use super::{
-    local_tools::{self, Installation},
-    ui,
-};
+use super::local_tools::{self, Installation};
+use super::ui;
 use crate::cli::{OnOff, ToolsCmd, ToolsTargetArgs};
 
 /// Dispatch the `tools` subcommand group.

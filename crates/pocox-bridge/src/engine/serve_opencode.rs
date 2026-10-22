@@ -4,37 +4,27 @@
 //! shared history with OpenCode's own configuration attaches to OpenCode's
 //! background server instead of owning a server: stopping it only detaches.
 
-use std::{
-    collections::HashMap,
-    net::SocketAddr,
-    sync::{Arc, Mutex, MutexGuard},
-    time::{Duration, Instant},
-};
+use std::collections::HashMap;
+use std::net::SocketAddr;
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use once_cell::sync::Lazy;
 use pocox_core::service::{ServiceId, ServiceKind};
-use pocox_host_svc::{
-    file_links::SessionDirResolver,
-    opencode::{
-        self,
-        catalog::Catalog,
-        host::Host,
-        runtime::{Launch, Server},
-        service::{Attachment, State},
-    },
-    process,
-};
+use pocox_host_svc::file_links::SessionDirResolver;
+use pocox_host_svc::opencode::catalog::Catalog;
+use pocox_host_svc::opencode::host::Host;
+use pocox_host_svc::opencode::runtime::{Launch, Server};
+use pocox_host_svc::opencode::service::{Attachment, State};
+use pocox_host_svc::opencode::{self};
+use pocox_host_svc::process;
 use pocox_pb::Published;
 use tokio::task::JoinHandle;
 
-use super::{
-    agent_tools,
-    host_lease::{self, Op},
-    host_profiles, host_services, hosting, runtime,
-    serve::ServeStatus,
-    transport,
-};
+use super::host_lease::{self, Op};
+use super::serve::ServeStatus;
+use super::{agent_tools, host_profiles, host_services, hosting, runtime, transport};
 
 #[path = "serve_opencode_registration.rs"]
 mod registration;

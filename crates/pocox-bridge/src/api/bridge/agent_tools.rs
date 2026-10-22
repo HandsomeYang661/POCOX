@@ -2,10 +2,8 @@
 //! answers, and this device's connections to other devices' shares.
 
 use super::*;
-use crate::engine::{
-    agent_tools::{self as tools, connections, model, shares, tokens, watch},
-    execution::{self, Lane},
-};
+use crate::engine::agent_tools::{self as tools, connections, model, shares, tokens, watch};
+use crate::engine::execution::{self, Lane};
 
 /// The tools on this installation.
 pub struct AgentToolsStatusDto {

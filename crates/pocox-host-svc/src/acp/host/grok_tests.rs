@@ -1,10 +1,8 @@
 //! Grok Build's own extensions, against the mock agent's `--grok` mode
 //! (modelled on what Grok 1.0.62 sends; see `docs/grok-build.md`).
 
-use super::{
-    tests::{bodies, dispatched_turn, eventually, mock_binary, start_mock},
-    *,
-};
+use super::tests::{bodies, dispatched_turn, eventually, mock_binary, start_mock};
+use super::*;
 use crate::acp::schema::{self, SteerOutcome};
 
 async fn grok_host() -> (AgentHost, String, tempfile::TempDir) {

@@ -1,15 +1,14 @@
 //! Claude host overrides. Values share the profile store's private-file
 //! transaction and pins; readers receive only presence for credentials.
 
-use std::{collections::BTreeMap, path::Path};
+use std::collections::BTreeMap;
+use std::path::Path;
 
 use anyhow::{anyhow, bail, Result};
 use pocox_core::provider::{validate_base_url, Secret};
 
-use super::{
-    files::{key_file_name, key_path, valid_key_ref, write_private, Committed},
-    Engine,
-};
+use super::files::{key_file_name, key_path, valid_key_ref, write_private, Committed};
+use super::Engine;
 
 /// One editable, upstream-supported Claude environment variable.
 #[derive(Clone, Copy)]
@@ -308,7 +307,8 @@ fn apply(
 
 #[cfg(test)]
 mod tests {
-    use super::{super::*, *};
+    use super::super::*;
+    use super::*;
 
     fn agent() -> AgentSpec {
         AgentSpec {

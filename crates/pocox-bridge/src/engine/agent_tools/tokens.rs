@@ -7,10 +7,8 @@
 //! ACP session's header, a harness entry, the CLI's private file) and is never
 //! logged or put on a command line.
 
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use base64::Engine as _;

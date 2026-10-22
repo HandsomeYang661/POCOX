@@ -21,7 +21,8 @@
 //! a periodic refresh sufficient, and why nothing here has to hand a new
 //! credential back to its caller.
 
-use std::{future::Future, time::Duration};
+use std::future::Future;
+use std::time::Duration;
 
 use tokio::task::JoinHandle;
 
@@ -116,10 +117,8 @@ mod tests {
 
     #[tokio::test(start_paused = true)]
     async fn failed_refresh_retries_after_one_minute_without_another_long_sleep() {
-        use std::sync::{
-            atomic::{AtomicUsize, Ordering},
-            Arc,
-        };
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
         let attempts = Arc::new(AtomicUsize::new(0));
         let observed = Arc::clone(&attempts);
         let task = keep_credential_alive(now_secs() + 24 * 60 * 60, move || {

@@ -1,9 +1,7 @@
 //! Desktop-local native history. No relay, ACP admission or runtime launch.
-use std::{
-    collections::VecDeque,
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
+use std::collections::VecDeque;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 
 use anyhow::{bail, ensure, Context, Result};
 use pocox_host_svc::native_history::{ClaudeHistory, GrokHistory, NativeHistory};

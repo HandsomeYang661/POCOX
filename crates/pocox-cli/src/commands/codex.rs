@@ -6,10 +6,8 @@ use pocox_codex::{
     StopOutcome, READY_TIMEOUT,
 };
 
-use crate::{
-    cli::{CodexCmd, CodexStartArgs},
-    commands::{api_proxy, ui},
-};
+use crate::cli::{CodexCmd, CodexStartArgs};
+use crate::commands::{api_proxy, ui};
 
 /// Dispatch the `codex` subcommand group.
 pub async fn run(cmd: CodexCmd) -> Result<()> {

@@ -1,14 +1,10 @@
 //! Bounded non-blocking admission to one disk writer, with timed flushes.
-use std::{
-    fs::{self, File, OpenOptions},
-    io::{self, BufWriter, Write},
-    path::{Path, PathBuf},
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        mpsc, Arc,
-    },
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::fs::{self, File, OpenOptions};
+use std::io::{self, BufWriter, Write};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{mpsc, Arc};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use super::{clock, date_stamp, LogLine};
 

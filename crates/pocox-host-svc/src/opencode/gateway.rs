@@ -3,15 +3,13 @@
 use reqwest::Method;
 use serde_json::{json, Value};
 
-use super::{
-    catalog::Catalog,
-    client::ClientError,
-    events::EventStream,
-    host::{Answer, Identity, Info, Input, Options, ReadResult, Snapshot},
-    http::{Http, Pocox},
-    schema::Session,
-    wire::Dialect,
-};
+use super::catalog::Catalog;
+use super::client::ClientError;
+use super::events::EventStream;
+use super::host::{Answer, Identity, Info, Input, Options, ReadResult, Snapshot};
+use super::http::{Http, Pocox};
+use super::schema::Session;
+use super::wire::Dialect;
 use crate::session_access::SessionAccess;
 
 /// Controller transport over a resolved loopback or relay endpoint. This

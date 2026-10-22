@@ -1,4 +1,5 @@
-use super::{ffi::pocox_galaxy_frame_v1, VERSION};
+use super::ffi::pocox_galaxy_frame_v1;
+use super::VERSION;
 
 /// Home with two agents on one ring, a second device with a port, an
 /// offline device without services, a link and one star layer.

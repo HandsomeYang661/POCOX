@@ -6,11 +6,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::{
-    events::Event,
-    public,
-    schema::{Message, MessagePage, Status},
-};
+use super::events::Event;
+use super::public;
+use super::schema::{Message, MessagePage, Status};
 
 const MAX_BYTES: usize = 8 * 1024 * 1024;
 const MAX_MESSAGES: usize = 128;

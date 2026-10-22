@@ -3,7 +3,8 @@
 use anyhow::Result;
 use comfy_table::Cell;
 use pocox_codex::status as codex_status;
-use pocox_core::{process::pid_alive, state::RuntimeState};
+use pocox_core::process::pid_alive;
+use pocox_core::state::RuntimeState;
 
 use crate::commands::ui;
 

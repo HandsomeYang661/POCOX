@@ -12,20 +12,20 @@
 //! `turns`, `config`, `account`, `items`) and are re-exported here, so the
 //! `app_session::*` paths are unchanged.
 
-use std::{
-    collections::{HashMap, HashSet},
-    sync::{Arc, Mutex},
-    time::{Duration, Instant},
-};
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, bail, Context, Result};
 use once_cell::sync::OnceCell;
 use pocox_codex::client::{AppClient, Inbound};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use tokio::{sync::broadcast, task::JoinHandle};
+use tokio::sync::broadcast;
+use tokio::task::JoinHandle;
 
-use crate::engine::{runtime, transport::Transport};
+use crate::engine::runtime;
+use crate::engine::transport::Transport;
 
 #[path = "app_session_live.rs"]
 mod live;
@@ -47,8 +47,43 @@ mod threads;
 mod turns;
 
 // Read by the live hosting tests only (the connection keeps its own uses).
+pub use self::account::{
+    auth_status, codex_logout, login_cancel, login_chatgpt_start, parse_token_usage, rate_limits,
+    ChatgptLoginStart,
+};
+use self::config::{
+    insert_execution_options, nonempty_str, normalize_approval_policy, parse_collaboration_mode,
+    record_runtime_config, runtime_config_with_thread, track_runtime_config,
+};
+pub use self::config::{model_list, thread_runtime_config, ThreadRuntimeConfig};
 #[cfg(test)]
 pub use self::connection::probe_endpoint_error;
+pub use self::connection::{
+    connect, connect_local, disconnect, is_connected, probe_api, probe_endpoint,
+    probe_http_endpoint, probe_reason,
+};
+use self::history::{
+    fetch_item_page, fetch_older_item_page, fetch_turn_page, is_unknown_method,
+    load_paginated_window, load_whole_history, LoadedHistory, INITIAL_TURN_LIMIT, ITEM_PAGE_LIMIT,
+    MAX_TURN_ITEM_PAGES,
+};
+pub use self::history::{ThreadHistory, TurnSummary};
+use self::items::{
+    buffer_item, map_event, parse_turn_item, parse_turn_items, turn_stamp, TurnStamp,
+};
+pub(super) use self::items::{encode_plan, format_content_diff};
+pub(super) use self::threads::{
+    external_history_changed, history_continuation, parse_prefetched_items, reset_synced_history,
+};
+pub use self::threads::{
+    thread_list, thread_metadata, thread_older_page, thread_read, thread_read_with_pages,
+    thread_resume, thread_summary, thread_turn_items, OlderPage,
+};
+pub use self::turns::{
+    compact, git_diff, realtime_request, respond_approval, respond_user_input, set_thread_name,
+    thread_start, turn_interrupt, turn_start, turn_steer,
+};
+use self::turns::{extract_turn_id, record_active_turn, track_active_turn, track_pending_approval};
 #[cfg(test)]
 use self::{
     account::auth_status_from_response,
@@ -61,47 +96,6 @@ use self::{
     items::{item_images, parse_item, summarize_item},
     threads::{first_sentence, parse_thread_meta},
     turns::{approval_result, build_turn_input, validate_realtime_request},
-};
-pub use self::{
-    account::{
-        auth_status, codex_logout, login_cancel, login_chatgpt_start, parse_token_usage,
-        rate_limits, ChatgptLoginStart,
-    },
-    config::{model_list, thread_runtime_config, ThreadRuntimeConfig},
-    connection::{
-        connect, connect_local, disconnect, is_connected, probe_api, probe_endpoint,
-        probe_http_endpoint, probe_reason,
-    },
-    history::{ThreadHistory, TurnSummary},
-    threads::{
-        thread_list, thread_metadata, thread_older_page, thread_read, thread_read_with_pages,
-        thread_resume, thread_summary, thread_turn_items, OlderPage,
-    },
-    turns::{
-        compact, git_diff, realtime_request, respond_approval, respond_user_input, set_thread_name,
-        thread_start, turn_interrupt, turn_start, turn_steer,
-    },
-};
-use self::{
-    config::{
-        insert_execution_options, nonempty_str, normalize_approval_policy,
-        parse_collaboration_mode, record_runtime_config, runtime_config_with_thread,
-        track_runtime_config,
-    },
-    history::{
-        fetch_item_page, fetch_older_item_page, fetch_turn_page, is_unknown_method,
-        load_paginated_window, load_whole_history, LoadedHistory, INITIAL_TURN_LIMIT,
-        ITEM_PAGE_LIMIT, MAX_TURN_ITEM_PAGES,
-    },
-    items::{buffer_item, map_event, parse_turn_item, parse_turn_items, turn_stamp, TurnStamp},
-    turns::{extract_turn_id, record_active_turn, track_active_turn, track_pending_approval},
-};
-pub(super) use self::{
-    items::{encode_plan, format_content_diff},
-    threads::{
-        external_history_changed, history_continuation, parse_prefetched_items,
-        reset_synced_history,
-    },
 };
 
 /// A UI-facing app-server event, flattened from a JSON-RPC notification.

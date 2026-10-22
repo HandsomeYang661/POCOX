@@ -1,10 +1,8 @@
 use futures::{SinkExt, StreamExt};
 use tokio::net::{TcpListener, TcpStream};
-use tokio_tungstenite::{
-    accept_async_with_config,
-    tungstenite::{protocol::WebSocketConfig, Message},
-    WebSocketStream,
-};
+use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
+use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::{accept_async_with_config, WebSocketStream};
 
 use super::*;
 

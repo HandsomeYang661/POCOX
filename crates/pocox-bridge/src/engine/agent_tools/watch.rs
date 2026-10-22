@@ -8,23 +8,19 @@
 //!   this device's own state ────┘
 //! ```
 
-use std::{
-    collections::{BTreeMap, HashMap},
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::collections::{BTreeMap, HashMap};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use futures::StreamExt;
 use once_cell::sync::OnceCell;
 use pocox_core::service::{ServiceId, ServiceKind};
-use tokio::{sync::Notify, task::JoinHandle};
+use tokio::sync::Notify;
+use tokio::task::JoinHandle;
 
-use super::{
-    catalog,
-    model::{Catalog, CatalogEvent, DeviceView, Overview},
-    state,
-};
+use super::model::{Catalog, CatalogEvent, DeviceView, Overview};
+use super::{catalog, state};
 use crate::engine::{discovery, meta, runtime, transport};
 
 /// One update for the app.

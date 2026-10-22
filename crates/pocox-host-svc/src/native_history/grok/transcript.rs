@@ -22,22 +22,20 @@
 //! written with its last chunk's id, so the overlay is the live updates past
 //! the log's highest id, once the log is known to hold everything else.
 
-use std::{
-    fs::{self, File},
-    io::{BufRead, BufReader, Read, Seek, SeekFrom},
-    path::Path,
-};
+use std::fs::{self, File};
+use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
+use std::path::Path;
 
 use anyhow::{bail, ensure, Context, Result};
 use pocox_core::history_sync::digest_bytes;
 use serde::Deserialize;
-use serde_json::{value::RawValue, Value};
+use serde_json::value::RawValue;
+use serde_json::Value;
 
-use super::{super::NativePage, inventory};
-use crate::acp::{
-    fold::{replay_turn, Turn},
-    schema::TurnOutcome,
-};
+use super::super::NativePage;
+use super::inventory;
+use crate::acp::fold::{replay_turn, Turn};
+use crate::acp::schema::TurnOutcome;
 
 const UPDATES_FILE: &str = "updates.jsonl";
 const XAI_UPDATE: &str = "_x.ai/session/update";

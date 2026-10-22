@@ -9,11 +9,8 @@ use pocox_core::provider::Secret;
 use pocox_host_svc::acp::AgentSpec;
 use serde::{Deserialize, Serialize};
 
-use super::{
-    host_apply, host_lifecycle,
-    host_profiles::{self, Change, KeyChange, ProfileInput, Runtime, RuntimeChange},
-    host_start, runtime, serve,
-};
+use super::host_profiles::{self, Change, KeyChange, ProfileInput, Runtime, RuntimeChange};
+use super::{host_apply, host_lifecycle, host_start, runtime, serve};
 
 #[path = "management_http.rs"]
 mod http;

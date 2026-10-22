@@ -1,12 +1,11 @@
 //! Numeric-only telemetry from the npm child; all other stdout is discarded.
 
-use std::{collections::VecDeque, time::Duration};
+use std::collections::VecDeque;
+use std::time::Duration;
 
-use tokio::{
-    io::{AsyncRead, AsyncReadExt as _},
-    sync::watch,
-    time::Instant,
-};
+use tokio::io::{AsyncRead, AsyncReadExt as _};
+use tokio::sync::watch;
+use tokio::time::Instant;
 
 pub(super) const HOOK: &str = include_str!("claude_download.cjs");
 const MAX_LINE: usize = 128;

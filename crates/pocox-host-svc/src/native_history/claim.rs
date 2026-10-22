@@ -1,10 +1,8 @@
 //! Cooperative admission between POCOX hosts, not a lock honored by native
 //! CLIs.
 
-use std::{
-    fs::{self, File, OpenOptions, TryLockError},
-    path::{Path, PathBuf},
-};
+use std::fs::{self, File, OpenOptions, TryLockError};
+use std::path::{Path, PathBuf};
 
 use pocox_core::history_sync::digest_bytes;
 

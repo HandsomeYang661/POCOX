@@ -15,10 +15,8 @@ mod settings;
 #[cfg(test)]
 mod tests;
 
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex, MutexGuard, Weak},
-};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, MutexGuard, Weak};
 
 use anyhow::{anyhow, bail, Result};
 pub use connection::{connect, context_changed, disconnect, is_connected, probe_reason};
@@ -26,21 +24,18 @@ pub use engine::{models_for_project, OpenCodeEngine};
 pub use follow::{follow_session, liveness};
 use once_cell::sync::Lazy;
 pub use ops::{access, commands, open, release};
-use pocox_host_svc::opencode::{
-    catalog::Catalog,
-    client::ClientError,
-    gateway::Gateway,
-    host::{Identity, Info, Snapshot},
-};
+use pocox_host_svc::opencode::catalog::Catalog;
+use pocox_host_svc::opencode::client::ClientError;
+use pocox_host_svc::opencode::gateway::Gateway;
+use pocox_host_svc::opencode::host::{Identity, Info, Snapshot};
 pub use settings::{draft_settings, refresh_settings};
-use tokio::{sync::broadcast, task::JoinHandle};
+use tokio::sync::broadcast;
+use tokio::task::JoinHandle;
 
-use super::{
-    app_session::AppEvent,
-    runtime,
-    session_engine::logical_key,
-    transport::{self, Context},
-};
+use super::app_session::AppEvent;
+use super::runtime;
+use super::session_engine::logical_key;
+use super::transport::{self, Context};
 
 type Key = (String, String);
 

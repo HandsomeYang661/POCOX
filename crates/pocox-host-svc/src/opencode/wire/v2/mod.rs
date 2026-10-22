@@ -6,21 +6,21 @@ mod shape;
 #[cfg(test)]
 mod tests;
 
-use std::{borrow::Cow, collections::BTreeMap};
+use std::borrow::Cow;
+use std::collections::BTreeMap;
 
 use reqwest::{Method, RequestBuilder};
-use serde::{de::IgnoredAny, Serialize};
+use serde::de::IgnoredAny;
+use serde::Serialize;
 use serde_json::Value;
 
 use self::shape::{Data, Page};
 use super::{Health, Reply, Wire};
-use crate::opencode::{
-    catalog::Catalog,
-    client::ClientError,
-    events::Event,
-    http::{Http, Native, MAX_BODY, MAX_NATIVE_HISTORY_BODY, REQUEST_TIMEOUT},
-    schema::{CommandInput, MessagePage, Prompt, Session, Status, Statuses},
-};
+use crate::opencode::catalog::Catalog;
+use crate::opencode::client::ClientError;
+use crate::opencode::events::Event;
+use crate::opencode::http::{Http, Native, MAX_BODY, MAX_NATIVE_HISTORY_BODY, REQUEST_TIMEOUT};
+use crate::opencode::schema::{CommandInput, MessagePage, Prompt, Session, Status, Statuses};
 
 /// OpenCode 2.x.
 pub(crate) enum V2 {}

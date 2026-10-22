@@ -19,11 +19,9 @@
 //! This sits above [`super::hosting`], whose claims still keep two
 //! *providers* off one name; the lease orders operations on one instance.
 
-use std::{
-    collections::HashMap,
-    sync::{Condvar, Mutex, MutexGuard},
-    time::{Duration, Instant},
-};
+use std::collections::HashMap;
+use std::sync::{Condvar, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use anyhow::{bail, Result};
 use once_cell::sync::Lazy;

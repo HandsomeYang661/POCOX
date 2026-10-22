@@ -2,7 +2,8 @@
 
 use uuid::Uuid;
 
-use crate::{models::RefreshToken, Result, Store};
+use crate::models::RefreshToken;
+use crate::{Result, Store};
 
 impl Store {
     /// Store a new refresh token (by its hash) for a user; returns the row id.

@@ -17,12 +17,10 @@
 //! ([`require`]). So it never starts, adopts, stops or re-registers the first
 //! app's services, nor changes what that app restores or serves.
 
-use std::{
-    fs::{File, TryLockError},
-    io::Write as _,
-    path::{Path, PathBuf},
-    sync::Mutex,
-};
+use std::fs::{File, TryLockError};
+use std::io::Write as _;
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 use anyhow::{anyhow, Context, Result};
 

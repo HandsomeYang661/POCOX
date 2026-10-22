@@ -15,22 +15,17 @@
 //! result is `acceptance.json`. Only the uniquely named hosts started here are
 //! stopped, by name.
 
-use std::{
-    collections::HashSet,
-    io::Write as _,
-    path::{Path, PathBuf},
-    time::{Duration, Instant},
-};
+use std::collections::HashSet;
+use std::io::Write as _;
+use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use pocox_core::process::pid_running;
 use pocox_host_svc::acp::{AgentSpec, GatewayClient};
 use serde_json::{json, Value};
 
-use crate::engine::{
-    app_session, runtime, serve, serve_acp,
-    session_engine::{self, StartOptions},
-    transport,
-};
+use crate::engine::session_engine::{self, StartOptions};
+use crate::engine::{app_session, runtime, serve, serve_acp, transport};
 
 const WAIT: Duration = Duration::from_secs(120);
 

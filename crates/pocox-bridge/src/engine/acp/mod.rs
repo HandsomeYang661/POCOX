@@ -54,11 +54,9 @@ mod live_tests;
 mod native_history;
 mod ops;
 mod translate;
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex, MutexGuard, Weak},
-    time::Duration,
-};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex, MutexGuard, Weak};
+use std::time::Duration;
 
 pub use access::{session_access, session_open, session_release};
 use anyhow::{anyhow, bail, Context as _, Result};
@@ -66,11 +64,15 @@ use futures::StreamExt;
 pub use native_history::{follow_native_session, native_liveness};
 use once_cell::sync::OnceCell;
 pub use ops::*;
-use pocox_host_svc::acp::{client::EventStream, ClientError, GatewayClient, Identity, Replica};
+use pocox_host_svc::acp::client::EventStream;
+use pocox_host_svc::acp::{ClientError, GatewayClient, Identity, Replica};
 use serde_json::Value;
-use tokio::{sync::broadcast, task::JoinHandle, time::Instant};
+use tokio::sync::broadcast;
+use tokio::task::JoinHandle;
+use tokio::time::Instant;
 pub use translate::app_item as native_item;
 
+use self::connection::check_api;
 pub use self::connection::{
     connect, context_changed, disconnect, host_info, is_connected, probe_reason,
 };
@@ -78,16 +80,11 @@ pub use self::connection::{
 use self::connection::{disconnect_inner, is_current, register};
 #[cfg(test)]
 use self::events::recover;
-use self::{
-    connection::check_api,
-    events::{event_loop, Watch},
-};
-use super::{
-    app_session::AppEvent,
-    runtime,
-    session_engine::{logical_key, Capabilities},
-    transport::{self, Context, Owned},
-};
+use self::events::{event_loop, Watch};
+use super::app_session::AppEvent;
+use super::runtime;
+use super::session_engine::{logical_key, Capabilities};
+use super::transport::{self, Context, Owned};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 const EVENT_BUFFER: usize = 1024;

@@ -7,11 +7,9 @@
 //! Arguments may contain secrets, so [`AgentSpec`]'s `Debug` output and every
 //! log line show only their count.
 
-use std::{
-    ffi::OsString,
-    fmt,
-    path::{Path, PathBuf},
-};
+use std::ffi::OsString;
+use std::fmt;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 

@@ -2,10 +2,8 @@
 //! names, the cross-process lock and unreferenced-key cleanup (see the
 //! parent module docs).
 
-use std::{
-    fs::{File, OpenOptions},
-    path::{Path, PathBuf},
-};
+use std::fs::{File, OpenOptions};
+use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 

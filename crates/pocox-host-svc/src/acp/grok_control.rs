@@ -9,17 +9,17 @@
 //! answers once the user approved the code in a browser; meanwhile
 //! `_x.ai/auth/get_url` hands out the verification URL once.
 
-use std::{ffi::OsString, path::Path, sync::Arc, time::Duration};
+use std::ffi::OsString;
+use std::path::Path;
+use std::sync::Arc;
+use std::time::Duration;
 
 use serde_json::{json, Value};
 use tokio::sync::Mutex;
 
-use super::{
-    grok,
-    jsonrpc::{RequestId, RpcError},
-    peer::{CallError, Inbound, Peer},
-    schema,
-};
+use super::jsonrpc::{RequestId, RpcError};
+use super::peer::{CallError, Inbound, Peer};
+use super::{grok, schema};
 use crate::process::{self, AgentProcess};
 
 /// How long the handshake may take.

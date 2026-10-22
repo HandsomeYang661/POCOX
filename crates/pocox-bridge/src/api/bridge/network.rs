@@ -1,10 +1,8 @@
 //! App-owned outbound network configuration and image reads.
 use anyhow::Result;
 
-use crate::engine::{
-    execution::{self, Lane},
-    network, runtime,
-};
+use crate::engine::execution::{self, Lane};
+use crate::engine::{network, runtime};
 
 /// Saved proxy URL for the explicit editor; may contain credentials.
 pub async fn network_proxy() -> Result<Option<String>> {

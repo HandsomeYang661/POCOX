@@ -5,10 +5,8 @@
 //! and [`ADDR_IN_USE`] for each line reporting an address-in-use bind
 //! failure, so a failed start is still diagnosed (and offered another port).
 
-use std::{
-    fs::File,
-    io::{ErrorKind, Read, Write},
-};
+use std::fs::File;
+use std::io::{ErrorKind, Read, Write};
 
 use pocox_core::redact::{Lines, Piece, ADDR_IN_USE, OUTPUT_WITHHELD};
 

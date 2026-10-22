@@ -1,18 +1,17 @@
 //! A fake leader on this home's socket, speaking the leader's framing.
 
-use std::{path::Path, time::Duration};
+use std::path::Path;
+use std::time::Duration;
 
 use serde_json::{json, Value};
 use tempfile::TempDir;
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::{UnixListener, UnixStream},
-};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::{UnixListener, UnixStream};
 
-use super::super::{
-    tests::{append, grok_client, prompt, reply, session, stamped, summary, texts, ID},
-    GrokHistory,
+use super::super::tests::{
+    append, grok_client, prompt, reply, session, stamped, summary, texts, ID,
 };
+use super::super::GrokHistory;
 
 const WAIT: Duration = Duration::from_secs(10);
 

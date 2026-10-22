@@ -11,13 +11,12 @@
 //! Every function here is **blocking** (it scans the filesystem and process
 //! table); HTTP handlers run them on a blocking task.
 
-use std::{collections::HashSet, path::PathBuf};
+use std::collections::HashSet;
+use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
-use pocox_codex::{
-    liveness::{held_open_paths, Holder as CdxHolder},
-    rollout, takeover,
-};
+use pocox_codex::liveness::{held_open_paths, Holder as CdxHolder};
+use pocox_codex::{rollout, takeover};
 use serde::{Deserialize, Serialize};
 
 /// A live process holding a session's rollout open — a force-takeover target.

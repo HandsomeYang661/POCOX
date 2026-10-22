@@ -8,7 +8,8 @@
 use std::path::PathBuf;
 
 use clap::{Args, Parser, Subcommand};
-use pocox_core::{service::ServiceKind, state::PbRole};
+use pocox_core::service::ServiceKind;
+use pocox_core::state::PbRole;
 
 /// `pocox` orchestrates codex app-server + pb-mapper.
 #[derive(Debug, Parser)]

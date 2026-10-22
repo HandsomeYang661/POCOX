@@ -14,7 +14,8 @@
 //! ([`leader`]): its streamed updates past the log extend the last turn,
 //! and the leader's queue and roster say whether a turn runs.
 
-use std::{collections::HashMap, path::PathBuf};
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 use anyhow::{ensure, Context, Result};
 use serde_json::{json, Value};

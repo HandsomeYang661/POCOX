@@ -4,12 +4,11 @@
 //! `?path=` query, and the root-confinement 403 — is exercised for real, not
 //! just the handler helpers.
 
-use std::{net::SocketAddr, sync::Arc};
+use std::net::SocketAddr;
+use std::sync::Arc;
 
-use pocox_host_svc::{
-    serve,
-    store::{ConfigStore, HostConfig, HostStore},
-};
+use pocox_host_svc::serve;
+use pocox_host_svc::store::{ConfigStore, HostConfig, HostStore};
 use tokio::net::TcpListener;
 
 /// Bring up the meta service on an ephemeral loopback port over a temp

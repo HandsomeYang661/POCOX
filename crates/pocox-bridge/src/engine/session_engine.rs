@@ -18,14 +18,11 @@ use pocox_account_proto::NamespacedServiceId;
 use pocox_core::service::{ServiceId, ServiceKind};
 use tokio::sync::broadcast;
 
-use super::{
-    acp,
-    app_session::{
-        self, AppEvent, ModelInfo, OlderPage, ThreadHistory, ThreadItem, ThreadMeta,
-        ThreadRuntimeConfig, TurnItemsPage,
-    },
-    transport,
+use super::app_session::{
+    self, AppEvent, ModelInfo, OlderPage, ThreadHistory, ThreadItem, ThreadMeta,
+    ThreadRuntimeConfig, TurnItemsPage,
 };
+use super::{acp, transport};
 
 /// Wire protocol of a session service.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

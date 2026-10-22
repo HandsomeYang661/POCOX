@@ -17,25 +17,18 @@
 //! session that Grok's own stdio client runs through a leader it started.
 #![cfg(unix)]
 
-use std::{
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use pocox_core::provider::{ApiProtocol, ProviderEndpoint, Secret};
-use pocox_host_svc::{
-    acp::{
-        grok, grok_control::GrokControl, schema::SteerOutcome, spec, AgentHost, HostOptions,
-        Identity, SessionStore, SourceId,
-    },
-    native_history::{GrokHistory, NativeHistory},
-};
+use pocox_host_svc::acp::grok_control::GrokControl;
+use pocox_host_svc::acp::schema::SteerOutcome;
+use pocox_host_svc::acp::{grok, spec, AgentHost, HostOptions, Identity, SessionStore, SourceId};
+use pocox_host_svc::native_history::{GrokHistory, NativeHistory};
 use serde_json::{json, Value};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpListener,
-};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpListener;
 
 const KEY: &str = "sk-pocox-live-test";
 const REPLY: &str = "pong from the loopback model";

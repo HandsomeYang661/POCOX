@@ -1,28 +1,21 @@
 //! Owned native `opencode serve`, its database claim, and bounded readiness.
 
-use std::{
-    ffi::OsString,
-    path::{Path, PathBuf},
-    sync::atomic::{AtomicUsize, Ordering},
-    time::Duration,
-};
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
 
 use anyhow::{anyhow, ensure, Context, Result};
-use pocox_core::{process::process_start_time, provider::Secret};
-use tokio::{
-    io::{AsyncBufReadExt, AsyncReadExt, BufReader},
-    task::JoinHandle,
-};
+use pocox_core::process::process_start_time;
+use pocox_core::provider::Secret;
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
+use tokio::task::JoinHandle;
 
-use super::{
-    client::Client,
-    service::{self, Attachment},
-    wire::{Dialect, Version},
-};
-use crate::{
-    native_history::{ClaimError, SessionClaim},
-    process::{self, AgentProcess, Spawned},
-};
+use super::client::Client;
+use super::service::{self, Attachment};
+use super::wire::{Dialect, Version};
+use crate::native_history::{ClaimError, SessionClaim};
+use crate::process::{self, AgentProcess, Spawned};
 
 const PROBE_TIMEOUT: Duration = Duration::from_secs(15);
 

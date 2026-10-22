@@ -11,15 +11,14 @@ use anyhow::{anyhow, Result};
 use flutter_rust_bridge::frb;
 use pocox_core::config::Mode;
 
-use crate::{
-    engine::{
-        account, app_session, claude_setup, config, discovery, logging, meta, runtime, serve,
-        serve_acp,
-        session_engine::{self, engine, require_native, Protocol, StartOptions, TurnOptions},
-        sessions, transport,
-    },
-    frb_generated::StreamSink,
+use crate::engine::session_engine::{
+    self, engine, require_native, Protocol, StartOptions, TurnOptions,
 };
+use crate::engine::{
+    account, app_session, claude_setup, config, discovery, logging, meta, runtime, serve,
+    serve_acp, sessions, transport,
+};
+use crate::frb_generated::StreamSink;
 
 pub mod agent_tools;
 pub mod attachments;
@@ -45,103 +44,101 @@ pub mod text_render;
 pub mod threads;
 pub mod updates;
 
-pub use self::{
-    agent_tools::{
-        tools_answer, tools_connect, tools_disconnect, tools_harness_config, tools_keep_share,
-        tools_overview, tools_revoke, tools_set_ask_before_sharing, tools_set_enabled, tools_share,
-        tools_share_on, tools_status, tools_stop_share, tools_tokens, tools_watch,
-        AgentToolsStatusDto, ToolsConnectionDto, ToolsConsentDto, ToolsDeviceDto, ToolsOverviewDto,
-        ToolsOwnerDto, ToolsPortDto, ToolsRefDto, ToolsServiceDto, ToolsShareDto, ToolsSharedDto,
-        ToolsTokenDto, ToolsUpdateDto,
-    },
-    codex_setup::{
-        codex_auth_status, codex_login_cancel, codex_login_chatgpt_start, codex_logout,
-        codex_prompt_variant, codex_set_prompt_variant, codex_setup_provider, codex_setup_status,
-        CodexAuthStatusDto, CodexLoginStartDto, CodexSetupStatusDto,
-    },
-    connection::{
-        api_probe, api_probe_local, app_agent_identity, app_capabilities, app_connect,
-        app_disconnect, app_is_connected, app_probe, app_probe_local, app_probe_reason,
-        app_running_threads, AgentIdentityDto, AppCapabilitiesDto,
-    },
-    device_management::{
-        device_management_set_enabled, device_management_status, host_restore_overrides,
-        host_restore_problem, host_restore_service, managed_claude_prepare, managed_device,
-        managed_host, managed_host_apply, managed_host_save, managed_host_start,
-        managed_host_start_saved, managed_host_stop, managed_runtimes, DeviceManagementDto,
-        HostRestoreOverrideDto, ManagedDeviceDto, ManagedHostDto, ManagedHostSaveDto,
-        ManagedRuntimeAvailabilityDto, ManagedRuntimeDto,
-    },
-    device_metadata::{local_device_metadata, service_device_metadata, DeviceMetadataDto},
-    events::{
-        app_projected_events, event_feed_create, event_feed_follow, meta_retry_events, AppEventDto,
-        EventFeed, EventTopic, LogLineDto, RetryProgressDto,
-    },
-    grok::{
-        grok_account_status, grok_sign_in_cancel, grok_sign_in_start, grok_sign_in_state,
-        grok_sign_out, GrokAccountDto, GrokSignInDto,
-    },
-    host_config::{
-        app_serve_apply, app_serve_start_configured, codex_local_auth_status,
-        codex_local_login_cancel, codex_local_login_start, codex_local_logout,
-        codex_local_session_close, codex_local_session_open, host_config_get, host_config_save,
-        host_config_supported, CodexLocalAuthDto, HostActiveDto, HostApplyDto, HostConfigDto,
-        HostConfigInputDto, HostConfigSupportDto, HostRuntimeDto, HostStartedDto,
-    },
-    host_sessions::{
-        app_force_resume, app_local_session_transcript, app_local_sessions, app_session_liveness,
-        meta_ensure_default_project, meta_file_download, meta_file_preview, meta_force_resume,
-        meta_host_is_local, meta_list_dir, meta_list_files, meta_project_config,
-        meta_project_settings, meta_read_file, meta_read_thread_image, meta_save_project_settings,
-        meta_session_events, meta_session_liveness, meta_session_transcript, meta_sessions,
-        meta_set_project_config, meta_thread_config_get, meta_thread_config_set,
-        meta_upload_context, meta_upload_file, meta_upload_file_scoped, meta_write_file,
-        DirEntryDto, FileEntryDto, FilePreviewDto, ForceResumeReportDto, HolderDto,
-        LocalSessionDto, ProjectConfigDto, ProjectSettingsDto, SessionFollowUpdateDto,
-        SessionLivenessDto, ThreadConfigDto,
-    },
-    hosted_account::{
-        account_current_user, account_deregister_service, account_login_poll, account_login_start,
-        account_logout, account_services, account_web_login_exchange, account_web_login_start,
-        AccountPollDto, AccountServiceDto, AccountUserDto, DeviceCodeDto, WebLoginStartDto,
-    },
-    hosting::{
-        acp_claude_prepare_cancel, acp_claude_prepare_cancel_run, acp_claude_prepare_start,
-        acp_claude_prepare_state, acp_claude_status, acp_hosting_supported, acp_locate,
-        acp_presets, app_serve_deregister, app_serve_reregister, app_serve_restart_acp,
-        app_serve_start, app_serve_start_acp, app_serve_status, app_serve_stop, app_serve_stop_all,
-        codex_locate, embedded_codex_version, hosting_owned_elsewhere, opencode_detect,
-        opencode_refresh, AcpAgentSpecDto, AcpClaudeSetupDto, AcpClaudeStatusDto, AcpPresetDto,
-        AcpServeDto, AppServeDto, AppServeStatusDto, OpenCodeEnvironmentDto, OpenCodeHostStatusDto,
-    },
-    native_sessions::{
-        app_native_session_delete, app_native_session_follow, app_native_session_page,
-        app_native_session_rename, app_native_session_revision, app_native_sessions,
-        NativeSessionListDto, NativeSessionPageDto, NativeSessionRevisionDto,
-    },
-    services::{
-        api_subscribe, api_unsubscribe, discover_services, subscriptions, ServiceIdDto,
-        SubStatusDto,
-    },
-    session_config::{
-        app_session_settings, app_set_session_config, app_set_session_mode, SessionConfigOptionDto,
-        SessionConfigValueDto, SessionModeDto, SessionSettingsDto,
-    },
-    threads::{
-        app_compact, app_git_diff, app_history_cached, app_history_focus, app_history_prefetch,
-        app_history_sync_prepare, app_model_list, app_rate_limits, app_realtime_request,
-        app_respond_approval, app_respond_user_input, app_set_thread_name, app_thread_list,
-        app_thread_metadata, app_thread_older_page, app_thread_read, app_thread_resume,
-        app_thread_runtime_config, app_thread_start, app_thread_summary, app_thread_turn_items,
-        app_thread_turn_page, app_turn_interrupt, app_turn_start, app_turn_steer,
-        app_turn_supplement, history_cache_set_limit, history_cache_status, AppTurnSupplementDto,
-        HistoryCacheStatusDto, ModelInfoDto, OlderPageDto, ThreadHistoryDto, ThreadItemDto,
-        ThreadMetaDto, ThreadRuntimeConfigDto, TurnItemsPageDto, TurnSummaryDto,
-    },
-    updates::{
-        update_announce, update_cancel, update_check, update_download, update_install,
-        update_report, update_start_background, update_state, update_watch, UpdateStateDto,
-    },
+pub use self::agent_tools::{
+    tools_answer, tools_connect, tools_disconnect, tools_harness_config, tools_keep_share,
+    tools_overview, tools_revoke, tools_set_ask_before_sharing, tools_set_enabled, tools_share,
+    tools_share_on, tools_status, tools_stop_share, tools_tokens, tools_watch, AgentToolsStatusDto,
+    ToolsConnectionDto, ToolsConsentDto, ToolsDeviceDto, ToolsOverviewDto, ToolsOwnerDto,
+    ToolsPortDto, ToolsRefDto, ToolsServiceDto, ToolsShareDto, ToolsSharedDto, ToolsTokenDto,
+    ToolsUpdateDto,
+};
+pub use self::codex_setup::{
+    codex_auth_status, codex_login_cancel, codex_login_chatgpt_start, codex_logout,
+    codex_prompt_variant, codex_set_prompt_variant, codex_setup_provider, codex_setup_status,
+    CodexAuthStatusDto, CodexLoginStartDto, CodexSetupStatusDto,
+};
+pub use self::connection::{
+    api_probe, api_probe_local, app_agent_identity, app_capabilities, app_connect, app_disconnect,
+    app_is_connected, app_probe, app_probe_local, app_probe_reason, app_running_threads,
+    AgentIdentityDto, AppCapabilitiesDto,
+};
+pub use self::device_management::{
+    device_management_set_enabled, device_management_status, host_restore_overrides,
+    host_restore_problem, host_restore_service, managed_claude_prepare, managed_device,
+    managed_host, managed_host_apply, managed_host_save, managed_host_start,
+    managed_host_start_saved, managed_host_stop, managed_runtimes, DeviceManagementDto,
+    HostRestoreOverrideDto, ManagedDeviceDto, ManagedHostDto, ManagedHostSaveDto,
+    ManagedRuntimeAvailabilityDto, ManagedRuntimeDto,
+};
+pub use self::device_metadata::{
+    local_device_metadata, service_device_metadata, DeviceMetadataDto,
+};
+pub use self::events::{
+    app_projected_events, event_feed_create, event_feed_follow, meta_retry_events, AppEventDto,
+    EventFeed, EventTopic, LogLineDto, RetryProgressDto,
+};
+pub use self::grok::{
+    grok_account_status, grok_sign_in_cancel, grok_sign_in_start, grok_sign_in_state,
+    grok_sign_out, GrokAccountDto, GrokSignInDto,
+};
+pub use self::host_config::{
+    app_serve_apply, app_serve_start_configured, codex_local_auth_status, codex_local_login_cancel,
+    codex_local_login_start, codex_local_logout, codex_local_session_close,
+    codex_local_session_open, host_config_get, host_config_save, host_config_supported,
+    CodexLocalAuthDto, HostActiveDto, HostApplyDto, HostConfigDto, HostConfigInputDto,
+    HostConfigSupportDto, HostRuntimeDto, HostStartedDto,
+};
+pub use self::host_sessions::{
+    app_force_resume, app_local_session_transcript, app_local_sessions, app_session_liveness,
+    meta_ensure_default_project, meta_file_download, meta_file_preview, meta_force_resume,
+    meta_host_is_local, meta_list_dir, meta_list_files, meta_project_config, meta_project_settings,
+    meta_read_file, meta_read_thread_image, meta_save_project_settings, meta_session_events,
+    meta_session_liveness, meta_session_transcript, meta_sessions, meta_set_project_config,
+    meta_thread_config_get, meta_thread_config_set, meta_upload_context, meta_upload_file,
+    meta_upload_file_scoped, meta_write_file, DirEntryDto, FileEntryDto, FilePreviewDto,
+    ForceResumeReportDto, HolderDto, LocalSessionDto, ProjectConfigDto, ProjectSettingsDto,
+    SessionFollowUpdateDto, SessionLivenessDto, ThreadConfigDto,
+};
+pub use self::hosted_account::{
+    account_current_user, account_deregister_service, account_login_poll, account_login_start,
+    account_logout, account_services, account_web_login_exchange, account_web_login_start,
+    AccountPollDto, AccountServiceDto, AccountUserDto, DeviceCodeDto, WebLoginStartDto,
+};
+pub use self::hosting::{
+    acp_claude_prepare_cancel, acp_claude_prepare_cancel_run, acp_claude_prepare_start,
+    acp_claude_prepare_state, acp_claude_status, acp_hosting_supported, acp_locate, acp_presets,
+    app_serve_deregister, app_serve_reregister, app_serve_restart_acp, app_serve_start,
+    app_serve_start_acp, app_serve_status, app_serve_stop, app_serve_stop_all, codex_locate,
+    embedded_codex_version, hosting_owned_elsewhere, opencode_detect, opencode_refresh,
+    AcpAgentSpecDto, AcpClaudeSetupDto, AcpClaudeStatusDto, AcpPresetDto, AcpServeDto, AppServeDto,
+    AppServeStatusDto, OpenCodeEnvironmentDto, OpenCodeHostStatusDto,
+};
+pub use self::native_sessions::{
+    app_native_session_delete, app_native_session_follow, app_native_session_page,
+    app_native_session_rename, app_native_session_revision, app_native_sessions,
+    NativeSessionListDto, NativeSessionPageDto, NativeSessionRevisionDto,
+};
+pub use self::services::{
+    api_subscribe, api_unsubscribe, discover_services, subscriptions, ServiceIdDto, SubStatusDto,
+};
+pub use self::session_config::{
+    app_session_settings, app_set_session_config, app_set_session_mode, SessionConfigOptionDto,
+    SessionConfigValueDto, SessionModeDto, SessionSettingsDto,
+};
+pub use self::threads::{
+    app_compact, app_git_diff, app_history_cached, app_history_focus, app_history_prefetch,
+    app_history_sync_prepare, app_model_list, app_rate_limits, app_realtime_request,
+    app_respond_approval, app_respond_user_input, app_set_thread_name, app_thread_list,
+    app_thread_metadata, app_thread_older_page, app_thread_read, app_thread_resume,
+    app_thread_runtime_config, app_thread_start, app_thread_summary, app_thread_turn_items,
+    app_thread_turn_page, app_turn_interrupt, app_turn_start, app_turn_steer, app_turn_supplement,
+    history_cache_set_limit, history_cache_status, AppTurnSupplementDto, HistoryCacheStatusDto,
+    ModelInfoDto, OlderPageDto, ThreadHistoryDto, ThreadItemDto, ThreadMetaDto,
+    ThreadRuntimeConfigDto, TurnItemsPageDto, TurnSummaryDto,
+};
+pub use self::updates::{
+    update_announce, update_cancel, update_check, update_download, update_install, update_report,
+    update_start_background, update_state, update_watch, UpdateStateDto,
 };
 
 /// View of persisted config for the UI; never exposes the raw key or token.

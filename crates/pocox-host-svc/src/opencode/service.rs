@@ -6,22 +6,19 @@
 //! it may start it (`opencode service start`), but it never stops or signals
 //! it.
 
-use std::{
-    net::{IpAddr, SocketAddr},
-    path::{Path, PathBuf},
-    time::{Duration, Instant},
-};
+use std::net::{IpAddr, SocketAddr};
+use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, bail, Context, Result};
-use pocox_core::{process::process_start_time, provider::Secret};
+use pocox_core::process::process_start_time;
+use pocox_core::provider::Secret;
 use serde::Deserialize;
 
-use super::{
-    client::Client,
-    ownership,
-    runtime::{Detection, Launch},
-    wire::{Dialect, Version},
-};
+use super::client::Client;
+use super::ownership;
+use super::runtime::{Detection, Launch};
+use super::wire::{Dialect, Version};
 
 /// The service's registration file, the one discovery contract OpenCode's own
 /// clients read. It has no `Debug`: it holds the password.

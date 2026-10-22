@@ -19,21 +19,17 @@
 //! *pending*: it accepts no prompt and grants no file authority until the
 //! agent confirmed the reopen.
 
-use std::{
-    collections::{HashMap, HashSet, VecDeque},
-    sync::Arc,
-};
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::sync::Arc;
 
 use serde::Serialize;
 use serde_json::{json, Value};
 use tokio::sync::broadcast;
 
-use super::{
-    fold::Transcript,
-    jsonrpc::RequestId,
-    peer::Peer,
-    schema::{Negotiated, PermissionOption, SessionSettings, TurnOutcome},
-};
+use super::fold::Transcript;
+use super::jsonrpc::RequestId;
+use super::peer::Peer;
+use super::schema::{Negotiated, PermissionOption, SessionSettings, TurnOutcome};
 
 /// Most events retained for replay.
 pub const MAX_LOG_EVENTS: usize = 4096;

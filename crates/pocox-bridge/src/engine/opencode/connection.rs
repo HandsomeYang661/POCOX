@@ -2,7 +2,8 @@
 
 use std::time::Duration;
 
-use super::{super::transport::Owned, *};
+use super::super::transport::Owned;
+use super::*;
 
 fn remove(key: &Key) {
     let removed = lock(&CONNS).remove(key);

@@ -1,9 +1,7 @@
 //! Native foreground hosting shared by CLI and desktop management.
 
-use std::{
-    fs::{File, TryLockError},
-    path::{Path, PathBuf},
-};
+use std::fs::{File, TryLockError};
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use host_owner::{HeldElsewhere, OwnerLock, LOCK_FILE};

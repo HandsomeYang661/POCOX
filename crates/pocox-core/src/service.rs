@@ -22,7 +22,8 @@
 //! results fall back to `DEFAULT_SERVICE_NAME` so the resulting key
 //! is always well-formed.
 
-use std::{fmt, str::FromStr};
+use std::fmt;
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 

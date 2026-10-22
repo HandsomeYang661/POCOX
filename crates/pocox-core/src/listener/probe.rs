@@ -2,13 +2,11 @@
 //! are capped, nothing waits on it without a bound, and stopping it stops
 //! only what it started.
 
-use std::{
-    io::Read,
-    process::{Child, Command, ExitStatus, Stdio},
-    sync::mpsc::{self, Receiver, RecvTimeoutError, Sender},
-    thread::{self, JoinHandle},
-    time::{Duration, Instant},
-};
+use std::io::Read;
+use std::process::{Child, Command, ExitStatus, Stdio};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
+use std::thread::{self, JoinHandle};
+use std::time::{Duration, Instant};
 
 /// How a probe exited and what it printed.
 #[derive(Debug, Default)]
@@ -198,7 +196,8 @@ fn finish(
 ) -> (Option<ExitStatus>, Cleanup) {
     #[cfg(unix)]
     {
-        use nix::{sys::signal, unistd::Pid};
+        use nix::sys::signal;
+        use nix::unistd::Pid;
         if let Ok(group) = i32::try_from(child.id()) {
             // reason: an exited group has no members left; the leader is reaped below.
             let _ = signal::killpg(Pid::from_raw(group), signal::Signal::SIGKILL);

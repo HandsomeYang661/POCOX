@@ -1,15 +1,11 @@
 //! Loopback transport bounds, using no installed engine or user history.
 
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
-use axum::{
-    extract::{Query, State},
-    routing::get,
-    Json, Router,
-};
+use axum::extract::{Query, State};
+use axum::routing::get;
+use axum::{Json, Router};
 use serde_json::json;
 
 use super::*;

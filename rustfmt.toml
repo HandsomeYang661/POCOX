@@ -1,8 +1,11 @@
 # POCOX rustfmt configuration.
 #
-# Mirrors the `static_flow` style so contributors who have worked on
-# either project see the same formatting rules. Run `cargo fmt --all`
-# (the project pins a nightly toolchain in `rust-toolchain.toml`).
+# Applies the rustfmt settings of the Google Rust Style Guide
+# (https://google.github.io/styleguide/rustguide.html): `max_width = 100`,
+# `imports_granularity = "Module"`, `hex_literal_case = "Lower"` and
+# `format_macro_matchers = true`. Several options are nightly-only, which is
+# why `rust-toolchain.toml` pins a nightly. Run `cargo fmt` with the explicit
+# package list in AGENTS.md › Verification, never `cargo fmt --all`.
 
 # === Basics ===
 edition = "2021"
@@ -11,7 +14,8 @@ hard_tabs = false
 tab_spaces = 4
 
 # === Imports ===
-imports_granularity = "Crate"
+# One module per `use` statement: no `::` inside `{..}`.
+imports_granularity = "Module"
 group_imports = "StdExternalCrate"
 reorder_imports = true
 
@@ -46,6 +50,7 @@ overflow_delimited_expr = true
 format_macro_matchers = true
 format_macro_bodies = true
 format_strings = true
+hex_literal_case = "Lower"
 
 # === Misc ===
 merge_derives = true

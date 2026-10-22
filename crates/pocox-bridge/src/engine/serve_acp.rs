@@ -36,35 +36,28 @@
 //! dropped, which withdraws it. A late result never replaces a newer host's
 //! registration under the same name.
 
-use std::{
-    collections::{HashMap, HashSet},
-    net::SocketAddr,
-    path::{Path, PathBuf},
-    sync::{Arc, Mutex, MutexGuard},
-    time::Duration,
-};
+use std::collections::{HashMap, HashSet};
+use std::net::SocketAddr;
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::Duration;
 
 use anyhow::{anyhow, bail, Context, Result};
 use once_cell::sync::OnceCell;
 use pocox_core::service::{ServiceId, ServiceKind};
-use pocox_host_svc::{
-    acp::{self, claude, grok, spec, AgentHost, AgentSpec, HostOptions, SessionStore, SourceId},
-    file_links::SessionDirResolver,
-    native_history::{GrokHistory, NativeHistory},
-    process,
+use pocox_host_svc::acp::{
+    self, claude, grok, spec, AgentHost, AgentSpec, HostOptions, SessionStore, SourceId,
 };
+use pocox_host_svc::file_links::SessionDirResolver;
+use pocox_host_svc::native_history::{GrokHistory, NativeHistory};
+use pocox_host_svc::process;
 use pocox_pb::Published;
 use tokio::task::JoinHandle;
 
-use super::{
-    claude_setup,
-    host_lease::{self, Lease, Op},
-    host_names, host_profiles,
-    host_services::{self, bind_loopback},
-    hosting, runtime,
-    serve::ServeStatus,
-    transport,
-};
+use super::host_lease::{self, Lease, Op};
+use super::host_services::{self, bind_loopback};
+use super::serve::ServeStatus;
+use super::{claude_setup, host_names, host_profiles, hosting, runtime, transport};
 
 #[path = "serve_acp_launch.rs"]
 mod launch;

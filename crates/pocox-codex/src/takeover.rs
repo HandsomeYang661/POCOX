@@ -15,14 +15,14 @@
 //! holder blocks the subsequent resume. Confirmation authorizes releasing
 //! an idle owner, not adding a second writer when that release fails.
 
-use std::{path::Path, time::Duration};
+use std::path::Path;
+use std::time::Duration;
 
-use pocox_core::{process::force_kill, Result};
+use pocox_core::process::force_kill;
+use pocox_core::Result;
 
-use crate::{
-    liveness::{self, Holder},
-    rollout::{self, TurnState},
-};
+use crate::liveness::{self, Holder};
+use crate::rollout::{self, TurnState};
 
 /// How long to wait after a kill for the OS to tear down the dead
 /// process's file handles before re-probing whether the rollout is still

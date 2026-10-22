@@ -1,5 +1,6 @@
 //! HTTP owned by POCOX, separate from relay transports and hosted runtimes.
-use std::{path::Path, time::Duration};
+use std::path::Path;
+use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use reqwest::{ClientBuilder, Proxy, Url};

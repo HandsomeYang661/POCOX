@@ -8,26 +8,21 @@
 use std::sync::Arc;
 
 use axum::http::request::Parts;
-use rmcp::{
-    model::{
-        CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, Implementation,
-        InitializeResult, JsonObject, ListToolsResult, PaginatedRequestParams, ServerCapabilities,
-        ServerConfig, Tool, ToolAnnotations,
-    },
-    service::RequestContext,
-    ErrorData, RoleServer, ServerHandler,
+use rmcp::model::{
+    CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock, Implementation,
+    InitializeResult, JsonObject, ListToolsResult, PaginatedRequestParams, ServerCapabilities,
+    ServerConfig, Tool, ToolAnnotations,
 };
+use rmcp::service::RequestContext;
+use rmcp::{ErrorData, RoleServer, ServerHandler};
 use serde_json::{json, Value};
 
-use super::{
-    catalog,
-    connections::{self, ConnectRequest},
-    error::{Pending, ToolError},
-    model::{bounded, Overview, OwnerView},
-    render,
-    shares::{self, Caller, ShareRequest},
-    tokens::Principal,
-};
+use super::connections::{self, ConnectRequest};
+use super::error::{Pending, ToolError};
+use super::model::{bounded, Overview, OwnerView};
+use super::shares::{self, Caller, ShareRequest};
+use super::tokens::Principal;
+use super::{catalog, render};
 
 const INSTRUCTIONS: &str = "The user's devices and the services on them. Share a dev server or \
                             other local port with the user's phone and other devices, or connect \

@@ -1,12 +1,10 @@
 //! Native database handles, and the clients of an attached background
 //! server, are evidence of possible writers, not session leases.
 
-use std::{
-    collections::BTreeSet,
-    net::SocketAddr,
-    path::{Path, PathBuf},
-    time::Duration,
-};
+use std::collections::BTreeSet;
+use std::net::SocketAddr;
+use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use anyhow::{ensure, Context, Result};
 use pocox_core::process::{

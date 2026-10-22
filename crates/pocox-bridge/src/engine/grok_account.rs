@@ -10,24 +10,16 @@
 //! its agent until it ends or is cancelled; quitting closes admission and
 //! stops every attempt's process group.
 
-use std::{
-    collections::HashMap,
-    path::PathBuf,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc, LazyLock, Mutex, MutexGuard,
-    },
-    time::Duration,
-};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, LazyLock, Mutex, MutexGuard};
+use std::time::Duration;
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
-use pocox_host_svc::{
-    acp::{
-        grok,
-        grok_control::{GrokAccount, GrokControl, CALL_TIMEOUT},
-    },
-    native_history::SessionClaim,
-};
+use pocox_host_svc::acp::grok;
+use pocox_host_svc::acp::grok_control::{GrokAccount, GrokControl, CALL_TIMEOUT};
+use pocox_host_svc::native_history::SessionClaim;
 use serde_json::json;
 use tokio::task::JoinHandle;
 

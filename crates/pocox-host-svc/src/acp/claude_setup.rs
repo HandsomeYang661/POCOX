@@ -26,11 +26,9 @@
 //! npm's output is discarded (it may echo registry tokens from the user's npm
 //! configuration); failures are reported by kind only.
 
-use std::{
-    ffi::OsString,
-    path::{Path, PathBuf},
-    time::Duration,
-};
+use std::ffi::OsString;
+use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use tokio::sync::watch;
 

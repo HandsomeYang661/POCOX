@@ -7,7 +7,8 @@ use anyhow::{bail, Context, Result};
 use once_cell::sync::OnceCell;
 use pocox_core::device::DeviceMetadata;
 use reqwest::{Client, Method};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 use super::{management, meta, runtime, transport};
 
@@ -239,16 +240,12 @@ pub fn start_saved(key: &str, name: &str, revision: u64) -> Result<management::H
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    };
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
 
-    use axum::{
-        http::{header, StatusCode},
-        routing::{get, post},
-        Router,
-    };
+    use axum::http::{header, StatusCode};
+    use axum::routing::{get, post};
+    use axum::Router;
     use serde_json::{json, Value};
 
     use super::*;

@@ -1,9 +1,7 @@
 //! Classify a session's most recent turn from its rollout's lifecycle events.
 
-use std::{
-    io::{Read, Seek, SeekFrom},
-    path::Path,
-};
+use std::io::{Read, Seek, SeekFrom};
+use std::path::Path;
 
 use pocox_core::Result;
 use serde_json::Value;

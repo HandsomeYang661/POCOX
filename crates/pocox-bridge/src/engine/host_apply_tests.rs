@@ -1,4 +1,5 @@
-use std::{cell::RefCell, time::Duration};
+use std::cell::RefCell;
+use std::time::Duration;
 
 use pocox_core::provider::{ApiProtocol, ProviderEndpoint, Secret};
 

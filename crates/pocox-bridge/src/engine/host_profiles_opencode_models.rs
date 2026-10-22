@@ -1,10 +1,12 @@
 //! Read only the configured gateway's advertised models, with bounded I/O.
 
-use std::{collections::BTreeMap, time::Duration};
+use std::collections::BTreeMap;
+use std::time::Duration;
 
 use anyhow::{anyhow, bail, ensure, Result};
 use pocox_core::provider::{ApiProtocol, ProviderEndpoint};
-use reqwest::{header::HeaderValue, Client, Url};
+use reqwest::header::HeaderValue;
+use reqwest::{Client, Url};
 use serde_json::{json, Map, Value};
 
 const MAX_BYTES: usize = 4 * 1024 * 1024;

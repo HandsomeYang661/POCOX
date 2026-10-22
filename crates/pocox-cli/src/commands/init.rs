@@ -8,7 +8,8 @@
 use anyhow::{anyhow, bail, Result};
 use pocox_core::config::Config;
 
-use crate::{cli::InitArgs, commands::ui};
+use crate::cli::InitArgs;
+use crate::commands::ui;
 
 /// Strip an optional `tcp://` scheme and validate `host:port`.
 ///

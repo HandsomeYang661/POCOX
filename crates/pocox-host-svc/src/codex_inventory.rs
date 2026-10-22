@@ -14,26 +14,20 @@
 //! progress. When the app-server does not answer, the file-only inventory
 //! stands in.
 
-use std::{
-    cmp::Reverse,
-    collections::HashSet,
-    path::{Path, PathBuf},
-};
+use std::cmp::Reverse;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use futures::StreamExt;
-use pocox_codex::{
-    liveness::held_open_paths,
-    rollout::{self, TurnState},
-    takeover::{self, ResumeSafety},
-};
+use pocox_codex::liveness::held_open_paths;
+use pocox_codex::rollout::{self, TurnState};
+use pocox_codex::takeover::{self, ResumeSafety};
 use serde_json::{json, Value};
 
-use crate::{
-    app_server::CodexReader,
-    resume,
-    sessions::{self, LocalSession, SessionLiveness},
-};
+use crate::app_server::CodexReader;
+use crate::resume;
+use crate::sessions::{self, LocalSession, SessionLiveness};
 
 /// Source kinds listed: the same set as the controller's conversation list.
 const SOURCE_KINDS: [&str; 6] = ["cli", "vscode", "appServer", "exec", "subAgent", "unknown"];

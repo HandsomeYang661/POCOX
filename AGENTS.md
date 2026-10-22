@@ -95,9 +95,10 @@ First-party Rust follows the
 and Fuchsia-only rules do not apply (we use Tokio, threads and module trees),
 and our crates are application code. Project specifics:
 
-- **Format** with `rustfmt.toml`, which stays authoritative (including
-  `imports_granularity = "Crate"`). Nightly is pinned for rustfmt only: no
-  unstable language features.
+- **Format** with `rustfmt.toml`, which applies the guide's settings
+  (`imports_granularity = "Module"`, so one module per `use`;
+  `hex_literal_case = "Lower"`; `max_width = 100`). Nightly is pinned for
+  rustfmt only: no unstable language features.
 - **Errors**: `Option` for plain absence, `Result` for recoverable failures,
   panics only for bugs. No `unwrap()` outside tests; an unavoidable panic is
   `expect("why it cannot fail")`. Match instead of check-then-unwrap; never

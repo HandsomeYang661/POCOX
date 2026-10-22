@@ -1,9 +1,7 @@
 //! Identity-only history projection; transcript bodies stay with their owner.
 use super::*;
-use crate::engine::{
-    execution::{self, Lane},
-    history_projection,
-};
+use crate::engine::execution::{self, Lane};
+use crate::engine::history_projection;
 
 /// Merge paged and live identities off the UI thread. Returned indices address
 /// the current rows followed by incoming rows; shared IDs retain current rows.

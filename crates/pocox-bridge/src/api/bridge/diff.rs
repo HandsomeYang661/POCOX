@@ -1,9 +1,7 @@
 //! Parsed and numbered diffs for every Flutter review surface.
 use super::*;
-use crate::engine::{
-    execution::{self, Lane},
-    git_diff,
-};
+use crate::engine::execution::{self, Lane};
+use crate::engine::git_diff;
 
 /// What a numbered diff row shows.
 pub enum DiffLineKind {

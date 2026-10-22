@@ -28,18 +28,14 @@
 //! [`pocox_core::process::pid_alive`], so a worker that crashed
 //! between invocations is transparently replaced.
 
-use std::{
-    path::PathBuf,
-    process::{Command, Stdio},
-};
+use std::path::PathBuf;
+use std::process::{Command, Stdio};
 
 use anyhow::{Context, Result};
 use chrono::Utc;
-use pocox_core::{
-    paths,
-    process::{pid_alive, send_sigterm},
-    state::{ApiProxyInfo, RuntimeState},
-};
+use pocox_core::paths;
+use pocox_core::process::{pid_alive, send_sigterm};
+use pocox_core::state::{ApiProxyInfo, RuntimeState};
 
 use crate::commands::ui;
 

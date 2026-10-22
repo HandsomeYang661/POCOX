@@ -3,10 +3,8 @@
 //! (`web_exchange_codes`). Both enforce once-only consumption via a conditional
 //! UPDATE so a replayed callback / redeem is a no-op.
 
-use crate::{
-    models::{WebAuthFlow, WebExchangeCode},
-    Result, Store,
-};
+use crate::models::{WebAuthFlow, WebExchangeCode};
+use crate::{Result, Store};
 
 impl Store {
     /// Record a started web login flow keyed by its opaque `flow_id`, with the

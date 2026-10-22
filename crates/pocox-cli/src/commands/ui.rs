@@ -9,11 +9,9 @@
 //! Glyphs are kept in non-color mode because they are Unicode
 //! characters, not escape codes — only the ANSI coloring is dropped.
 
-use std::{
-    env,
-    io::{stderr, stdout, IsTerminal},
-    sync::OnceLock,
-};
+use std::env;
+use std::io::{stderr, stdout, IsTerminal};
+use std::sync::OnceLock;
 
 use comfy_table::{presets, Attribute, Cell, Color, ContentArrangement, Table};
 use owo_colors::{OwoColorize, Style};

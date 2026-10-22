@@ -21,7 +21,8 @@ use std::ffi::OsString;
 use pocox_core::provider::{ApiProtocol, ProviderEndpoint};
 use serde_json::{json, Map, Value};
 
-use super::{claude, grok, spec::AgentSpec};
+use super::spec::AgentSpec;
+use super::{claude, grok};
 
 /// What an agent's launch gets for its provider.
 #[derive(Clone, Default)]

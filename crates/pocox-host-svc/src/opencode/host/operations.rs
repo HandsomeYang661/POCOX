@@ -7,11 +7,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use super::{Catalog, Entry, Error, Host, Identity, Session, SessionAccess, Status};
-use crate::opencode::{
-    client::ClientError,
-    schema::{CommandInput, Message, Prompt},
-    wire::Reply,
-};
+use crate::opencode::client::ClientError;
+use crate::opencode::schema::{CommandInput, Message, Prompt};
+use crate::opencode::wire::Reply;
 
 /// Selections for the next native prompt; absent values inherit OpenCode's
 /// own configuration. Changing them never changes shared provider defaults.
@@ -499,10 +497,8 @@ mod tests {
 
     #[tokio::test]
     async fn abort_false_resolves_only_with_fresh_positive_idle_evidence() {
-        use axum::{
-            routing::{get, post},
-            Json, Router,
-        };
+        use axum::routing::{get, post};
+        use axum::{Json, Router};
         for (status, expected) in [
             (json!({}), true),
             (json!({"ses_test":{"type":"busy"}}), false),

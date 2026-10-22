@@ -1,10 +1,8 @@
 //! Native attachment preparation; picker and clipboard permissions stay in
 //! Flutter.
 use super::*;
-use crate::engine::{
-    attachments,
-    execution::{self, Lane},
-};
+use crate::engine::attachments;
+use crate::engine::execution::{self, Lane};
 
 /// Encoded image ready to preview and send; no image algorithms run in Dart.
 pub struct PreparedImageDto {

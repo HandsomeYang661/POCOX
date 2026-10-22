@@ -1,17 +1,16 @@
 //! One upstream event connection, retained independently of controllers.
 
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use tokio::sync::{broadcast, Mutex};
 use tokio_util::sync::CancellationToken;
 
-use super::{
-    client::{Client, ClientError},
-    events::EventStream,
-    fold::{Fold, Window},
-    schema::MessagePage,
-};
+use super::client::{Client, ClientError};
+use super::events::EventStream;
+use super::fold::{Fold, Window};
+use super::schema::MessagePage;
 
 /// A small invalidation. Consumers refetch a merged window; native deltas
 /// have no replay contract and therefore never pass directly to controllers.

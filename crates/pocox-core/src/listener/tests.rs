@@ -51,12 +51,12 @@ fn proc_net_rows_apply_by_address_family_state_and_port() {
     ]);
     let at =
         |table: &str, ip: &str, port| listening_inodes(table, &ips(&[ip]), port).expect("readable");
-    assert_eq!(at(&v4, "127.0.0.1", 0x4E20), [100], "another loopback address is apart");
-    assert_eq!(at(&v4, "127.0.0.2", 0x4E20), [200]);
-    assert_eq!(at(&v4, "0.0.0.0", 0x4E20), [100, 200, 0], "a wildcard request reaches all");
-    assert_eq!(at(&v4, "127.0.0.3", 0x4E20), [0], "a socket no one can be shown to hold");
-    assert_eq!(at(&v4, "127.0.0.9", 0x1F90), [400], "the IPv4 wildcard takes every address");
-    assert!(at(&v4, "::1", 0x4E20).is_empty(), "IPv4 listeners never take IPv6");
+    assert_eq!(at(&v4, "127.0.0.1", 0x4e20), [100], "another loopback address is apart");
+    assert_eq!(at(&v4, "127.0.0.2", 0x4e20), [200]);
+    assert_eq!(at(&v4, "0.0.0.0", 0x4e20), [100, 200, 0], "a wildcard request reaches all");
+    assert_eq!(at(&v4, "127.0.0.3", 0x4e20), [0], "a socket no one can be shown to hold");
+    assert_eq!(at(&v4, "127.0.0.9", 0x1f90), [400], "the IPv4 wildcard takes every address");
+    assert!(at(&v4, "::1", 0x4e20).is_empty(), "IPv4 listeners never take IPv6");
     assert!(at(&v4, "127.0.0.1", 1).is_empty());
 
     let v6 = proc_table(&[
@@ -64,30 +64,30 @@ fn proc_net_rows_apply_by_address_family_state_and_port() {
         ("00000000000000000000000000000000:1F90", "0A", 700),
         ("0000000000000000FFFF00000100007F:4E21", "0A", 800),
     ]);
-    assert_eq!(at(&v6, "::1", 0x4E20), [600]);
-    assert!(at(&v6, "127.0.0.1", 0x4E20).is_empty(), "a specific IPv6 listener");
-    assert_eq!(at(&v6, "127.0.0.1", 0x1F90), [700], "the IPv6 wildcard may be dual-stack");
-    assert_eq!(at(&v6, "::1", 0x1F90), [700]);
-    assert_eq!(at(&v6, "127.0.0.1", 0x4E21), [800], "an IPv4-mapped listener is IPv4");
-    assert!(at(&v6, "::1", 0x4E21).is_empty());
-    assert_eq!(at(&v6, "::", 0x4E20), [600]);
+    assert_eq!(at(&v6, "::1", 0x4e20), [600]);
+    assert!(at(&v6, "127.0.0.1", 0x4e20).is_empty(), "a specific IPv6 listener");
+    assert_eq!(at(&v6, "127.0.0.1", 0x1f90), [700], "the IPv6 wildcard may be dual-stack");
+    assert_eq!(at(&v6, "::1", 0x1f90), [700]);
+    assert_eq!(at(&v6, "127.0.0.1", 0x4e21), [800], "an IPv4-mapped listener is IPv4");
+    assert!(at(&v6, "::1", 0x4e21).is_empty());
+    assert_eq!(at(&v6, "::", 0x4e20), [600]);
     let both = [v4.as_str(), &v6[HEADER.len()..]].concat();
     let localhost = requested("localhost").expect("both loopbacks");
-    assert_eq!(listening_inodes(&both, &localhost, 0x4E20), Some(vec![100, 600]));
+    assert_eq!(listening_inodes(&both, &localhost, 0x4e20), Some(vec![100, 600]));
 }
 
 #[test]
 fn unreadable_proc_rows_cannot_be_told() {
     let ours = ips(&["127.0.0.1"]);
-    assert_eq!(listening_inodes(HEADER, &ours, 0x4E20), Some(vec![]), "nothing listens");
+    assert_eq!(listening_inodes(HEADER, &ours, 0x4e20), Some(vec![]), "nothing listens");
     let short = format!("{HEADER}   0: 0100007F:4E20 00000000:0000 0A\n");
-    assert_eq!(listening_inodes(&short, &ours, 0x4E20), None);
+    assert_eq!(listening_inodes(&short, &ours, 0x4e20), None);
     for local in ["0100007:4E20", "0100007F:ZZZZ", "0100007G:4E20", "0100007F"] {
         let table = proc_table(&[(local, "0A", 1)]);
-        assert_eq!(listening_inodes(&table, &ours, 0x4E20), None, "{local}");
+        assert_eq!(listening_inodes(&table, &ours, 0x4e20), None, "{local}");
     }
     let inode = proc_table(&[("0100007F:4E20", "0A", 1)]).replace(" 1 1\n", " x 1\n");
-    assert_eq!(listening_inodes(&inode, &ours, 0x4E20), None);
+    assert_eq!(listening_inodes(&inode, &ours, 0x4e20), None);
 }
 
 /// `lsof -F ftn` records, one field per line.

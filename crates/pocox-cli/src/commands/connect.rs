@@ -42,21 +42,15 @@
 //! [`Transport`] already carries.
 
 use anyhow::Result;
-use pocox_core::{
-    config::Config,
-    service::ServiceKind,
-    state::{PbRole, RuntimeState},
-};
+use pocox_core::config::Config;
+use pocox_core::service::ServiceKind;
+use pocox_core::state::{PbRole, RuntimeState};
 
-use crate::{
-    cli::ConnectArgs,
-    commands::{
-        managed_pb::{self, EnsureOutcome, PbWorkerSpec},
-        service_target::{choose_target, discover_services, TargetRequest},
-        transport::{self, Transport},
-        ui,
-    },
-};
+use crate::cli::ConnectArgs;
+use crate::commands::managed_pb::{self, EnsureOutcome, PbWorkerSpec};
+use crate::commands::service_target::{choose_target, discover_services, TargetRequest};
+use crate::commands::transport::{self, Transport};
+use crate::commands::ui;
 
 /// Run the client-side setup flow.
 pub async fn run(args: ConnectArgs) -> Result<()> {

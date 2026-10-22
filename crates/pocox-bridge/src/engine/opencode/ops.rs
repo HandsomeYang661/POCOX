@@ -1,21 +1,13 @@
 //! Original-session operations through one captured native host identity.
 
-use pocox_host_svc::{
-    opencode::{
-        catalog::Command,
-        host::{Answer, Input, Options},
-    },
-    session_access::SessionAccess,
-};
+use pocox_host_svc::opencode::catalog::Command;
+use pocox_host_svc::opencode::host::{Answer, Input, Options};
+use pocox_host_svc::session_access::SessionAccess;
 use serde_json::Value;
 
-use super::{
-    super::{
-        app_session::{OlderPage, ThreadHistory},
-        session_engine::{StartOptions, Supplement, TurnOptions},
-    },
-    *,
-};
+use super::super::app_session::{OlderPage, ThreadHistory};
+use super::super::session_engine::{StartOptions, Supplement, TurnOptions};
+use super::*;
 
 /// Inspect fresh writer evidence without acquiring a session.
 pub fn access(service: &str, session: &str) -> Result<SessionAccess> {

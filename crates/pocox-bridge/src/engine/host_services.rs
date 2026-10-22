@@ -11,18 +11,17 @@
 //! Each provider keeps its own host table and lifecycle; only these
 //! provider-neutral steps are shared.
 
-use std::{
-    net::SocketAddr,
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::net::SocketAddr;
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use anyhow::{bail, Context, Result};
 use once_cell::sync::OnceCell;
 use pocox_core::service::{ServiceId, ServiceKind};
 use pocox_pb::{publish_pending, PublishError, Published, RegisterOptions};
 
-use crate::engine::{runtime, transport::Transport};
+use crate::engine::runtime;
+use crate::engine::transport::Transport;
 
 /// Upper bound on the backoff between repeated failed restarts.
 pub(super) const MAX_RESTART_BACKOFF: Duration = Duration::from_secs(300);

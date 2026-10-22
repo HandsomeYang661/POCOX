@@ -39,11 +39,9 @@
 //! handles.
 
 use anyhow::{bail, Result};
-use pocox_core::{
-    config::Config,
-    service::{default_device_id, ServiceId, ServiceKind, DEFAULT_SERVICE_NAME},
-    state::RuntimeState,
-};
+use pocox_core::config::Config;
+use pocox_core::service::{default_device_id, ServiceId, ServiceKind, DEFAULT_SERVICE_NAME};
+use pocox_core::state::RuntimeState;
 
 use crate::commands::transport::Transport;
 
@@ -184,11 +182,9 @@ pub(crate) async fn discover_services(
 
 #[cfg(test)]
 mod tests {
-    use pocox_core::{
-        config::Config,
-        service::{ServiceId, ServiceKind},
-        state::RuntimeState,
-    };
+    use pocox_core::config::Config;
+    use pocox_core::service::{ServiceId, ServiceKind};
+    use pocox_core::state::RuntimeState;
 
     use super::*;
 

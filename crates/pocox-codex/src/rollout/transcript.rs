@@ -1,16 +1,15 @@
 //! A rollout's full transcript as the rows the live conversation renders,
 //! so a session can be viewed read-only without resuming it.
 
-use std::{
-    collections::{HashMap, HashSet},
-    io::BufRead,
-    path::Path,
-};
+use std::collections::{HashMap, HashSet};
+use std::io::BufRead;
+use std::path::Path;
 
 use pocox_core::Result;
 use serde_json::Value;
 
-use super::{message::split_message_content, non_empty};
+use super::message::split_message_content;
+use super::non_empty;
 
 mod activity;
 mod plan;

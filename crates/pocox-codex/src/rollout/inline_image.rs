@@ -7,7 +7,8 @@
 //! directory, which the system clears, so once the file is gone this inline
 //! copy is the only one left.
 
-use std::{io::BufRead, path::Path};
+use std::io::BufRead;
+use std::path::Path;
 
 use pocox_core::Result;
 use serde_json::Value;

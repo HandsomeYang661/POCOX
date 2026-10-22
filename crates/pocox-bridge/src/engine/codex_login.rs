@@ -33,27 +33,24 @@
 //! attempt's `loginId`: an `auth.json` that already existed, or an API key,
 //! never proves that this sign-in succeeded.
 
-use std::{
-    collections::{HashMap, HashSet},
-    sync::{Arc, Condvar, Mutex, MutexGuard},
-    time::{Duration, Instant},
-};
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 use anyhow::{anyhow, bail, Context, Result};
+use pocox_codex::provider_launch::{
+    check_effective_blocking, codex_launch, CodexProviderMode, ExpectedRoute,
+};
 use pocox_codex::{
-    locate_binary,
-    provider_launch::{check_effective_blocking, codex_launch, CodexProviderMode, ExpectedRoute},
-    spawn_ready, still_owned, ListenSpec, SpawnOptions, SpawnReport, READY_TIMEOUT,
+    locate_binary, spawn_ready, still_owned, ListenSpec, SpawnOptions, SpawnReport, READY_TIMEOUT,
 };
 use serde_json::Value;
-use tokio::{sync::broadcast::error::RecvError, task::JoinHandle};
+use tokio::sync::broadcast::error::RecvError;
+use tokio::task::JoinHandle;
 
-use super::{
-    app_session,
-    config::load_config,
-    owned_child::{OwnedChild, Retained, EXIT_WAIT},
-    runtime,
-};
+use super::config::load_config;
+use super::owned_child::{OwnedChild, Retained, EXIT_WAIT};
+use super::{app_session, runtime};
 
 /// Prefix of the private session keys; never a relay key (`pcx:` / `pcxu:`).
 const KEY_PREFIX: &str = "pcx-local-login:";

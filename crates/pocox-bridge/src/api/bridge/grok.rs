@@ -4,10 +4,8 @@
 use anyhow::{Context, Result};
 use flutter_rust_bridge::frb;
 
-use crate::engine::{
-    execution::{self, Lane},
-    grok_account,
-};
+use crate::engine::execution::{self, Lane};
+use crate::engine::grok_account;
 
 /// What Grok reports about its sign-in.
 pub struct GrokAccountDto {

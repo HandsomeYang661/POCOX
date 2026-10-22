@@ -1,29 +1,28 @@
 //! Resolve a GUI host's shell PATH and selected child-only environment values.
 
-use std::{
-    collections::HashSet,
-    ffi::{OsStr, OsString},
-    fs::File,
-    io::Read,
-    os::unix::{ffi::OsStringExt, fs::PermissionsExt, process::CommandExt},
-    path::Path,
-    process::{Child, Command, Stdio},
-    thread,
-    time::{Duration, Instant},
-};
+use std::collections::HashSet;
+use std::ffi::{OsStr, OsString};
+use std::fs::File;
+use std::io::Read;
+use std::os::unix::ffi::OsStringExt;
+use std::os::unix::fs::PermissionsExt;
+use std::os::unix::process::CommandExt;
+use std::path::Path;
+use std::process::{Child, Command, Stdio};
+use std::thread;
+use std::time::{Duration, Instant};
 
 use anyhow::{bail, Context, Result};
-use nix::{
-    sys::signal::{killpg, Signal},
-    unistd::Pid,
-};
+use nix::sys::signal::{killpg, Signal};
+use nix::unistd::Pid;
 use rustix::process::{waitid, WaitId, WaitIdOptions};
 
 const MAX_PATH_BYTES: u64 = 128 * 1024;
 
 #[cfg(target_os = "macos")]
 pub(crate) fn child_path() -> Option<OsString> {
-    use std::{io::IsTerminal, sync::OnceLock};
+    use std::io::IsTerminal;
+    use std::sync::OnceLock;
 
     // Terminal launches already have the user's selected tool versions.
     if std::io::stdin().is_terminal() {

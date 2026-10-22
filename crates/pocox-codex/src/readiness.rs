@@ -34,15 +34,12 @@
 //! call every launch path wants, so a new call site cannot forget the
 //! verification half of the pair.
 
-use std::{
-    fmt,
-    fmt::Write as _,
-    io::{BufRead, BufReader, Read, Seek, SeekFrom, Write},
-    net::{SocketAddr, TcpStream, ToSocketAddrs},
-    path::{Path, PathBuf},
-    thread,
-    time::{Duration, Instant},
-};
+use std::fmt::Write as _;
+use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
+use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
+use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
+use std::{fmt, thread};
 
 use anyhow::Context as _;
 use pocox_core::process::{pid_running, probe_host, EndpointOwner};

@@ -4,11 +4,9 @@
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
 
-use crate::opencode::{
-    catalog::{self, Catalog, CatalogModel},
-    client::ClientError,
-    schema::{self, SessionTime},
-};
+use crate::opencode::catalog::{self, Catalog, CatalogModel};
+use crate::opencode::client::ClientError;
+use crate::opencode::schema::{self, SessionTime};
 
 #[derive(Deserialize)]
 pub(super) struct Data<T> {

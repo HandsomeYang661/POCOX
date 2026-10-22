@@ -1,13 +1,11 @@
 //! Reuse lifecycle scans of immutable prefixes while a rollout is appended.
 
-use std::{
-    collections::HashMap,
-    fs::File,
-    io::{BufRead, BufReader, Read, Seek, SeekFrom},
-    path::{Path, PathBuf},
-    sync::{Mutex, OnceLock},
-    time::{Instant, SystemTime},
-};
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
+use std::time::{Instant, SystemTime};
 
 use pocox_core::Result;
 

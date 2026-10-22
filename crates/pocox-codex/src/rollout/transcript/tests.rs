@@ -1,6 +1,7 @@
 use serde_json::{json, Value};
 
-use super::{activity::completed_activity_item, *};
+use super::activity::completed_activity_item;
+use super::*;
 use crate::rollout::tests::{transcript_of, user_line};
 
 #[test]

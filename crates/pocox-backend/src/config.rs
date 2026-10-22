@@ -113,10 +113,8 @@ impl ServerConfig {
     /// (default `backend.toml`, optional) layered under `POCOX_`-prefixed env
     /// vars.
     pub fn load() -> anyhow::Result<Self> {
-        use figment::{
-            providers::{Env, Format, Toml},
-            Figment,
-        };
+        use figment::providers::{Env, Format, Toml};
+        use figment::Figment;
         let path =
             std::env::var("POCOX_BACKEND_CONFIG").unwrap_or_else(|_| "backend.toml".to_string());
         let config: Self = Figment::new()

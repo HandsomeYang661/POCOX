@@ -1,7 +1,8 @@
 use std::sync::Condvar;
 
 use super::*;
-use crate::acp::{schema::SteerOutcome, store::SourceId};
+use crate::acp::schema::SteerOutcome;
+use crate::acp::store::SourceId;
 
 const WAIT: Duration = Duration::from_secs(15);
 

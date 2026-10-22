@@ -1,12 +1,8 @@
 //! Lifetime of the device-level listener and its one relay registration.
 
-use std::{
-    sync::{
-        atomic::{AtomicBool, AtomicU64, Ordering},
-        Mutex,
-    },
-    time::Duration,
-};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Mutex;
+use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 use pocox_core::service::{ServiceId, ServiceKind};
@@ -14,14 +10,9 @@ use pocox_pb::{publish_pending, Published, RegisterOptions};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
 
-use crate::engine::{
-    host_owner,
-    host_profiles::{
-        self,
-        files::{write_private, Committed, FileLock},
-    },
-    host_services, runtime, transport,
-};
+use crate::engine::host_profiles::files::{write_private, Committed, FileLock};
+use crate::engine::host_profiles::{self};
+use crate::engine::{host_owner, host_services, runtime, transport};
 
 static AUTHORITY: Mutex<()> = Mutex::new(());
 static GENERATION: AtomicU64 = AtomicU64::new(0);

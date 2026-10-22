@@ -1,11 +1,13 @@
 //! Read-only OpenCode SQLite projections. No runtime, migrations or server.
 
-use std::{path::PathBuf, time::Duration};
+use std::path::PathBuf;
+use std::time::Duration;
 
 use anyhow::{ensure, Context, Result};
 use pocox_core::history_sync::digest_bytes;
 use serde_json::{json, Value};
-use sqlx::{sqlite::SqliteConnectOptions, ConnectOptions, Connection, Row, SqliteConnection};
+use sqlx::sqlite::SqliteConnectOptions;
+use sqlx::{ConnectOptions, Connection, Row, SqliteConnection};
 
 use super::NativePage;
 

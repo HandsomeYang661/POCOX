@@ -22,16 +22,15 @@
 //! Upstream reference: `deps/grok-build` (`xai-grok-pager/docs/user-guide/
 //! 11-custom-models.md`, `xai-grok-config/src/config_override.rs`).
 
-use std::{
-    ffi::OsString,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::ffi::OsString;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use anyhow::{bail, ensure, Context, Result};
 use pocox_core::provider::{ApiProtocol, ProviderEndpoint};
 
-use super::{provider::AcpProviderLaunch, spec::AgentSpec};
+use super::provider::AcpProviderLaunch;
+use super::spec::AgentSpec;
 
 /// The preset's profile id.
 pub const PROFILE_ID: &str = "grok";

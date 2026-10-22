@@ -1,10 +1,8 @@
 //! Selected-turn windows walk the native opaque message cursor in bounded
 //! pages. Finding no items in one page never means the turn is absent.
 
-use super::{
-    super::app_session::{ThreadItem, TurnItemsPage},
-    *,
-};
+use super::super::app_session::{ThreadItem, TurnItemsPage};
+use super::*;
 
 #[derive(Clone, Default)]
 pub(super) struct Page {

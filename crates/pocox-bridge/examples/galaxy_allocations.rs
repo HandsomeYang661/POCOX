@@ -5,11 +5,9 @@
 //! ```sh
 //! rustc --edition=2021 -O crates/pocox-bridge/examples/galaxy_allocations.rs -o /tmp/probe
 //! ```
-use std::{
-    alloc::{GlobalAlloc, Layout, System},
-    sync::atomic::{AtomicUsize, Ordering},
-    time::Instant,
-};
+use std::alloc::{GlobalAlloc, Layout, System};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Instant;
 struct Counter;
 static ALLOCS: AtomicUsize = AtomicUsize::new(0);
 static BYTES: AtomicUsize = AtomicUsize::new(0);
@@ -37,7 +35,8 @@ unsafe impl GlobalAlloc for Counter {
 static ALLOCATOR: Counter = Counter;
 #[path = "../src/engine/galaxy/mod.rs"]
 mod galaxy;
-use galaxy::{ffi::pocox_galaxy_frame_v1, VERSION};
+use galaxy::ffi::pocox_galaxy_frame_v1;
+use galaxy::VERSION;
 fn scene() -> Vec<f64> {
     let mut s = vec![VERSION, 3.0, 3.0, 1.0, 1.0];
     // Systems: x, y, z, home, online, first planet, planet count, label.

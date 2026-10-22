@@ -2,7 +2,8 @@
 //! owner; only fresh no-owner evidence permits loading the original UUID.
 
 use super::*;
-use crate::{native_history::ClaimError, session_access::SessionAccess};
+use crate::native_history::ClaimError;
+use crate::session_access::SessionAccess;
 
 impl AgentHost {
     /// Observe current access without loading or closing any writer.

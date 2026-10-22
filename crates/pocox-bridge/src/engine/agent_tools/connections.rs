@@ -6,13 +6,11 @@ use std::time::Duration;
 use pocox_account_proto::key::NamespacedServiceId;
 use pocox_core::service::{sanitize_component, ServiceId, ServiceKind};
 
-use super::{
-    consent,
-    error::{Pending, ToolError},
-    model::{bounded, ConnectionView, AGENT_LEASE_MS},
-    shares::Caller,
-    state::{self, now_ms, Connection, OwnerKey},
-};
+use super::consent;
+use super::error::{Pending, ToolError};
+use super::model::{bounded, ConnectionView, AGENT_LEASE_MS};
+use super::shares::Caller;
+use super::state::{self, now_ms, Connection, OwnerKey};
 use crate::engine::{discovery, runtime, transport};
 
 /// Registry-key family of these tunnels; each is scoped to its transport

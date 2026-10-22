@@ -2,7 +2,8 @@
 
 use uuid::Uuid;
 
-use crate::{models::User, Result, Store};
+use crate::models::User;
+use crate::{Result, Store};
 
 impl Store {
     /// Insert or refresh a user by their GitHub id. On first login a stable

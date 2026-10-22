@@ -1,13 +1,9 @@
-use std::{
-    fs::{self, File, FileTimes},
-    path::PathBuf,
-    time::Duration,
-};
+use std::fs::{self, File, FileTimes};
+use std::path::PathBuf;
+use std::time::Duration;
 
-use super::{
-    disk::{RotatingFile, FILE_RETENTION},
-    *,
-};
+use super::disk::{RotatingFile, FILE_RETENTION};
+use super::*;
 
 struct LogDir(PathBuf);
 
