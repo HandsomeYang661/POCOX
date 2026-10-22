@@ -1,0 +1,5 @@
+# Mechanical reformatting commits, skipped by `git blame` on GitHub and, after
+# `git config blame.ignoreRevsFile .git-blame-ignore-revs`, locally.
+
+# style: adopt the Google Rust Style Guide rustfmt settings
+6b7e8f4ad174a8c62fa1de16b8c2fe1e1ad0428c
