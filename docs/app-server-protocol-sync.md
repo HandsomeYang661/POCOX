@@ -47,6 +47,13 @@ Initialization still waits for the initialize response before sending
 questions, approvals and image references retain their existing contracts.
 The upstream WebSocket fork revisions and Rust 1.95 compiler floor are unchanged.
 
+- The CLI and the UI share the acknowledged initialization handshake.
+- Resume responses restore the thread's collaboration mode.
+- Paginated item timestamps stay distinct from whole-turn duration.
+- Flutter reads v2 accounts and the thread's current model and effort.
+- Async questions are answered with `turn/steer` while a turn runs and with
+  `turn/start` when idle.
+
 ## Local host identity
 
 ```text
@@ -112,7 +119,8 @@ flowchart LR
 - `/sessions` lists through `thread/list` with every model provider and the
   conversation list's source kinds, so renamed titles (`name`) and
   compressed sessions appear. Each row carries the app-server's
-  `Thread.status` type (`status`); older hosts omit both fields.
+  `Thread.status` type (`status`); older hosts omit both fields, and
+  `LocalSession` defaults them so those hosts still parse.
 - `/sessions?running_only=true` reports the app-server's active threads
   (`thread/loaded/list`, then `thread/read` for each) plus rollouts another
   process holds with an unfinished turn.
@@ -126,12 +134,51 @@ flowchart LR
 - Controllers follow `thread/status/changed`, which the app-server broadcasts
   to every connection for every loaded thread, and re-list on
   `thread/started`, `thread/archived` and `thread/unarchived`.
+- When the app-server does not answer, the file-only inventory stands in.
 - This device's own Local sessions view has no app-server and stays
   file-only.
 
+## Dependency rules
+
+- First-party crates may depend directly only on the upstream protocol crates
+  (`codex-app-server-protocol`, `codex-protocol`); never on `codex-app-server`,
+  `codex-core`, `codex-arg0`, `codex-config`, runtime extensions or
+  executable/helper crates, even as optional dependencies.
+- None is linked today: wire envelopes stay local (`crates/pocox-codex`),
+  because the protocol crates pull in interpreter, database and TLS
+  dependencies. Never describe them as a standalone, dependency-free schema.
+- The resolved graph must never include `codex-app-server`, `codex-core`,
+  `codex-arg0`, `codex-exec`, `codex-tui`, `codex-windows-sandbox` or
+  `codex-goal-extension`, on any target or feature.
+- Planned: replace the `serde_json::Value` surface in
+  `pocox-codex::protocol` with local types checked against the upstream wire
+  schema, without importing its dependency graph.
+
+## Bumping `deps/codex`
+
+`deps/codex` tracks the `pocox` branch of `git@github.com:acking-you/codex.git`.
+Its historical host-integration shims are not built here; add no new runtime
+shims.
+
+1. Merge upstream main into the fork's `pocox` branch; never rebase published
+   history. Push the branch before moving the pointer, so CI can fetch it.
+2. Inspect the protocol manifests and run `cargo metadata --format-version 1`
+   and `cargo tree -p pocox_bridge` on all targets and features against the
+   dependency rules above.
+3. Mirror any still-required upstream WebSocket fork patches exactly, and
+   regenerate `Cargo.lock` without unrelated dependency upgrades.
+4. Keep `sqlx` compatible with the protocol graph's transitive
+   `libsqlite3-sys`: Cargo permits only one native sqlite3 linker.
+5. Keep the root Rust toolchain at or above the protocol crates' compiler
+   floor, with CI and release toolchains in sync.
+6. Run the verification below and build the desktop UI. Never run formatting
+   or lint rewrites inside `deps/codex`.
+7. Record the verified pointer and the consumed surface changes in this doc.
+
 ## Verification
 
-Run the full first-party gates in `AGENTS.md`, including Flutter lifecycle
+Run the full first-party gates in
+[AGENTS.md › Verification](../AGENTS.md#verification), including Flutter lifecycle
 regressions for interrupted errors and ordinary interruptions, current
 aggregated-output rollout/live/history shapes and future error variants.
 Audit the resolved bridge dependency graph on all targets/features: it must contain no

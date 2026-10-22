@@ -202,7 +202,7 @@ extension _SessionLoading on _AppSessionState {
   void _openThread(String? tid, String? cwd) {
     _automaticThread = null;
     // Leaving the call's conversation ends the call: capture never outlives
-    // the conversation it was started in (AGENTS.md, live voice controls).
+    // the conversation it was started in (docs/live-voice.md).
     if (_voice.threadId != null && _voice.threadId != tid) {
       unawaited(_voice.stop());
     }

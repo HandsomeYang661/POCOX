@@ -37,7 +37,8 @@ Only control messages use the existing app-server connection (and its relay,
 when the host is remote). Audio uses WebRTC directly between the controller and
 realtime backend; the controller therefore needs network access to that backend.
 No host credential is copied into the controller. There is no continuous
-recording, automatic reconnect, or background microphone use.
+recording, automatic reconnect, or background microphone use. Capture ends on
+call stop, navigation, backgrounding, failure and disposal.
 
 ## Protocol contract
 

@@ -75,6 +75,12 @@ Codex explicitly disallows `items/list`: that adapter projects a bounded window
 from a host-local whole-history read. Remote transfer still uses deltas, but this
 legacy path does not eliminate Codex's host-side whole-history parsing cost.
 
+Host HTTP responses negotiate Zstd or Gzip, and app-server WebSockets negotiate
+permessage-deflate (`crates/pocox-codex/src/client.rs`). Compression is optional
+and needs peer support; uncompressed peers stay compatible, and SSE is never
+buffered to compress it. Verify large-payload round trips and actual peer
+negotiation separately.
+
 ## Cache policy and UI
 
 The cache lives at `<App support directory>/session-cache-v1`. Account/backend or
@@ -92,7 +98,9 @@ in that App installation; zero disables persistence and evicts existing entries.
 MB means 1,000,000 bytes. Accounting includes entry headers and staged replacement
 file lengths. Filesystem allocation-unit overhead and directory metadata are not
 included. In-memory snapshots retain their separate eight-thread / approximately
-32 MiB budget.
+32 MiB budget. They and the history cursors belong to the bridge session: metadata
+is validated before reuse, and live changes or a reconnect invalidate them, while
+disk windows survive reconnect.
 
 Capacity changes and writes share the cache file lock. Writers read the current
 configuration under that lock, so an outstanding network request cannot restore
@@ -113,6 +121,15 @@ per inventory poll, rotates through the running sessions, and skips the session
 currently being read. Backgrounding stops new prefetch work; a request already in
 flight may finish. Foregrounding resumes synchronization.
 
+Running sessions are discovered in the background through
+`/sessions?running_only=true` (the host side is in
+[app-server protocol sync](app-server-protocol-sync.md#standard-session-state));
+the host probes ownership in one batch only for threads its app-server has not
+loaded, reading lifecycle data only for held files. Controllers apply
+`thread/status/changed` between polls. Polls never overlap, status survives
+transient failures, and a newer app-server event wins over an older snapshot.
+Unopened sessions enter and leave Active by themselves on desktop and mobile.
+
 On startup or session opening, a disk snapshot appears with a cache/sync label.
 Failure leaves it readable with explicit retry. Cached approvals cannot become
 actionable; sending remains disabled until fresh state is loaded. Refresh preserves
@@ -122,6 +139,16 @@ paginated refresh, even while a previously issued paginated read is still pendin
 Live snapshots are coalesced to roughly one second and final turn events, with at
 most two ordinary checkpoint jobs per connection; app death can lose the latest
 uncommitted snapshot, which the next delta repairs.
+
+Another writer is monitored with `follow?metadata_only=true`: liveness and an
+opaque rollout revision, then coalesced bounded app-server history refreshes that
+keep loaded prefixes and the reading position. The legacy full-snapshot follow
+stays compatible, but a new client never uses it for normal monitoring. Remote
+follow tunnels are resolved off the async worker, and a failed monitoring refresh
+is kept for heartbeat and reconnect recovery. The host caches lifecycle scan
+positions of append-only rollouts (`crates/pocox-codex/src/rollout/state_cache.rs`)
+so polling does not rescan hundreds of MiB; replacement or truncation invalidates
+them.
 
 ### Cached opening and reading gestures (2026-10-04)
 
@@ -146,6 +173,20 @@ windows. Their independent continuation cursors stay separate from the descendin
 tail cursor. A fresh source generation invalidates all of them; fresh tail values
 win over cached duplicates. Older 100-item snapshots can recover their prefix
 from the retained raw page chain without a cache migration.
+
+Timeline jumps open independent ascending turn windows, and missing history
+between them shows at its real position. A tail cursor does not mean history
+above a fully loaded first turn; the exhausted turn-summary cursor confirms the
+oldest boundary. Hovering the timeline reads nothing; selecting a turn or
+approaching a gap loads one bounded page, reusing cached pages and in-flight
+requests. Adjacent missing ranges coalesce into one action without losing the
+next cursor.
+
+Continuation across FRB uses `delta_only=true`: only newly read items cross,
+merged by item ID, and an exhausted page returns empty without another RPC.
+Opening a turn still returns its cached prefix. Monitoring reads use
+`include_turn_pages=false`, so selected windows Flutter already holds are not
+resent. The cumulative default response stays for older callers.
 
 Compact navigation follows the complete turn directory and loads an unloaded
 target when selected. Dragging repositions it inside the transcript; layout
@@ -245,6 +286,17 @@ separate protocol suffix test verifies appending within a large existing message
 The real-runtime fixture exercises legacy history; pagination is covered by the
 existing bridge protocol tests. Live relay and mobile-device latency have not been
 benchmarked by these tests.
+
+Reproduce long-history issues with the opt-in native integration test. It reads
+existing sessions on the configured host, records open/navigation times and RSS,
+and switches repeatedly without sending turns or taking over:
+
+```bash
+cd apps/flutter
+fvm flutter test integration_test/local_history_performance_test.dart -d macos \
+  --dart-define=POCOX_LIVE_UI=true \
+  --dart-define=POCOX_HISTORY_THREAD_IDS=<id1>,<id2>
+```
 
 ## Code index
 

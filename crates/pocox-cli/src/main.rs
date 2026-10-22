@@ -4,7 +4,7 @@
 //! `pb-mapper` register/subscribe session so users can drive Codex
 //! from any device. This binary wires the three library crates
 //! (`pocox-core`, `pocox-codex`, `pocox-pb`)
-//! into the user-facing subcommands documented in `AGENTS.md`.
+//! into the user-facing subcommands documented in `docs/cli.md`.
 
 #![forbid(unsafe_code)]
 

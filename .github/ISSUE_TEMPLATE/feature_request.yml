@@ -11,7 +11,7 @@ body:
 
         - **Lead with the problem, not the solution.** What are you trying
           to do that POCOX makes hard or impossible today?
-        - **KISS / YAGNI.** Per [`AGENTS.md` §4](https://github.com/acking-you/POCOX/blob/main/AGENTS.md#4-engineering-principles)
+        - **KISS / YAGNI.** Per [`AGENTS.md` › Engineering principles](https://github.com/acking-you/POCOX/blob/main/AGENTS.md#engineering-principles)
           we add traits when there are at least two real implementations
           and config knobs when there's at least one real user who needs
           them. Concrete use cases beat hypothetical flexibility.
@@ -26,7 +26,7 @@ body:
       options:
         - label: I searched [open and closed issues](https://github.com/acking-you/POCOX/issues?q=is%3Aissue) and didn't find a duplicate.
           required: true
-        - label: I checked the [roadmap in `AGENTS.md` §9](https://github.com/acking-you/POCOX/blob/main/AGENTS.md#9-roadmap-rough) and this isn't already planned.
+        - label: I checked the [roadmap in `AGENTS.md`](https://github.com/acking-you/POCOX/blob/main/AGENTS.md#roadmap) and this isn't already planned.
           required: true
 
   - type: textarea
@@ -76,7 +76,7 @@ body:
     id: userspace
     attributes:
       label: Userspace impact
-      description: Per `AGENTS.md` §4.1, documented CLI flags / on-disk layout / wire-protocol fields are part of the contract.
+      description: Per `AGENTS.md` › Product rules, documented CLI flags / on-disk layout / wire-protocol fields are part of the contract.
       options:
         - "Additive only (new flag / field / endpoint, no behaviour change for existing users)"
         - "Changes existing behaviour (needs a migration note)"

@@ -31,8 +31,8 @@ After installing an updated CLI, replace exactly one network worker:
 pocox pb restart --role register --key pcx:device:api:default
 ```
 
-Both selectors are required. The command checks the executable (`pocox`, or
-`pocox` for a worker started before the rename), worker subcommand, key,
+Both selectors are required. The command checks the executable (`pocox`),
+worker subcommand, key,
 endpoint and relay before sending a signal; it refuses a host supervisor or
 another process at a reused PID. It resolves credentials before stopping the
 worker and refuses a relay/account change. A restart replaces this mapping's

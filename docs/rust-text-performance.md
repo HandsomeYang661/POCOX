@@ -124,7 +124,7 @@ frame, with about 1,000 actual drawn frames per 8.3-second window. The earlier
   highlighting accepts at most 32 inputs / 1 MiB per request. The Flutter
   scheduler runs two batches of up to 16, deduplicates requests, bounds pending
   work to 512 entries / 2 MiB, and releases queued work when its last reader
-  leaves. The token LRU weighs source and token bytes within 2 MiB. Code blocks,
+  leaves. Flutter discards stale completions. The token LRU weighs source and token bytes within 2 MiB. Code blocks,
   both diff surfaces and file previews share it. Unicode/source is preserved.
 - `engine/galaxy/scratch.rs` retains thread-local working vectors and circle
   samples without a global lock. Retained heap capacity above 1 MiB is dropped

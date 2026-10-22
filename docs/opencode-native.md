@@ -181,11 +181,13 @@ UI is driven by capabilities, not by engine name:
 | `question_multiple` | questions may allow several answers |
 | `permission_feedback` | a permission answer may carry text (off for now) |
 | `session_config`, `permission_options`, `steer`, `rename` | as for ACP agents |
+| `hostAccess` (every ACP and OpenCode host) | the host decides session access, not the Codex takeover path |
 
 The host reports a model catalog together with session and draft options.
 The options carry the model, so the composer shows them (model, agent,
 variant) instead of the Codex model menu, and a turn sends no model, effort
-or collaboration mode of its own.
+or collaboration mode of its own. The Codex effort and Plan controls are off
+too.
 
 The Codex setup banner and send guard apply only to a Codex app-server: an
 OpenCode host (its own configuration and sign-ins, or a custom provider)
@@ -219,6 +221,10 @@ the user's back; sending again sends the message with the options shown.
 
 OpenCode v1 selects model, variant and agent per message; the bridge keeps
 the session's pending choices for its next prompt.
+
+An existing session's options are read in that session's own directory
+(`app_session_settings_refresh` by thread ID), never in a project the view
+passes.
 
 Draft and session settings are read from the host asynchronously
 (`app_draft_session_settings`, `app_session_settings_refresh`), since
@@ -372,12 +378,14 @@ deletion.
 Desktop Local sessions reads OpenCode's database directly and read-only
 ([provider-native history](native-agent-history.md)). A session there is
 continued by opening it on the running OpenCode host (**Continue in
-<host>**), or by hosting OpenCode first.
+<host>**), or by hosting OpenCode first. Only a host on the shared history
+continues them; a host with its own history never does
+(`apps/flutter/lib/src/native_hosts.dart`).
 
 ## OpenCode 2's background server
 
 Proposed 2026-10-19. The user chose option A (below), and it was implemented
-on 2026-10-20. Option B, takeover, stays deferred (AGENTS.md item 35).
+on 2026-10-20. Option B, takeover, stays [planned](../AGENTS.md#roadmap).
 
 **What OpenCode 2 does.** From the 2.0.32 source
 (`packages/cli/src/server-process.ts`, `services/service-config.ts`,
@@ -441,7 +449,9 @@ history with the inherited model service:
   which would be a second engine on the history.
 - The POCOX source claim is still taken, so there is one POCOX host per
   source.
-- This mirrors an adopted Codex app-server (AGENTS.md items 26 and 37). The
+- This mirrors an adopted Codex app-server
+  ([hosting configuration](hosting-configuration.md),
+  [app-server protocol sync](app-server-protocol-sync.md)). The
   host joins a server it did not start and never signals it.
 
 **2. Lifecycle.** An attached host owns no process.
@@ -492,7 +502,8 @@ window or browser tab is not visible over HTTP. Only "a client process is
 connected" can be observed.
 
 - **A. Write only when no other client is connected** (recommended). This
-  keeps item 29's rule ("write only from a fresh no-owner admission"); only
+  keeps the [session access](native-agent-history.md#session-access) rule
+  ("write only from a fresh no-owner admission"); only
   the evidence changes. A session is writable only when a fresh inspection
   finds all of these:
   - the registration still names the attached instance;
@@ -513,7 +524,7 @@ connected" can be observed.
   lease, as today. A race between the check and a send is queued by the
   server's inbox; it does not create a second engine.
 - **B. Continue while another client is connected.** This is the takeover
-  of AGENTS.md item 35. It would need all of these:
+  [planned](../AGENTS.md#roadmap) for Claude and OpenCode. It would need all of these:
   - per session, no running turn and no pending input, permission or form
     on the server;
   - an explicit confirmation that names the connected process, for example
@@ -523,7 +534,7 @@ connected" can be observed.
     input from elsewhere;
   - never automatic, and never stopping the other client.
 
-  Not proposed for implementation; item 35 stays deferred.
+  Not proposed for implementation.
 
 **5. The password.**
 
@@ -552,7 +563,7 @@ connected" can be observed.
 - never stop the service on host stop or quit.
 
 1.19.3 keeps its own server, unchanged, and so does 2.x with `disabled`. The
-AGENTS.md §7 checks also apply.
+[AGENTS.md › Verification](../AGENTS.md#verification) checks also apply.
 
 **Decision (2026-10-19):** option A, as above; B stays deferred.
 

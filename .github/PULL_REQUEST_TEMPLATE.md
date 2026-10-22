@@ -1,7 +1,7 @@
 <!--
 Thanks for the patch! Fill in the sections below — short bullets are fine.
-PR description, commits and code stay in English; final review replies in
-the repo follow the Chinese-summary convention from `AGENTS.md` §10.
+PR description, commits and code stay in English
+(`AGENTS.md` › Workflow and communication).
 -->
 
 ## Summary
@@ -27,7 +27,7 @@ messages can stay short.
 ## Userspace impact
 
 <!--
-`AGENTS.md` §4.1: once a CLI flag, on-disk layout or wire-protocol field
+`AGENTS.md` › Product rules: once a CLI flag, on-disk layout or wire-protocol field
 is documented it is part of the contract. If you're changing one of
 these, call it out explicitly and write a migration note.
 -->
@@ -47,14 +47,14 @@ plan here:
 ## Tested
 
 <!--
-The commands below mirror `.github/workflows/ci.yml`. Tick the ones you
-ran locally; if anything was skipped, say why.
+The commands below are `AGENTS.md` › Verification. Tick the ones you ran
+locally; if anything was skipped, say why.
 -->
 
-- [ ] `cargo fmt --check -p pocox-core -p pocox-codex -p pocox-pb -p pocox-cli -p pocox_bridge`
+- [ ] `cargo fmt --check -p …` (the full package list in `AGENTS.md` › Verification)
 - [ ] `cargo clippy --workspace --all-targets -- -D warnings`
 - [ ] `cargo test --workspace --locked`
-- [ ] `dart format --output=none --set-exit-if-changed lib/main.dart test integration_test` (run from `apps/flutter`)
+- [ ] `dart format --output=none --set-exit-if-changed lib test integration_test` (run from `apps/flutter`)
 - [ ] `fvm flutter analyze` (run from `apps/flutter`)
 - [ ] `fvm flutter test` (run from `apps/flutter`)
 - [ ] `flutter_rust_bridge_codegen generate` (only if `crates/pocox-bridge/src/api/` changed)
@@ -63,18 +63,17 @@ ran locally; if anything was skipped, say why.
 ## Linked issues
 
 <!--
-Use `Closes #123` / `Refs #123`. If this is a roadmap milestone (see
-`AGENTS.md` §9), call it out here.
+Use `Closes #123` / `Refs #123`. If this ships a roadmap item (see
+`AGENTS.md` › Roadmap), call it out here.
 -->
 
 ## Sync checklist
 
-- [ ] If this ships a roadmap milestone, `README.md`'s Status table is
-      updated.
-- [ ] If this ships a roadmap milestone, `AGENTS.md`'s §9 roadmap is
-      updated.
+- [ ] Changed behaviour is reflected in its doc under `docs/`, and
+      user-visible changes in `CHANGELOG.md`.
+- [ ] A shipped roadmap item is removed from `AGENTS.md` › Roadmap.
 - [ ] Public items added in this PR have doc comments
       (`missing_docs = "deny"`).
-- [ ] No new `unwrap()` / `expect()` in non-test code without a
-      `// reason: …` follow-up.
+- [ ] No new `unwrap()` in non-test code; an unavoidable panic is an
+      `expect("…")` that says why it cannot fail.
 - [ ] No formatting / lint / rewrite commands were run against `deps/`.
