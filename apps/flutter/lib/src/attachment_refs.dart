@@ -32,10 +32,10 @@ const String kAttachedFilesHeader =
 
 /// Header line introducing the attached-images block. Images also travel
 /// inline as data URLs; this block only records where the HOST stored the
-/// bytes, so a model without image input can inspect them with the `see`
-/// skill. English on purpose — it is model-facing wire text.
+/// bytes for the agent's available image tools. It never assumes a particular
+/// skill is installed. English on purpose — it is model-facing wire text.
 const String kAttachedImagesHeader =
-    "## Attached images (saved on the host; use the see skill to inspect them):";
+    "## Attached images (saved on the host; inspect with your available image tools):";
 
 /// The most files one message may carry (UI guard).
 const int kMaxFilesPerMessage = 4;

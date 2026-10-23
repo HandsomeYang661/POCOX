@@ -75,35 +75,17 @@ extension _SessionAttachments on _AppSessionState {
 
   Future<void> _processAttachment(_Attachment att, XFile file) async {
     att.source = file;
-    try {
-      if (localAttachmentPath(file.path)) {
-        final image = await processImageFile(file.path);
-        if (!_drafts.containsAttachment(att)) return;
-        att.processed = image;
-        _drafts.attachmentChanged(att);
-      } else {
-        final bytes = await file.readAsBytes();
-        if (!_drafts.containsAttachment(att)) return;
-        await _processImageBytes(att, bytes);
-      }
-    } catch (e) {
-      att.error = friendlyError(e);
-      _drafts.attachmentChanged(att);
-    }
+    await _prepareAndUploadImage(
+      att,
+      () => localAttachmentPath(file.path)
+          ? processImageFile(file.path)
+          : file.readAsBytes().then(processImage),
+    );
   }
 
   Future<void> _processImageBytes(_Attachment att, Uint8List bytes) async {
     att.sourceBytes = bytes;
-    try {
-      att.processed = await processImage(bytes);
-      att.sourceBytes = null;
-    } catch (e) {
-      att.error = friendlyError(e);
-    }
-    _drafts.attachmentChanged(att);
-    if (att.error == null && att.processed != null && att.hostPath == null) {
-      unawaited(_uploadImageAttachment(att));
-    }
+    await _prepareAndUploadImage(att, () => processImage(bytes));
   }
 
   void _retryAttachment(_Attachment att) {
@@ -121,7 +103,7 @@ extension _SessionAttachments on _AppSessionState {
     att.hostError = null;
     _drafts.attachmentChanged(att);
     if (retryHostOnly) {
-      unawaited(_uploadImageAttachment(att));
+      unawaited(_prepareAndUploadImage(att, () async => att.processed!));
       return;
     }
     if (att.source case final file?) {
@@ -415,8 +397,13 @@ extension _SessionAttachments on _AppSessionState {
     // Disposal ends this view's ownership/connection subscriptions. A file
     // still being read cannot rely on that stale admission. Keep it retryable
     // in its original draft; an upload already dispatched may still finish.
-    if (!mounted || !identical(draft, _draft)) return false;
-    return _admitNow(draft, ticket).acceptsAny;
+    if (!mounted ||
+        !identical(draft, _draft) ||
+        !_drafts.containsAttachment(att)) {
+      return false;
+    }
+    final gate = _admitNow(draft, ticket);
+    return att.isFile ? gate.acceptsAny : gate.acceptsImages;
   }
 
   Future<void> _uploadAttachment(_Attachment att, XFile file) async {
@@ -469,7 +456,8 @@ extension _SessionAttachments on _AppSessionState {
   /// one, otherwise a generic stem, always with the extension of the PROCESSED
   /// bytes (a WebP re-encoded to JPEG must not land as `.webp`).
   String _imageUploadName(_Attachment att, ProcessedImage processed) {
-    final name = att.name.trim().isEmpty ? 'image' : att.name;
+    final basename = hostPathBasename(att.name).trim();
+    final name = basename.isEmpty ? 'image' : basename;
     final dot = name.lastIndexOf('.');
     final stem = dot > 0 ? name.substring(0, dot) : name;
     return '$stem.${sniffImageExtension(processed.bytes)}';
@@ -479,29 +467,52 @@ extension _SessionAttachments on _AppSessionState {
   /// accept inline image input can still inspect it through a vision tool.
   /// Non-fatal: the inline data URL remains the source of truth for the turn,
   /// so a failed upload only drops the path reference.
-  Future<void> _uploadImageAttachment(_Attachment att) async {
-    final processed = att.processed;
-    if (processed == null) return;
+  Future<void> _prepareAndUploadImage(
+    _Attachment att,
+    Future<ProcessedImage> Function() prepare,
+  ) async {
+    final api = ref.read(bridgeApiProvider);
+    final drafts = _drafts;
+    final service = widget.serviceKey;
+    final thread = att.draft?.threadId;
+    final project = att.draft?.project ?? _cwd ?? _automaticProject;
+    final revoked = AppLocalizations.of(context).attachmentRevoked;
+    // No intermediate ready notification: queue draining must wait for the
+    // mirror even when native preparation finishes synchronously.
     att.uploading = true;
     att.hostError = null;
-    _drafts.attachmentChanged(att);
+    drafts.attachmentChanged(att);
     try {
-      final api = ref.read(bridgeApiProvider);
-      final destination = await api.metaUploadContext();
-      if (!_mayUpload(att)) {
-        throw StateError(AppLocalizations.of(context).attachmentRevoked);
+      String? destination;
+      try {
+        destination = await api.metaUploadContext();
+      } catch (e) {
+        att.hostError = friendlyError(e);
       }
-      att.hostPath = await api.metaUploadFileScoped(
-        widget.serviceKey,
+      if (!drafts.containsAttachment(att)) return;
+      try {
+        att.processed = await prepare();
+        att.sourceBytes = null;
+      } catch (e) {
+        att.error = friendlyError(e);
+        return;
+      }
+      if (!drafts.containsAttachment(att) || destination == null) return;
+      if (!_mayUpload(att)) throw StateError(revoked);
+      final processed = att.processed!;
+      att.hostPath = await api.metaUploadImageScoped(
+        service,
         _imageUploadName(att, processed),
         processed.bytes,
         destination,
+        thread: thread,
+        project: project,
       );
     } catch (e) {
       att.hostError = friendlyError(e);
     } finally {
       att.uploading = false;
-      _drafts.attachmentChanged(att);
+      drafts.attachmentChanged(att);
     }
   }
 
@@ -609,10 +620,16 @@ extension _SessionAttachments on _AppSessionState {
                   gaplessPlayback: true,
                 ),
                 if (att.hostError != null)
-                  const Positioned(
+                  Positioned(
                     top: 2,
                     right: 2,
-                    child: Icon(Icons.warning_amber_rounded, size: 14),
+                    child: Tooltip(
+                      message: att.hostError!,
+                      child: const Icon(
+                        AppIcons.warning_amber_rounded,
+                        size: 14,
+                      ),
+                    ),
                   ),
               ],
             );
