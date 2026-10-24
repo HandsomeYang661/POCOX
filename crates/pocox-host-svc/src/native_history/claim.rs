@@ -76,12 +76,14 @@ fn claim_path(source: &Path, session: &str) -> std::io::Result<PathBuf> {
         return Err(std::io::Error::other("unsupported native source"));
     };
     let directory = base.join(".pocox-writers");
-    let mut builder = fs::DirBuilder::new();
+    let builder = fs::DirBuilder::new();
     #[cfg(unix)]
-    {
+    let builder = {
         use std::os::unix::fs::DirBuilderExt;
+        let mut builder = builder;
         builder.mode(0o700);
-    }
+        builder
+    };
     match builder.create(&directory) {
         Ok(()) => {},
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {},
